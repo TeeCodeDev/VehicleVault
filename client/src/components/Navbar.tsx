@@ -1,5 +1,5 @@
 import React from 'react';
-import { Shield, Sun, Moon, LogOut, Car } from 'lucide-react';
+import { Sun, Moon, LogOut, Car } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.js';
 import { useTheme } from '../context/ThemeContext.js';
 import { useLanguage } from '../context/LanguageContext.js';
@@ -25,9 +25,11 @@ export const Navbar: React.FC<NavbarProps> = ({
       {/* Brand & Active vehicle selector */}
       <div className="flex items-center space-x-4">
         <div className="flex items-center space-x-2.5">
-          <div className="w-8 h-8 rounded-lg bg-slate-900 text-white dark:bg-slate-800 dark:text-slate-100 border border-slate-700/40 flex items-center justify-center shadow-sm">
-            <Shield className="w-4 h-4 text-sky-400" />
-          </div>
+          <img
+            src="/icon-192.png"
+            alt="VehicleVault"
+            className="w-8 h-8 rounded-lg object-contain shadow-sm"
+          />
           <span className="font-extrabold text-sm tracking-wider text-slate-900 dark:text-slate-100 hidden sm:inline">
             VEHICLE<span className="text-sky-500">VAULT</span>
           </span>

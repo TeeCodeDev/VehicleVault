@@ -1,11 +1,15 @@
-# 🚗 VehicleVault — Self-Hosted Vehicle & Maintenance Tracker
+<div align="center">
+  <img src="client/public/logo.png" width="160" alt="VehicleVault Logo" />
+  <h1>VehicleVault</h1>
+  <p><strong>Self-Hosted Vehicle Lifecycle, Fuel, Maintenance, and TCO Platform</strong></p>
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Node.js](https://img.shields.io/badge/Node.js-24%20LTS-green.svg)](https://nodejs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue.svg)](https://www.typescriptlang.org/)
-[![React](https://img.shields.io/badge/React-19-cyan.svg)](https://react.dev/)
-[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)](https://www.docker.com/)
-[![MCP](https://img.shields.io/badge/MCP-Model%20Context%20Protocol-8A2BE2.svg)](https://modelcontextprotocol.io/)
+  [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+  [![Node.js](https://img.shields.io/badge/Node.js-24%20LTS-green.svg)](https://nodejs.org/)
+  [![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue.svg)](https://www.typescriptlang.org/)
+  [![React](https://img.shields.io/badge/React-19-cyan.svg)](https://react.dev/)
+  [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)](https://www.docker.com/)
+  [![MCP](https://img.shields.io/badge/MCP-Model%20Context%20Protocol-8A2BE2.svg)](https://modelcontextprotocol.io/)
+</div>
 
 **VehicleVault** is a privacy-first, self-hosted vehicle lifecycle, fuel, maintenance, digital glovebox, and TCO (Total Cost of Ownership) platform. Built with a responsive **React 19 PWA**, a **Node.js 24 TypeScript REST API**, an intelligent **Tesseract OCR parsing pipeline**, and a first-class **Model Context Protocol (MCP) Server** enabling AI agents (such as Claude Desktop or Antigravity) to read, inspect, and log vehicle telemetry.
 
