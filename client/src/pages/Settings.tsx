@@ -37,7 +37,7 @@ export const Settings: React.FC = () => {
   // AI Vision Receipt Scanner State
   const [aiProvider, setAiProvider] = useState<'gemini' | 'openai' | 'none'>('gemini');
   const [geminiApiKey, setGeminiApiKey] = useState('');
-  const [geminiModel, setGeminiModel] = useState('gemini-1.5-flash');
+  const [geminiModel, setGeminiModel] = useState('gemini-2.0-flash');
   const [hasGeminiKey, setHasGeminiKey] = useState(false);
   const [geminiKeyMasked, setGeminiKeyMasked] = useState<string | null>(null);
   const [showGeminiKey, setShowGeminiKey] = useState(false);
@@ -94,7 +94,7 @@ export const Settings: React.FC = () => {
       }>('/api/settings/ai');
 
       setAiProvider(res.provider || 'gemini');
-      setGeminiModel(res.geminiModel || 'gemini-1.5-flash');
+      setGeminiModel(res.geminiModel || 'gemini-2.0-flash');
       setHasGeminiKey(res.hasGeminiKey);
       setGeminiKeyMasked(res.geminiKeyMasked);
 
@@ -316,7 +316,13 @@ export const Settings: React.FC = () => {
       </div>
 
       {/* AI Bonherkenning (Gemini & OpenAI) Card */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 space-y-5 shadow-sm transition-colors">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleSaveAiSettings();
+        }}
+        className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 space-y-5 shadow-sm transition-colors"
+      >
         <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
           <div className="flex items-center space-x-2.5">
             <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
@@ -462,8 +468,9 @@ export const Settings: React.FC = () => {
                   onChange={(e) => setGeminiModel(e.target.value)}
                   className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 shadow-sm"
                 >
-                  <option value="gemini-1.5-flash">gemini-1.5-flash (Aanbevolen, ultra snel &amp; gratis)</option>
-                  <option value="gemini-2.0-flash">gemini-2.0-flash (Nieuwste generatie)</option>
+                  <option value="gemini-2.0-flash">gemini-2.0-flash (Aanbevolen, ultra snel &amp; gratis)</option>
+                  <option value="gemini-2.5-flash">gemini-2.5-flash (Nieuwste generatie)</option>
+                  <option value="gemini-1.5-flash">gemini-1.5-flash (Stabiel)</option>
                   <option value="gemini-1.5-pro">gemini-1.5-pro (Krachtigste redenering)</option>
                 </select>
               </div>
@@ -592,8 +599,7 @@ export const Settings: React.FC = () => {
               </span>
             )}
             <button
-              type="button"
-              onClick={handleSaveAiSettings}
+              type="submit"
               disabled={aiSaving}
               className="px-4 py-2 bg-slate-900 text-white hover:bg-black dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white rounded-xl text-xs font-bold inline-flex items-center space-x-1.5 transition shadow-sm disabled:opacity-50"
             >
@@ -602,7 +608,7 @@ export const Settings: React.FC = () => {
             </button>
           </div>
         </div>
-      </div>
+      </form>
 
       {/* Model Context Protocol (MCP) Integration Card */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 space-y-4 shadow-sm transition-colors">

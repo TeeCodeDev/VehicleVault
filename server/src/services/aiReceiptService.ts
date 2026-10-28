@@ -78,7 +78,7 @@ export class AiReceiptService {
     const provider = (storedProvider || envProvider || 'gemini') as 'gemini' | 'openai' | 'none';
 
     const geminiApiKey = getSystemSetting('gemini_api_key') || process.env.GEMINI_API_KEY || '';
-    const geminiModel = getSystemSetting('gemini_model') || process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+    const geminiModel = getSystemSetting('gemini_model') || process.env.GEMINI_MODEL || 'gemini-2.0-flash';
 
     const openaiApiKey = getSystemSetting('openai_api_key') || process.env.OPENAI_API_KEY || '';
     const openaiModel = getSystemSetting('openai_model') || process.env.OPENAI_MODEL || 'gpt-4o-mini';
@@ -263,6 +263,74 @@ export class AiReceiptService {
   }
 
   /**
+   * Dynamically fetch available models from Gemini API that support generateContent
+   */
+  public static async getAvailableGeminiModels(apiKey: string): Promise<string[]> {
+    try {
+      const url = apiKey.startsWith('AIza')
+        ? `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`
+        : `https://generativelanguage.googleapis.com/v1beta/models`;
+
+      let res = await fetch(url, {
+        headers: { 'x-goog-api-key': apiKey },
+      });
+
+      if (res.status === 401) {
+        res = await fetch('https://generativelanguage.googleapis.com/v1beta/models', {
+          headers: { 'Authorization': `Bearer ${apiKey}` },
+        });
+      }
+
+      if (!res.ok) return [];
+
+      const data = await res.json() as any;
+      if (!Array.isArray(data.models)) return [];
+
+      return data.models
+        .filter((m: any) => Array.isArray(m.supportedGenerationMethods) && m.supportedGenerationMethods.includes('generateContent'))
+        .map((m: any) => m.name.replace(/^models\//, ''));
+    } catch {
+      return [];
+    }
+  }
+
+  private static async postGemini(
+    model: string,
+    apiVersion: 'v1beta' | 'v1',
+    apiKey: string,
+    body: any,
+    signal: AbortSignal
+  ): Promise<Response> {
+    const endpoint = apiKey.startsWith('AIza')
+      ? `https://generativelanguage.googleapis.com/${apiVersion}/models/${model}:generateContent?key=${apiKey}`
+      : `https://generativelanguage.googleapis.com/${apiVersion}/models/${model}:generateContent`;
+
+    let res = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': apiKey,
+      },
+      body: JSON.stringify(body),
+      signal,
+    });
+
+    if (res.status === 401) {
+      res = await fetch(`https://generativelanguage.googleapis.com/${apiVersion}/models/${model}:generateContent`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify(body),
+        signal,
+      });
+    }
+
+    return res;
+  }
+
+  /**
    * Analyze receipt with Google Gemini Vision
    */
   private static async analyzeWithGemini(
@@ -271,11 +339,6 @@ export class AiReceiptService {
     apiKey: string,
     modelName: string
   ): Promise<AiReceiptExtraction> {
-    const model = modelName || 'gemini-1.5-flash';
-    const endpoint = apiKey.startsWith('AIza')
-      ? `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
-      : `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
-
     const promptText = `You are a precision fuel receipt scanner for Dutch and European filling stations.
 Extract transaction details from this receipt image.
 Return ONLY a valid JSON object with the following fields:
@@ -313,27 +376,48 @@ Ensure decimal numbers use standard dots. Do not add markdown or extra text. Out
     const timeout = setTimeout(() => controller.abort(), 25000);
 
     try {
-      let res = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-goog-api-key': apiKey,
-        },
-        body: JSON.stringify(body),
-        signal: controller.signal,
-      });
+      const requestedModel = modelName || 'gemini-2.0-flash';
+      let activeModel = requestedModel;
 
-      // Fallback retry with Bearer header if key is an OAuth / Bearer Authorization token
-      if (res.status === 401) {
-        res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`,
-          },
-          body: JSON.stringify(body),
-          signal: controller.signal,
-        });
+      // 1. Try requested model on v1beta
+      let res = await this.postGemini(activeModel, 'v1beta', apiKey, body, controller.signal);
+
+      // If 404 (e.g. models/gemini-1.5-flash is not found for API version v1beta):
+      if (res.status === 404) {
+        console.log(`Gemini model ${activeModel} on v1beta returned 404, attempting fallback to v1...`);
+        // 2. Try requested model on stable v1
+        res = await this.postGemini(activeModel, 'v1', apiKey, body, controller.signal);
+
+        // 3. If still 404, try modern gemini-2.0-flash on v1beta
+        if (res.status === 404 && activeModel !== 'gemini-2.0-flash') {
+          console.log(`Fallback to gemini-2.0-flash on v1beta...`);
+          activeModel = 'gemini-2.0-flash';
+          res = await this.postGemini(activeModel, 'v1beta', apiKey, body, controller.signal);
+        }
+
+        // 4. If still 404, try gemini-2.5-flash on v1beta
+        if (res.status === 404 && activeModel !== 'gemini-2.5-flash') {
+          console.log(`Fallback to gemini-2.5-flash on v1beta...`);
+          activeModel = 'gemini-2.5-flash';
+          res = await this.postGemini(activeModel, 'v1beta', apiKey, body, controller.signal);
+        }
+
+        // 5. If still 404, dynamically query user's allowed models
+        if (res.status === 404) {
+          console.log(`Dynamically discovering available models for API key...`);
+          const available = await this.getAvailableGeminiModels(apiKey);
+          const discovered = available.find((m) => m.includes('flash')) || available[0];
+          if (discovered && discovered !== activeModel) {
+            activeModel = discovered;
+            console.log(`Using discovered model: ${activeModel}`);
+            res = await this.postGemini(activeModel, 'v1beta', apiKey, body, controller.signal);
+          }
+        }
+
+        // Persist newly discovered working model so subsequent requests don't hit 404
+        if (res.ok && activeModel !== requestedModel) {
+          setSystemSetting('gemini_model', activeModel);
+        }
       }
 
       clearTimeout(timeout);
@@ -360,7 +444,7 @@ Ensure decimal numbers use standard dots. Do not add markdown or extra text. Out
         throw new Error('Gemini API gaf geen herkenningsresultaat terug');
       }
 
-      return this.normalizeAiResult(rawJson, 'gemini', model);
+      return this.normalizeAiResult(rawJson, 'gemini', activeModel);
     } catch (err) {
       clearTimeout(timeout);
       throw err;
