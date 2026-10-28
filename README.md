@@ -85,8 +85,8 @@ The easiest way to run VehicleVault is with Docker Compose.
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/TeeCodeDev/VehichleVault.git
-cd VehichleVault
+git clone https://github.com/TeeCodeDev/VehicleVault.git
+cd VehicleVault
 cp .env.example .env
 ```
 

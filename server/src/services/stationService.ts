@@ -72,7 +72,7 @@ export class StationService {
 
       const res = await fetch(url, {
         headers: {
-          'User-Agent': 'VehicleVaultApp/1.0.4 (https://github.com/TeeCodeDev/VehichleVault)',
+          'User-Agent': 'VehicleVaultApp/1.0.4 (https://github.com/TeeCodeDev/VehicleVault)',
           'Accept-Language': 'nl,en;q=0.8',
         },
         signal: controller.signal,
@@ -164,7 +164,7 @@ export class StationService {
 
       const res = await fetch(url, {
         headers: {
-          'User-Agent': 'VehicleVaultApp/1.0.4 (https://github.com/TeeCodeDev/VehichleVault)',
+          'User-Agent': 'VehicleVaultApp/1.0.4 (https://github.com/TeeCodeDev/VehicleVault)',
           'Accept-Language': 'nl,en;q=0.8',
         },
         signal: controller.signal,

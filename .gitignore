@@ -70,3 +70,6 @@ coverage/
 .parcel-cache/
 .turbo/
 .eslintcache
+
+# Internal dev context
+PROJECT_CONTEXT.md
