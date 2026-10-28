@@ -1,0 +1,59 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>VehicleVault</Name>
+  <Version>v1.0.0</Version>
+  <Repository>ghcr.io/teecodedev/vehichlevault:latest</Repository>
+  <Registry>https://ghcr.io/teecodedev/vehichlevault</Registry>
+  <Network>bridge</Network>
+  <MyPort>3001</MyPort>
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/TeeCodeDev/VehichleVault/issues</Support>
+  <Project>https://github.com/TeeCodeDev/VehichleVault</Project>
+  <Overview>VehicleVault is a modern, privacy-first, self-hosted vehicle lifecycle, fuel, maintenance, digital glovebox, and TCO (Total Cost of Ownership) platform. Built with a responsive React PWA, Node.js TypeScript API, Tesseract OCR receipt scanner, and Model Context Protocol (MCP) server for AI assistants.&#xD;
+&#xD;
+[b]Key Features:[/b]&#xD;
+- [b]Fleet &amp; Garage Management:[/b] Multi-vehicle profiles (cars, motorcycles, trailers, vans) with cover photos, specifications, and telemetry.&#xD;
+- [b]Dutch RDW Open Data:[/b] 1-click license plate autofill and automated background APK expiry monitoring with alert notifications.&#xD;
+- [b]Quick-Log Fueling &amp; OCR Scanner:[/b] Fast mobile PWA fueling interface with built-in Tesseract OCR for automatic receipt parsing (liters, €/L, total cost).&#xD;
+- [b]Digital Glovebox &amp; Documents:[/b] Secure vault for registrations, insurance green cards, APK reports, garage invoices, and user manuals with category filters.&#xD;
+- [b]Dual-Trigger Maintenance Engine:[/b] Track distance and time service intervals with parts vs. labor cost split and DIY savings indicator.&#xD;
+- [b]Dynamic TCO &amp; Tank Analytics:[/b] Operational vs. asset TCO with purchase price toggle, tank range metrics, fuel price evolution, and gas station comparisons.&#xD;
+- [b]Digital Service Dossier:[/b] Generate downloadable, clean PDF service booklets suitable for vehicle sales or insurance archives.&#xD;
+- [b]Offline Mode &amp; PWA:[/b] Offline caching with an offline fuel queue that automatically synchronizes when connectivity is restored.&#xD;
+- [b]AI Integration (MCP):[/b] Built-in Model Context Protocol (MCP) server for Claude Desktop, Antigravity, and AI agents via stdio or authenticated HTTP/SSE.&#xD;
+- [b]Multi-Language:[/b] Full Dutch (NL) and English (EN) interface switchable in settings.&#xD;
+&#xD;
+[b]Initial Setup:[/b]&#xD;
+Open the web interface at [inline]http://[IP]:[PORT:3001]/[/inline]. The first user registered will automatically be granted Administrator privileges.</Overview>
+  <Category>Tools:Utilities Productivity: Other:</Category>
+  <WebUI>http://[IP]:[PORT:3001]/</WebUI>
+  <TemplateURL>https://raw.githubusercontent.com/TeeCodeDev/unraid-templates/main/templates/VehicleVault.xml</TemplateURL>
+  <ReadMe>https://raw.githubusercontent.com/TeeCodeDev/VehichleVault/main/README.md</ReadMe>
+  <ExtraSearchTerms>vehiclevault vehicle car auto maintenance garage fuel mileage rdw apk odometer oil tco lube logger tracktor mcp pwa</ExtraSearchTerms>
+  <License>MIT</License>
+  <Icon>https://raw.githubusercontent.com/TeeCodeDev/VehichleVault/main/client/public/icon-512.svg</Icon>
+  <ExtraParams/>
+  <PostArgs/>
+  <CPUset/>
+  <Date>2026-10-28</Date>
+  <DonateText>If you like VehicleVault, buy me a coffee!</DonateText>
+  <DonateLink>https://ko-fi.com/D1D51ZGUNL</DonateLink>
+  <Changes>
+### v1.0.0 (2026-10-28)
+- Initial release of VehicleVault.
+- Fleet management with RDW open data integration and APK status alerts.
+- Tesseract OCR receipt scanner for fuel fill-ups.
+- Digital glovebox document repository for registrations, insurance, APK reports, and invoices.
+- Dual-trigger maintenance intervals with parts and labor cost split and DIY savings tracking.
+- Dynamic TCO engine, tank range analytics, and PDF service booklet export.
+- Offline PWA caching with background synchronization queue.
+- Model Context Protocol (MCP) server support for AI agents.
+- Bilingual interface (Dutch and English).
+  </Changes>
+  <Config Name="WebUI Port" Target="3001" Default="3001" Mode="tcp" Description="The port for the VehicleVault web interface (internal container port is 3001)." Type="Port" Display="always" Required="true" Mask="false"/>
+  <Config Name="AppData" Target="/data" Default="/mnt/user/appdata/vehiclevault" Mode="rw" Description="Storage path for SQLite database (vehiclevault.db), uploaded vehicle photos, receipt scans, documents, and invoices." Type="Path" Display="always" Required="true" Mask="false"/>
+  <Config Name="JWT Secret" Target="JWT_SECRET" Default="" Mode="" Description="Secret key used to sign access tokens (JWT). Leave blank for auto-generated default, or generate a random 32-character string." Type="Variable" Display="advanced" Required="false" Mask="true"/>
+  <Config Name="JWT Refresh Secret" Target="JWT_REFRESH_SECRET" Default="" Mode="" Description="Secret key used to sign refresh tokens. Leave blank for auto-generated default, or generate a random 32-character string." Type="Variable" Display="advanced" Required="false" Mask="true"/>
+  <Config Name="Node Environment" Target="NODE_ENV" Default="production" Mode="" Description="Node environment mode." Type="Variable" Display="advanced" Required="false" Mask="false"/>
+</Container>
