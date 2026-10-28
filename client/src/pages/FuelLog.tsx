@@ -284,7 +284,7 @@ export const FuelLog: React.FC = () => {
                 value={odometer}
                 onChange={(e) => handleOdometerChange(e.target.value)}
                 placeholder={lang === 'nl' ? 'bijv. 58240' : 'e.g. 58240'}
-                className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-1.5 text-slate-900 dark:text-white font-mono font-bold focus:outline-none focus:border-sky-500 shadow-sm"
+                className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-1.5 text-slate-900 dark:text-white font-mono focus:outline-none focus:border-sky-500 shadow-sm"
               />
             </div>
             <div>
@@ -298,7 +298,7 @@ export const FuelLog: React.FC = () => {
                 value={liters}
                 onChange={(e) => handleLitersChange(e.target.value)}
                 placeholder={lang === 'nl' ? 'bijv. 45.20' : 'e.g. 45.20'}
-                className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-1.5 text-slate-900 dark:text-white font-bold focus:outline-none focus:border-sky-500 shadow-sm"
+                className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-1.5 text-slate-900 dark:text-white focus:outline-none focus:border-sky-500 shadow-sm"
               />
             </div>
             <div>
@@ -312,7 +312,7 @@ export const FuelLog: React.FC = () => {
                 value={pricePerLiter}
                 onChange={(e) => handlePriceChange(e.target.value)}
                 placeholder={lang === 'nl' ? 'bijv. 1.949' : 'e.g. 1.949'}
-                className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-1.5 text-slate-900 dark:text-white font-bold focus:outline-none focus:border-sky-500 shadow-sm"
+                className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-1.5 text-slate-900 dark:text-white focus:outline-none focus:border-sky-500 shadow-sm"
               />
             </div>
           </div>
@@ -329,7 +329,7 @@ export const FuelLog: React.FC = () => {
                 value={totalCost}
                 onChange={(e) => handleTotalChange(e.target.value)}
                 placeholder={lang === 'nl' ? 'Berekend of handmatig' : 'Calculated or manual'}
-                className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-1.5 font-black text-slate-900 dark:text-white text-sm focus:outline-none focus:border-sky-500 shadow-sm"
+                className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-1.5 text-slate-900 dark:text-white focus:outline-none focus:border-sky-500 shadow-sm"
               />
             </div>
 
