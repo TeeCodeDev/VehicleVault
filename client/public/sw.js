@@ -1,16 +1,28 @@
-const CACHE_NAME = 'vehiclevault-cache-v1';
+const CACHE_NAME = 'vehiclevault-cache-v2';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/manifest.json',
+  '/icon-192.png',
+  '/icon-512.png',
+  '/icon-192-maskable.png',
+  '/icon-512-maskable.png',
+  '/apple-touch-icon.png',
   '/icon-192.svg',
   '/icon-512.svg'
 ];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS);
+    caches.open(CACHE_NAME).then(async (cache) => {
+      // Resilient prefetch: individual failures won't abort the entire install
+      for (const asset of STATIC_ASSETS) {
+        try {
+          await cache.add(asset);
+        } catch (err) {
+          console.warn('SW prefetch skipped:', asset, err?.message || err);
+        }
+      }
     })
   );
   self.skipWaiting();
@@ -34,7 +46,7 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // Network-first for API requests
+  // Network-first for API requests, fallback to offline notice
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(
       fetch(event.request).catch(() => {
@@ -70,4 +82,3 @@ self.addEventListener('fetch', (event) => {
     })
   );
 });
-

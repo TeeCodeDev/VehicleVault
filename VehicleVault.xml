@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <Container version="2">
   <Name>VehicleVault</Name>
-  <Version>v1.0.6</Version>
+  <Version>v1.0.7</Version>
   <Repository>ghcr.io/teecodedev/vehichlevault:latest</Repository>
   <Registry>https://ghcr.io/teecodedev/vehichlevault</Registry>
   <Network>bridge</Network>
@@ -40,6 +40,11 @@ Open the web interface at [inline]http://[IP]:[PORT:3001]/[/inline]. The first u
   <DonateText>If you like VehicleVault, buy me a coffee!</DonateText>
   <DonateLink>https://ko-fi.com/D1D51ZGUNL</DonateLink>
   <Changes>
+### v1.0.7 (2026-10-28)
+- PWA WebAPK Installatie Fix: Echte raster PNG iconen (192x192, 512x512, maskable en apple-touch-icon) toegevoegd aan manifest.json ter vervanging van SVG, waarmee Android WebAPK installatie foutloos slaagt.
+- Mobiele Web App Meta Tags: Ondersteuning voor iOS Safari en Android standalone weergave.
+- Service Worker Caching: Geoptimaliseerde en tolerante prefetching van PWA-bestanden.
+
 ### v1.0.6 (2026-10-28)
 - Google Gemini Authorization Key Fix: Ondersteuning voor nieuwste Google AI Studio API-sleutels (AQ. prefix) via x-goog-api-key header en Bearer fallback.
 - Sleutelbehoud bij Opslaan: Voorkomt per ongeluk wissen van de opgeslagen AI API-sleutel wanneer instellingen worden opgeslagen.
