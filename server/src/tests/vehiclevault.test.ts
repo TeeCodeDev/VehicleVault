@@ -15,6 +15,7 @@ import { ImportService } from '../services/importService.js';
 import { RdwService } from '../services/rdwService.js';
 import { AiReceiptService, getSystemSetting, setSystemSetting, maskApiKey } from '../services/aiReceiptService.js';
 import { StationService } from '../services/stationService.js';
+import { isAuthDisabled, getDefaultUser } from '../middleware/auth.js';
 
 describe('VehicleVault Comprehensive Test Suite', () => {
   let testUserId: string;
@@ -77,6 +78,27 @@ describe('VehicleVault Comprehensive Test Suite', () => {
       assert.ok(rawKey.startsWith('vkv_'));
       assert.ok(prefix.startsWith('vkv_'));
       assert.equal(hashToken(rawKey), keyHash);
+    });
+
+    it('should support disabling authentication via system settings or environment variable', () => {
+      // Default should be false
+      db.run('DELETE FROM system_settings WHERE key = ?', ['disable_auth']);
+      delete process.env.DISABLE_AUTH;
+      assert.equal(isAuthDisabled(), false);
+
+      // Enable via system_settings
+      setSystemSetting('disable_auth', 'true');
+      assert.equal(isAuthDisabled(), true);
+
+      // Verify default user lookup returns a valid admin user
+      const defaultUser = getDefaultUser();
+      assert.ok(defaultUser.userId);
+      assert.ok(defaultUser.email);
+      assert.ok(['admin', 'user'].includes(defaultUser.role));
+
+      // Clean up
+      db.run('DELETE FROM system_settings WHERE key = ?', ['disable_auth']);
+      assert.equal(isAuthDisabled(), false);
     });
   });
 

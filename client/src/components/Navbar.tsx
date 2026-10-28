@@ -16,7 +16,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   selectedVehicleId,
   onSelectVehicle,
 }) => {
-  const { user, logout } = useAuth();
+  const { user, logout, authDisabled } = useAuth();
   const { setTheme, isDark } = useTheme();
   const { lang, t } = useLanguage();
 
@@ -66,15 +66,24 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* User & Logout */}
         <div className="flex items-center space-x-2 pl-2 border-l border-slate-200 dark:border-slate-800 text-xs">
           <span className="text-slate-600 dark:text-slate-400 hidden md:inline truncate max-w-[150px] font-medium">
-            {user?.email}
+            {user?.email || 'admin@local'}
           </span>
-          <button
-            onClick={logout}
-            className="p-2 text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-            title={t('logout')}
-          >
-            <LogOut className="w-4 h-4" />
-          </button>
+          {authDisabled ? (
+            <span
+              className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800"
+              title="Inloggen is uitgeschakeld (Pangolin / No-Auth modus)"
+            >
+              No-Auth
+            </span>
+          ) : (
+            <button
+              onClick={logout}
+              className="p-2 text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+              title={t('logout')}
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </div>
     </header>

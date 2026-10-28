@@ -9,5 +9,8 @@ router.get('/ai/gemini-models', requireAuth, SettingsController.getGeminiModels)
 router.put('/ai', requireAuth, SettingsController.updateAiSettings);
 router.post('/ai/test', requireAuth, SettingsController.testAiConnection);
 
+router.get('/security', requireAuth, SettingsController.getSecuritySettings);
+router.put('/security', requireAuth, SettingsController.updateSecuritySettings);
+
 export default router;
 

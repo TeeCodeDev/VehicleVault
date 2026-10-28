@@ -5,6 +5,7 @@ import { authLimiter } from '../middleware/rateLimiter.js';
 
 const router = Router();
 
+router.get('/status', AuthController.status);
 router.post('/register', authLimiter, AuthController.register);
 router.post('/login', authLimiter, AuthController.login);
 router.post('/refresh', AuthController.refresh);
@@ -16,4 +17,3 @@ router.post('/api-keys', requireAuth, AuthController.createApiKey);
 router.delete('/api-keys/:id', requireAuth, AuthController.deleteApiKey);
 
 export default router;
-

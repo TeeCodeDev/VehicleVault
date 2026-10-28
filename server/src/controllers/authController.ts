@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import { Request, Response } from 'express';
 import { z } from 'zod';
 import { db } from '../db/database.js';
+import { isAuthDisabled, getDefaultUser } from '../middleware/auth.js';
 import {
   hashPassword,
   comparePassword,
@@ -180,14 +181,31 @@ export class AuthController {
     }
   }
 
+  public static async status(_req: Request, res: Response): Promise<void> {
+    try {
+      const disabled = isAuthDisabled();
+      const user = disabled ? getDefaultUser() : null;
+      res.json({
+        authDisabled: disabled,
+        user,
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err?.message || 'Failed to check auth status' });
+    }
+  }
+
   public static async me(req: Request, res: Response): Promise<void> {
     try {
-      const user = db.get('SELECT id, email, role, created_at FROM users WHERE id = ?', [req.user?.userId]);
+      const disabled = isAuthDisabled();
+      let user = db.get('SELECT id, email, role, created_at FROM users WHERE id = ?', [req.user?.userId]);
+      if (!user && disabled) {
+        user = getDefaultUser();
+      }
       if (!user) {
         res.status(404).json({ error: 'User not found' });
         return;
       }
-      res.json({ user, isApiKey: req.user?.isApiKey });
+      res.json({ user, isApiKey: req.user?.isApiKey, authDisabled: disabled });
     } catch (err: any) {
       console.error('User fetch error:', err);
       res.status(500).json({ error: 'Gebruikersgegevens ophalen mislukt' });

@@ -5,6 +5,7 @@ import {
   setSystemSetting,
   maskApiKey,
 } from '../services/aiReceiptService.js';
+import { isAuthDisabled } from '../middleware/auth.js';
 
 export class SettingsController {
   public static async getAiSettings(_req: Request, res: Response): Promise<void> {
@@ -138,6 +139,43 @@ export class SettingsController {
       res.json({ models });
     } catch (err: any) {
       res.status(500).json({ error: err?.message || 'Fout bij ophalen van Gemini modellen' });
+    }
+  }
+
+  public static async getSecuritySettings(_req: Request, res: Response): Promise<void> {
+    try {
+      const isEnvEnforced = Boolean(process.env.DISABLE_AUTH === 'true' || process.env.AUTH_DISABLED === 'true');
+      const disableAuth = isAuthDisabled();
+      res.json({
+        disableAuth,
+        isEnvEnforced,
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err?.message || 'Fout bij ophalen van beveiligingsinstellingen' });
+    }
+  }
+
+  public static async updateSecuritySettings(req: Request, res: Response): Promise<void> {
+    try {
+      const { disableAuth } = req.body;
+      const isEnvEnforced = Boolean(process.env.DISABLE_AUTH === 'true' || process.env.AUTH_DISABLED === 'true');
+      if (isEnvEnforced) {
+        res.status(400).json({
+          error: 'Inloggen is geconfigureerd via omgevingsvariabele (DISABLE_AUTH) en kan niet worden gewijzigd via de webinterface.',
+        });
+        return;
+      }
+
+      setSystemSetting('disable_auth', disableAuth ? 'true' : 'false');
+      res.json({
+        success: true,
+        disableAuth: Boolean(disableAuth),
+        message: disableAuth
+          ? 'Inloggen is succesvol uitgeschakeld. Je hebt nu direct toegang zonder wachtwoord (ideaal voor Pangolin / Reverse Proxy).'
+          : 'Inloggen is weer ingeschakeld.',
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err?.message || 'Fout bij opslaan van beveiligingsinstellingen' });
     }
   }
 }

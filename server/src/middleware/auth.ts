@@ -17,7 +17,88 @@ declare global {
   }
 }
 
+export function isAuthDisabled(): boolean {
+  if (process.env.DISABLE_AUTH === 'true' || process.env.AUTH_DISABLED === 'true') {
+    return true;
+  }
+  try {
+    const row = db.get<{ value: string }>('SELECT value FROM system_settings WHERE key = ?', ['disable_auth']);
+    return row?.value === 'true';
+  } catch {
+    return false;
+  }
+}
+
+export function getDefaultUser(): AuthenticatedUser {
+  try {
+    const existing = db.get<{ id: string; email: string; role: string }>(
+      "SELECT id, email, role FROM users ORDER BY CASE WHEN role = 'admin' THEN 0 ELSE 1 END, created_at ASC LIMIT 1"
+    );
+    if (existing) {
+      return {
+        userId: existing.id,
+        email: existing.email,
+        role: existing.role,
+        isApiKey: false,
+      };
+    }
+
+    const id = '00000000-0000-0000-0000-000000000001';
+    const email = 'admin@vehiclevault.local';
+    const now = new Date().toISOString();
+    db.run(
+      "INSERT OR IGNORE INTO users (id, email, password_hash, role, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+      [id, email, 'disabled_auth_placeholder', 'admin', now, now]
+    );
+    return {
+      userId: id,
+      email,
+      role: 'admin',
+      isApiKey: false,
+    };
+  } catch {
+    return {
+      userId: '00000000-0000-0000-0000-000000000001',
+      email: 'admin@vehiclevault.local',
+      role: 'admin',
+      isApiKey: false,
+    };
+  }
+}
+
 export function requireAuth(req: Request, res: Response, next: NextFunction): void {
+  // 1. If authentication is disabled (via env DISABLE_AUTH=true or UI setting disable_auth=true)
+  if (isAuthDisabled()) {
+    req.user = getDefaultUser();
+    return next();
+  }
+
+  // 2. Check for reverse proxy authentication headers (Pangolin, Authelia, Authentik, Traefik, Cloudflare Access)
+  const proxyUserHeader = (
+    req.headers['remote-user'] ||
+    req.headers['remote-email'] ||
+    req.headers['x-forwarded-user'] ||
+    req.headers['x-forwarded-email'] ||
+    req.headers['x-pangolin-user']
+  ) as string | undefined;
+
+  if (proxyUserHeader && typeof proxyUserHeader === 'string' && proxyUserHeader.trim().length > 0) {
+    const email = proxyUserHeader.trim().toLowerCase();
+    const user = db.get<{ id: string; email: string; role: string }>(
+      'SELECT id, email, role FROM users WHERE email = ?',
+      [email]
+    );
+    if (user) {
+      req.user = {
+        userId: user.id,
+        email: user.email,
+        role: user.role,
+        isApiKey: false,
+      };
+      return next();
+    }
+  }
+
   const authHeader = req.headers.authorization;
   const apiKeyHeader = req.headers['x-api-key'] as string | undefined;
 
@@ -79,4 +160,3 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
 
   next();
 }
-

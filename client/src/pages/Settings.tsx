@@ -19,11 +19,15 @@ import {
   Loader2,
   AlertCircle,
   CheckCircle2,
+  Lock,
+  Unlock,
+  ShieldCheck,
 } from 'lucide-react';
 import { ApiKeyItem } from '../types/index.js';
 import { apiFetch } from '../api/client.js';
 import { useTheme } from '../context/ThemeContext.js';
 import { useLanguage } from '../context/LanguageContext.js';
+import { useAuth } from '../context/AuthContext.js';
 
 export const Settings: React.FC = () => {
   const [apiKeys, setApiKeys] = useState<ApiKeyItem[]>([]);
@@ -55,11 +59,47 @@ export const Settings: React.FC = () => {
   const [aiSaving, setAiSaving] = useState(false);
   const [aiSavedSuccess, setAiSavedSuccess] = useState(false);
 
+  // Security & Authentication Mode State (Pangolin / No-Auth)
+  const [disableAuth, setDisableAuth] = useState(false);
+  const [isEnvEnforced, setIsEnvEnforced] = useState(false);
+  const [securityLoading, setSecurityLoading] = useState(false);
+  const [securityMessage, setSecurityMessage] = useState<string | null>(null);
+  const { refreshAuthStatus } = useAuth();
+
   useEffect(() => {
     loadApiKeys();
     loadHealth();
     loadAiSettings();
+    loadSecuritySettings();
   }, []);
+
+  const loadSecuritySettings = async () => {
+    try {
+      const res = await apiFetch<{ disableAuth: boolean; isEnvEnforced: boolean }>('/api/settings/security');
+      setDisableAuth(res.disableAuth);
+      setIsEnvEnforced(res.isEnvEnforced);
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleToggleDisableAuth = async (newVal: boolean) => {
+    setSecurityLoading(true);
+    setSecurityMessage(null);
+    try {
+      const res = await apiFetch<{ success: boolean; disableAuth: boolean; message: string }>('/api/settings/security', {
+        method: 'PUT',
+        body: JSON.stringify({ disableAuth: newVal }),
+      });
+      setDisableAuth(res.disableAuth);
+      setSecurityMessage(res.message);
+      await refreshAuthStatus();
+    } catch (err: any) {
+      setSecurityMessage(err?.message || 'Fout bij wijzigen van inloginstellingen');
+    } finally {
+      setSecurityLoading(false);
+    }
+  };
 
   const loadApiKeys = async () => {
     try {
@@ -812,6 +852,80 @@ export const Settings: React.FC = () => {
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Inloggen & Toegangsbeveiliging (Pangolin & Reverse Proxy) Card */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 space-y-4 shadow-sm transition-colors">
+        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+          <div className="flex items-center space-x-2.5">
+            <div className="w-8 h-8 rounded-lg bg-sky-50 dark:bg-sky-950/60 flex items-center justify-center text-sky-600 dark:text-sky-400">
+              <ShieldCheck className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                {lang === 'nl' ? 'Inloggen & Toegang (Pangolin & Reverse Proxy)' : 'Authentication & Access (Pangolin & Reverse Proxy)'}
+              </h3>
+              <p className="text-[11px] text-slate-500">
+                {lang === 'nl' ? 'Toegangsbeheer voor privé-netwerken en zero-trust proxies' : 'Access control for private networks and zero-trust proxies'}
+              </p>
+            </div>
+          </div>
+          {disableAuth ? (
+            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+              {lang === 'nl' ? 'Inloggen Uitgeschakeld' : 'Auth Disabled'}
+            </span>
+          ) : (
+            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+              {lang === 'nl' ? 'Inloggen Actief' : 'Login Required'}
+            </span>
+          )}
+        </div>
+
+        <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+          {lang === 'nl'
+            ? 'Gebruik je VehicleVault achter een reverse proxy zoals Pangolin, Authelia, Authentik of Cloudflare Access, of draait het binnen een vertrouwd lokaal thuisnetwerk? Schakel inloggen uit om direct zonder wachtwoord toegang te krijgen als beheerder.'
+            : 'Running VehicleVault behind a reverse proxy like Pangolin, Authelia, Authentik, or Cloudflare Access, or in a trusted local home network? Disable authentication to automatically access VehicleVault as admin without entering a password.'}
+        </p>
+
+        {isEnvEnforced && (
+          <div className="p-3 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60 rounded-xl text-xs text-indigo-800 dark:text-indigo-300">
+            <strong>Docker omgevingsvariabele:</strong> Inloggen is permanent geconfigureerd via de container-omgeving (<code className="font-mono bg-indigo-100 dark:bg-indigo-900/60 px-1 py-0.5 rounded">DISABLE_AUTH=true</code>).
+          </div>
+        )}
+
+        <div className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-xl">
+          <div className="flex items-center space-x-3">
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${disableAuth ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/80 dark:text-emerald-300' : 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300'}`}>
+              {disableAuth ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+            </div>
+            <div>
+              <div className="text-xs font-bold text-slate-900 dark:text-white">
+                {lang === 'nl' ? 'Inloggen uitschakelen (Directe toegang)' : 'Disable Login (Direct Access)'}
+              </div>
+              <div className="text-[11px] text-slate-500">
+                {lang === 'nl' ? 'Geen wachtwoord- of loginscherm meer tonen' : 'Bypass login screen and authentication checks'}
+              </div>
+            </div>
+          </div>
+
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              disabled={isEnvEnforced || securityLoading}
+              checked={disableAuth}
+              onChange={(e) => handleToggleDisableAuth(e.target.checked)}
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-emerald-600 peer-disabled:opacity-50"></div>
+          </label>
+        </div>
+
+        {securityMessage && (
+          <div className="flex items-center space-x-2 text-xs text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 p-3 rounded-xl font-medium">
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
+            <span>{securityMessage}</span>
+          </div>
+        )}
       </div>
 
       {/* System Health Status */}
