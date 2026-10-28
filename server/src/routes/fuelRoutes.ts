@@ -14,6 +14,7 @@ router.get('/stations/search', FuelController.searchStations);
 router.get('/', FuelController.list);
 router.get('/:vehicleId', FuelController.list);
 router.post('/', FuelController.create);
+router.put('/:id', FuelController.update);
 router.delete('/:id', FuelController.delete);
 router.post('/upload-receipt', uploadLimiter, uploadReceipt.single('receipt'), FuelController.uploadReceiptFile);
 router.post('/ocr', uploadLimiter, uploadReceipt.single('receipt'), FuelController.ocrReceipt);

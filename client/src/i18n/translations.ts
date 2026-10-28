@@ -172,6 +172,11 @@ export const translations = {
     belowAverage: 'onder gem.',
     weightedAverageOver: 'Gewogen gemiddelde over {liters} L',
     confirmDeleteFuel: 'Deze tankbeurt verwijderen?',
+    editFuelEntry: 'Tankbeurt Bewerken',
+    fuelEntryUpdated: 'Tankbeurt succesvol bijgewerkt!',
+    currentReceipt: 'Huidige bon',
+    replaceReceipt: 'Vervang bon / factuur',
+    removeReceipt: 'Bon ontkoppelen',
 
     // Analytics & TCO
     analyticsTitle: 'Uitgebreide TCO & Voertuigstatistieken',
@@ -496,6 +501,11 @@ export const translations = {
     belowAverage: 'below avg',
     weightedAverageOver: 'Weighted average over {liters} L',
     confirmDeleteFuel: 'Delete this fuel entry?',
+    editFuelEntry: 'Edit Fuel Entry',
+    fuelEntryUpdated: 'Fuel entry successfully updated!',
+    currentReceipt: 'Current receipt',
+    replaceReceipt: 'Replace receipt / invoice',
+    removeReceipt: 'Remove receipt',
 
     // Analytics & TCO
     analyticsTitle: 'Comprehensive TCO & Vehicle Analytics',

@@ -447,6 +447,27 @@ Date,Odometer,Fuel_amount,Price,Total_cost,Notes
       assert.equal(entry.latitude, 52.8037);
       assert.equal(entry.longitude, 6.1287);
 
+      // Test updating the fuel entry
+      db.run(
+        `UPDATE fuel_entries SET
+          date = ?,
+          odometer = ?,
+          liters = ?,
+          price_per_liter = ?,
+          total_cost = ?,
+          notes = ?
+         WHERE id = ?`,
+        ['2026-10-28', 65100, 42.00, 2.100, 88.20, 'Updated notes', fuelId]
+      );
+
+      const updated = db.get<any>('SELECT * FROM fuel_entries WHERE id = ?', [fuelId]);
+      assert.equal(updated.date, '2026-10-28');
+      assert.equal(updated.odometer, 65100);
+      assert.equal(updated.liters, 42.00);
+      assert.equal(updated.price_per_liter, 2.100);
+      assert.equal(updated.total_cost, 88.20);
+      assert.equal(updated.notes, 'Updated notes');
+
       db.run('DELETE FROM fuel_entries WHERE id = ?', [fuelId]);
     });
   });

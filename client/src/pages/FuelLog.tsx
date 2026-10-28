@@ -5,6 +5,8 @@ import {
   Camera,
   AlertTriangle,
   Trash2,
+  Pencil,
+  Check,
   Image,
   History,
   Paperclip,
@@ -67,6 +69,24 @@ export const FuelLog: React.FC = () => {
   // Warnings / Validation State
   const [warningMessage, setWarningMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // Edit Modal State
+  const [editingEntry, setEditingEntry] = useState<FuelEntry | null>(null);
+  const [editDate, setEditDate] = useState('');
+  const [editOdometer, setEditOdometer] = useState('');
+  const [editLiters, setEditLiters] = useState('');
+  const [editPricePerLiter, setEditPricePerLiter] = useState('');
+  const [editTotalCost, setEditTotalCost] = useState('');
+  const [editIsFullTank, setEditIsFullTank] = useState(true);
+  const [editMissedPrevious, setEditMissedPrevious] = useState(false);
+  const [editNotes, setEditNotes] = useState('');
+  const [editStationName, setEditStationName] = useState('');
+  const [editStationAddress, setEditStationAddress] = useState('');
+  const [editLatitude, setEditLatitude] = useState<number | null>(null);
+  const [editLongitude, setEditLongitude] = useState<number | null>(null);
+  const [editReceiptPath, setEditReceiptPath] = useState<string | null>(null);
+  const [editReceiptFile, setEditReceiptFile] = useState<File | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
 
   useEffect(() => {
     if (selectedVehicle) {
@@ -383,6 +403,94 @@ export const FuelLog: React.FC = () => {
       } catch (err: any) {
         alert(err?.message || 'Delete failed');
       }
+    }
+  };
+
+  const handleOpenEditModal = (entry: FuelEntry) => {
+    setEditingEntry(entry);
+    setEditDate(entry.date);
+    setEditOdometer(String(entry.odometer));
+    setEditLiters(String(entry.liters));
+    setEditPricePerLiter(String(entry.price_per_liter));
+    setEditTotalCost(String(entry.total_cost));
+    setEditIsFullTank(Boolean(entry.is_full_tank));
+    setEditMissedPrevious(Boolean(entry.missed_previous));
+    setEditNotes(entry.notes || '');
+    setEditStationName(entry.station_name || '');
+    setEditStationAddress(entry.station_address || '');
+    setEditLatitude(entry.latitude ?? null);
+    setEditLongitude(entry.longitude ?? null);
+    setEditReceiptPath(entry.receipt_path || null);
+    setEditReceiptFile(null);
+  };
+
+  const handleCloseEditModal = () => {
+    setEditingEntry(null);
+    setEditReceiptFile(null);
+  };
+
+  const handleEditLitersChange = (val: string) => {
+    setEditLiters(val);
+    const l = parseFloat(val);
+    const p = parseFloat(editPricePerLiter);
+    if (!isNaN(l) && !isNaN(p) && l > 0 && p > 0) {
+      setEditTotalCost((Math.round(l * p * 100) / 100).toFixed(2));
+    }
+  };
+
+  const handleEditPriceChange = (val: string) => {
+    setEditPricePerLiter(val);
+    const l = parseFloat(editLiters);
+    const p = parseFloat(val);
+    if (!isNaN(l) && !isNaN(p) && l > 0 && p > 0) {
+      setEditTotalCost((Math.round(l * p * 100) / 100).toFixed(2));
+    }
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingEntry || !selectedVehicle) return;
+
+    setSavingEdit(true);
+    try {
+      let finalReceiptPath = editReceiptPath;
+
+      if (editReceiptFile) {
+        const formData = new FormData();
+        formData.append('receipt', editReceiptFile);
+        const uploadRes = await apiFetch<{ fileName: string }>('/api/fuel/upload-receipt', {
+          method: 'POST',
+          body: formData,
+        });
+        finalReceiptPath = uploadRes.fileName;
+      }
+
+      await apiFetch(`/api/fuel/${editingEntry.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          date: editDate,
+          odometer: parseFloat(editOdometer),
+          liters: parseFloat(editLiters),
+          price_per_liter: parseFloat(editPricePerLiter),
+          total_cost: parseFloat(editTotalCost),
+          is_full_tank: editIsFullTank,
+          missed_previous: editMissedPrevious,
+          notes: editNotes || null,
+          receipt_path: finalReceiptPath || null,
+          station_name: editStationName || null,
+          station_address: editStationAddress || null,
+          latitude: editLatitude ?? null,
+          longitude: editLongitude ?? null,
+        }),
+      });
+
+      handleCloseEditModal();
+      loadEntries(selectedVehicle.id);
+      window.dispatchEvent(new CustomEvent('vv_fuel_logged'));
+    } catch (err: any) {
+      alert(err?.message || 'Fout bij bijwerken van tankbeurt');
+    } finally {
+      setSavingEdit(false);
     }
   };
 
@@ -846,13 +954,24 @@ export const FuelLog: React.FC = () => {
                         )}
                       </td>
                       <td className="py-3 px-4 text-right">
-                        <button
-                          onClick={() => handleDelete(f.id)}
-                          className="text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 p-1 rounded transition"
-                          title={t('delete')}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center justify-end space-x-1">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditModal(f)}
+                            className="text-slate-400 hover:text-sky-600 dark:hover:text-sky-400 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                            title={t('edit')}
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(f.id)}
+                            className="text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                            title={t('delete')}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -862,6 +981,220 @@ export const FuelLog: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Edit Fuel Entry Modal */}
+      {editingEntry && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full p-5 text-slate-900 dark:text-slate-100 shadow-2xl my-6">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-4">
+              <div className="flex items-center space-x-2.5">
+                <div className="w-8 h-8 rounded-lg bg-sky-100 dark:bg-sky-950 flex items-center justify-center text-sky-600 dark:text-sky-400">
+                  <Fuel className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-slate-900 dark:text-white">{t('editFuelEntry')}</h3>
+                  <p className="text-[11px] text-slate-500">{editingEntry.date} • {editingEntry.odometer.toLocaleString()} km</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleCloseEditModal}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEdit} className="space-y-4 text-xs">
+              {/* Date & Odometer */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">{t('date')}</label>
+                  <DatePicker value={editDate} onChange={setEditDate} />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">{t('odometer')} (km)</label>
+                  <input
+                    type="number"
+                    step="1"
+                    required
+                    value={editOdometer}
+                    onChange={(e) => setEditOdometer(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-sky-500"
+                  />
+                </div>
+              </div>
+
+              {/* Liters & Price per Liter */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">{t('liters')} (L)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    value={editLiters}
+                    onChange={(e) => handleEditLitersChange(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-sky-500"
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">{t('pricePerLiter')} (€)</label>
+                  <input
+                    type="number"
+                    step="0.001"
+                    required
+                    value={editPricePerLiter}
+                    onChange={(e) => handleEditPriceChange(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-sky-500"
+                  />
+                </div>
+              </div>
+
+              {/* Total Cost */}
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">{t('totalCost')} (€)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  required
+                  value={editTotalCost}
+                  onChange={(e) => setEditTotalCost(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:border-sky-500"
+                />
+              </div>
+
+              {/* Toggles: Full Tank & Missed Previous */}
+              <div className="flex flex-wrap items-center gap-4 py-1">
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={editIsFullTank}
+                    onChange={(e) => setEditIsFullTank(e.target.checked)}
+                    className="rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                  />
+                  <span className="font-medium text-slate-700 dark:text-slate-300">{t('fullTank')}</span>
+                </label>
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={editMissedPrevious}
+                    onChange={(e) => setEditMissedPrevious(e.target.checked)}
+                    className="rounded border-slate-300 text-amber-600 focus:ring-amber-500"
+                  />
+                  <span className="font-medium text-slate-700 dark:text-slate-300">{t('missedPrevious')}</span>
+                </label>
+              </div>
+
+              {/* Station Name & Address */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">{t('station')}</label>
+                  <input
+                    type="text"
+                    placeholder="bijv. Fieten Olie, Shell"
+                    value={editStationName}
+                    onChange={(e) => setEditStationName(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-sky-500"
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">{lang === 'nl' ? 'Adres / Plaats' : 'Address / City'}</label>
+                  <input
+                    type="text"
+                    placeholder="bijv. Eeser Gaard 2, Steenwijk"
+                    value={editStationAddress}
+                    onChange={(e) => setEditStationAddress(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-sky-500"
+                  />
+                </div>
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">{t('notes')}</label>
+                <textarea
+                  rows={2}
+                  value={editNotes}
+                  onChange={(e) => setEditNotes(e.target.value)}
+                  placeholder={lang === 'nl' ? 'bijv. Euro 95 E10, bandenspanning gecheckt' : 'e.g. Euro 95 E10, tire pressure checked'}
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-sky-500"
+                />
+              </div>
+
+              {/* Receipt File */}
+              <div className="p-3 bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-xl space-y-2">
+                <label className="font-bold text-slate-700 dark:text-slate-300 block">
+                  {lang === 'nl' ? 'Tankbon / Factuur' : 'Receipt / Invoice'}
+                </label>
+                {editReceiptPath && !editReceiptFile && (
+                  <div className="flex items-center justify-between p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg">
+                    <div className="flex items-center space-x-2 truncate">
+                      <FileText className="w-4 h-4 text-sky-500 shrink-0" />
+                      <a
+                        href={`/uploads/receipts/${editReceiptPath}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-sky-600 dark:text-sky-400 hover:underline truncate"
+                      >
+                        {editReceiptPath}
+                      </a>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setEditReceiptPath(null)}
+                      className="text-rose-500 hover:text-rose-700 p-1"
+                      title={t('removeReceipt')}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="file"
+                    accept="image/*,application/pdf"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        setEditReceiptFile(e.target.files[0]);
+                      }
+                    }}
+                    className="text-xs text-slate-500 file:mr-2 file:py-1 file:px-2.5 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-slate-200 dark:file:bg-slate-800 file:text-slate-700 dark:file:text-slate-300 hover:file:bg-slate-300 cursor-pointer"
+                  />
+                  {editReceiptFile && (
+                    <button
+                      type="button"
+                      onClick={() => setEditReceiptFile(null)}
+                      className="text-slate-400 hover:text-slate-600 p-1"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center justify-end space-x-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={handleCloseEditModal}
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                >
+                  {t('cancel')}
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingEdit}
+                  className="px-4 py-2 bg-slate-900 text-white hover:bg-black dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white rounded-xl text-xs font-bold inline-flex items-center space-x-1.5 transition shadow-sm disabled:opacity-50"
+                >
+                  {savingEdit ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                  <span>{savingEdit ? t('saving') : t('save')}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       <ReceiptScannerModal
         isOpen={isOcrOpen}

@@ -132,6 +132,61 @@ export class FuelController {
     res.json({ success: true, message: 'Fuel entry deleted' });
   }
 
+  public static async update(req: Request, res: Response): Promise<void> {
+    const { id } = req.params;
+    const data = req.body;
+
+    const existing = db.get<{ id: string; vehicle_id: string }>(
+      `SELECT f.id, f.vehicle_id FROM fuel_entries f
+       JOIN vehicles v ON v.id = f.vehicle_id
+       WHERE f.id = ? AND v.user_id = ?`,
+      [id, req.user?.userId]
+    );
+
+    if (!existing) {
+      res.status(404).json({ error: 'Fuel entry not found' });
+      return;
+    }
+
+    const calculatedCost = data.total_cost || Math.round(data.liters * data.price_per_liter * 100) / 100;
+
+    db.run(
+      `UPDATE fuel_entries SET
+        date = ?,
+        odometer = ?,
+        liters = ?,
+        price_per_liter = ?,
+        total_cost = ?,
+        is_full_tank = ?,
+        missed_previous = ?,
+        notes = ?,
+        receipt_path = ?,
+        station_name = ?,
+        station_address = ?,
+        latitude = ?,
+        longitude = ?
+       WHERE id = ?`,
+      [
+        data.date,
+        data.odometer,
+        data.liters,
+        data.price_per_liter,
+        calculatedCost,
+        data.is_full_tank ? 1 : 0,
+        data.missed_previous ? 1 : 0,
+        data.notes !== undefined ? data.notes : null,
+        data.receipt_path !== undefined ? data.receipt_path : null,
+        data.station_name !== undefined ? data.station_name : null,
+        data.station_address !== undefined ? data.station_address : null,
+        data.latitude !== undefined ? data.latitude : null,
+        data.longitude !== undefined ? data.longitude : null,
+        id,
+      ]
+    );
+
+    res.json({ success: true, message: 'Fuel entry updated' });
+  }
+
   public static async uploadReceiptFile(req: Request, res: Response): Promise<void> {
     if (!req.file) {
       res.status(400).json({ error: 'No receipt or invoice file uploaded' });
