@@ -11,6 +11,7 @@ export interface OcrParseResult {
   rawText: string;
   confidence: number;
   engine?: 'gemini' | 'openai' | 'tesseract';
+  aiError?: string | null;
 }
 
 export class OcrService {
@@ -18,6 +19,8 @@ export class OcrService {
    * Performs AI Vision extraction (Gemini / OpenAI) if configured, with graceful fallback to local Tesseract OCR.
    */
   public static async processReceipt(imagePath: string): Promise<OcrParseResult> {
+    let aiError: string | null = null;
+
     // 1. Attempt AI Vision extraction if an API key (Gemini / OpenAI) is configured
     if (AiReceiptService.isConfigured()) {
       try {
@@ -33,10 +36,12 @@ export class OcrService {
             rawText: `AI Vision Analysis (${aiResult.engine.toUpperCase()} • ${aiResult.model})`,
             confidence: aiResult.confidence,
             engine: aiResult.engine,
+            aiError: null,
           };
         }
       } catch (aiErr: any) {
-        console.warn('AI Receipt Vision encountered an error, falling back to local Tesseract OCR:', aiErr?.message || aiErr);
+        aiError = aiErr?.message || String(aiErr);
+        console.warn('AI Receipt Vision encountered an error, falling back to local Tesseract OCR:', aiError);
       }
     }
 
@@ -53,6 +58,7 @@ export class OcrService {
       return {
         ...parsed,
         engine: 'tesseract',
+        aiError,
       };
     } catch (err: any) {
       if (worker) {
@@ -70,6 +76,7 @@ export class OcrService {
         rawText: `OCR processing note: ${err?.message || 'Failed to parse image'}`,
         confidence: 0,
         engine: 'tesseract',
+        aiError,
       };
     }
   }

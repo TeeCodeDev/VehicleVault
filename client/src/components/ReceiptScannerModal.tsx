@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Camera, Upload, CheckCircle2, AlertCircle, Loader2, X, Sparkles, MapPin, Fuel } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Camera, Upload, CheckCircle2, AlertCircle, AlertTriangle, Loader2, X, Sparkles, MapPin, Fuel } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext.js';
 
 interface ReceiptScannerModalProps {
@@ -23,6 +23,29 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({ isOpen
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [ocrResult, setOcrResult] = useState<any | null>(null);
+  const [engineInfo, setEngineInfo] = useState<{ name: string; isAi: boolean } | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      const token = localStorage.getItem('vv_token');
+      fetch('/api/settings/ai', {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.provider === 'gemini' && data.hasGeminiKey) {
+            setEngineInfo({ name: `Google Gemini (${data.geminiModel || '1.5-flash'})`, isAi: true });
+          } else if (data.provider === 'openai' && data.hasOpenaiKey) {
+            setEngineInfo({ name: `OpenAI Vision (${data.openaiModel || 'gpt-4o-mini'})`, isAi: true });
+          } else {
+            setEngineInfo({ name: 'Tesseract OCR (Lokaal)', isAi: false });
+          }
+        })
+        .catch(() => {
+          setEngineInfo({ name: 'Tesseract OCR (Lokaal)', isAi: false });
+        });
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -115,7 +138,19 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({ isOpen
               <Camera className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="font-bold text-sm text-slate-900 dark:text-white">{t('ocrReceiptScanner')}</h3>
+              <div className="flex items-center space-x-2">
+                <h3 className="font-bold text-sm text-slate-900 dark:text-white">{t('ocrReceiptScanner')}</h3>
+                {engineInfo && (
+                  <span className={`inline-flex items-center space-x-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                    engineInfo.isAi
+                      ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950/80 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800'
+                      : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
+                  }`}>
+                    {engineInfo.isAi ? <Sparkles className="w-2.5 h-2.5 text-indigo-500" /> : null}
+                    <span>{engineInfo.name}</span>
+                  </span>
+                )}
+              </div>
               <p className="text-[11px] text-slate-500">{t('ocrSupportedFormats')}</p>
             </div>
           </div>
@@ -176,9 +211,13 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({ isOpen
             <div className="flex items-center space-x-3 bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800/60 p-3 rounded-xl text-xs text-sky-800 dark:text-sky-200">
               <Loader2 className="w-4 h-4 animate-spin text-sky-600 dark:text-sky-400 shrink-0" />
               <div className="flex-1 min-w-0">
-                <span className="font-semibold block">{t('scanningReceipt')}</span>
+                <span className="font-semibold block">
+                  {engineInfo?.isAi
+                    ? (lang === 'nl' ? `Tankbon analyseren met ${engineInfo.name}...` : `Analyzing receipt with ${engineInfo.name}...`)
+                    : t('scanningReceipt')}
+                </span>
                 <span className="text-[11px] text-sky-600 dark:text-sky-400">
-                  {lang === 'nl' ? 'Tekst, datum, liters, bedragen en tankstation worden geanalyseerd...' : 'Parsing text, date, liters, amounts, and station...'}
+                  {lang === 'nl' ? 'Datum, liters, bedragen en tankstation worden geëxtraheerd...' : 'Extracting date, liters, amounts, and station...'}
                 </span>
               </div>
             </div>
@@ -197,6 +236,28 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({ isOpen
                   <span>{t('ocrSuccess')}</span>
                 </span>
               </div>
+
+              {/* Warning if AI failed and fell back to Tesseract */}
+              {ocrResult.extracted?.aiError && (
+                <div className="p-2.5 bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800/70 rounded-lg text-[11px] text-amber-900 dark:text-amber-200 space-y-1">
+                  <div className="flex items-start space-x-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <span className="font-bold block">
+                        {lang === 'nl' ? 'AI Analyse mislukt (teruggevallen op lokale Tesseract OCR):' : 'AI Analysis failed (fell back to local OCR):'}
+                      </span>
+                      <span className="text-amber-800 dark:text-amber-300 font-mono text-[10px] break-all block mt-0.5">
+                        {ocrResult.extracted.aiError}
+                      </span>
+                      <span className="text-[10px] text-amber-600 dark:text-amber-400 mt-1 block">
+                        {lang === 'nl'
+                          ? 'Tip: Controleer je API-sleutel in Instellingen → AI Bonherkenning.'
+                          : 'Tip: Check your API key in Settings → AI Receipt Scanner.'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Station and Fuel Type pill banner if detected */}
               {(ocrResult.extracted?.station || ocrResult.extracted?.fuelType) && (

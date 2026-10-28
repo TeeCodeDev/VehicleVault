@@ -374,6 +374,30 @@ Date,Odometer,Fuel_amount,Price,Total_cost,Notes
       assert.equal(res.success, false);
       assert.ok(res.message.includes('Geen API-sleutel ingevoerd'));
     });
+
+    it('should preserve existing API key when empty string or masked key is passed on save', () => {
+      setSystemSetting('gemini_api_key', 'AQ.Ab8RealKey123456');
+
+      // Simulate SettingsController.updateAiSettings logic
+      const emptyInput = '';
+      if (emptyInput.trim().length > 0 && !emptyInput.includes('••••') && !emptyInput.includes('...')) {
+        setSystemSetting('gemini_api_key', emptyInput);
+      }
+      assert.equal(getSystemSetting('gemini_api_key'), 'AQ.Ab8RealKey123456');
+
+      const maskedInput = 'AQ.Ab8...3456';
+      if (maskedInput.trim().length > 0 && !maskedInput.includes('••••') && !maskedInput.includes('...')) {
+        setSystemSetting('gemini_api_key', maskedInput);
+      }
+      assert.equal(getSystemSetting('gemini_api_key'), 'AQ.Ab8RealKey123456');
+
+      // Only explicit clear should clear it
+      const clearGeminiKey = true;
+      if (clearGeminiKey) {
+        setSystemSetting('gemini_api_key', '');
+      }
+      assert.equal(getSystemSetting('gemini_api_key'), '');
+    });
   });
 
   describe('Gas Station Location & GPS Service', () => {

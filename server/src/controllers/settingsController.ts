@@ -37,6 +37,8 @@ export class SettingsController {
         openaiApiKey,
         openaiModel,
         openaiBaseUrl,
+        clearGeminiKey,
+        clearOpenaiKey,
       } = req.body;
 
       if (provider && ['gemini', 'openai', 'none'].includes(provider)) {
@@ -47,13 +49,14 @@ export class SettingsController {
         setSystemSetting('gemini_model', geminiModel.trim());
       }
 
-      // Only overwrite API key if user provided a new key (not empty, not masked)
-      if (typeof geminiApiKey === 'string') {
+      // Explicit clear if requested
+      if (clearGeminiKey === true) {
+        setSystemSetting('gemini_api_key', '');
+      } else if (typeof geminiApiKey === 'string') {
         const trimmed = geminiApiKey.trim();
+        // Only overwrite if user actually typed a new non-empty key (not masked placeholder)
         if (trimmed.length > 0 && !trimmed.includes('••••') && !trimmed.includes('...')) {
           setSystemSetting('gemini_api_key', trimmed);
-        } else if (trimmed === '') {
-          setSystemSetting('gemini_api_key', '');
         }
       }
 
@@ -65,12 +68,13 @@ export class SettingsController {
         setSystemSetting('openai_base_url', openaiBaseUrl.trim());
       }
 
-      if (typeof openaiApiKey === 'string') {
+      if (clearOpenaiKey === true) {
+        setSystemSetting('openai_api_key', '');
+      } else if (typeof openaiApiKey === 'string') {
         const trimmed = openaiApiKey.trim();
+        // Only overwrite if user actually typed a new non-empty key (not masked placeholder)
         if (trimmed.length > 0 && !trimmed.includes('••••') && !trimmed.includes('...')) {
           setSystemSetting('openai_api_key', trimmed);
-        } else if (trimmed === '') {
-          setSystemSetting('openai_api_key', '');
         }
       }
 
@@ -92,8 +96,11 @@ export class SettingsController {
         return;
       }
 
-      // If key is masked or empty, pass undefined so service tests the stored/env key
-      const testKey = (apiKey && !apiKey.includes('••••') && !apiKey.includes('...')) ? apiKey : undefined;
+      // If key is masked or empty string, pass undefined so service tests the stored/env key
+      const trimmedKey = typeof apiKey === 'string' ? apiKey.trim() : '';
+      const testKey = (trimmedKey.length > 0 && !trimmedKey.includes('••••') && !trimmedKey.includes('...'))
+        ? trimmedKey
+        : undefined;
 
       const result = await AiReceiptService.testConnection(provider, testKey, model, baseUrl);
       res.json(result);
@@ -105,4 +112,3 @@ export class SettingsController {
     }
   }
 }
-

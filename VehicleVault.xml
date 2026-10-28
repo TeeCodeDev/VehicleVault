@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <Container version="2">
   <Name>VehicleVault</Name>
-  <Version>v1.0.5</Version>
+  <Version>v1.0.6</Version>
   <Repository>ghcr.io/teecodedev/vehichlevault:latest</Repository>
   <Registry>https://ghcr.io/teecodedev/vehichlevault</Registry>
   <Network>bridge</Network>
@@ -40,6 +40,12 @@ Open the web interface at [inline]http://[IP]:[PORT:3001]/[/inline]. The first u
   <DonateText>If you like VehicleVault, buy me a coffee!</DonateText>
   <DonateLink>https://ko-fi.com/D1D51ZGUNL</DonateLink>
   <Changes>
+### v1.0.6 (2026-10-28)
+- Google Gemini Authorization Key Fix: Ondersteuning voor nieuwste Google AI Studio API-sleutels (AQ. prefix) via x-goog-api-key header en Bearer fallback.
+- Sleutelbehoud bij Opslaan: Voorkomt per ongeluk wissen van de opgeslagen AI API-sleutel wanneer instellingen worden opgeslagen.
+- Sleutel Wissen Knop: Mogelijkheid om opgeslagen sleutels expliciet te verwijderen via Instellingen.
+- Transparante AI Status: Bon-scanner toont direct actieve engine en eventuele AI-foutmeldingen.
+
 ### v1.0.5 (2026-10-28)
 - Tankstation & Adres Registratie: Optioneel vastleggen van tankstationnaam en straatadres bij elke tankbeurt.
 - Dynamische GPS Tankstation Finder: Mobiele PWA GPS-integratie om via OpenStreetMap direct de dichtstbijzijnde tankstations binnen handbereik te tonen gesorteerd op afstand (bijv. 120 m).

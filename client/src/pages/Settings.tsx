@@ -166,6 +166,27 @@ export const Settings: React.FC = () => {
     }
   };
 
+  const handleClearKey = async (type: 'gemini' | 'openai') => {
+    const confirmMsg = lang === 'nl'
+      ? `Weet je zeker dat je de opgeslagen ${type === 'gemini' ? 'Google Gemini' : 'OpenAI'} API-sleutel wilt wissen?`
+      : `Are you sure you want to remove the stored ${type === 'gemini' ? 'Google Gemini' : 'OpenAI'} API key?`;
+    if (!confirm(confirmMsg)) return;
+
+    try {
+      await apiFetch('/api/settings/ai', {
+        method: 'PUT',
+        body: JSON.stringify({
+          clearGeminiKey: type === 'gemini',
+          clearOpenaiKey: type === 'openai',
+        }),
+      });
+      await loadAiSettings();
+      setAiTestResult(null);
+    } catch (err: any) {
+      alert(err?.message || 'Fout bij wissen van API-sleutel');
+    }
+  };
+
   const handleCreateKey = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newKeyName) return;
@@ -415,10 +436,19 @@ export const Settings: React.FC = () => {
                 </button>
               </div>
               {hasGeminiKey && !geminiApiKey && (
-                <p className="text-[11px] text-emerald-600 dark:text-emerald-400 mt-1 flex items-center space-x-1 font-medium">
-                  <Check className="w-3 h-3" />
-                  <span>{lang === 'nl' ? `Huidige actieve sleutel: ${geminiKeyMasked}` : `Active key: ${geminiKeyMasked}`}</span>
-                </p>
+                <div className="flex items-center justify-between mt-1 text-[11px]">
+                  <p className="text-emerald-600 dark:text-emerald-400 flex items-center space-x-1 font-medium">
+                    <Check className="w-3 h-3" />
+                    <span>{lang === 'nl' ? `Huidige actieve sleutel: ${geminiKeyMasked}` : `Active key: ${geminiKeyMasked}`}</span>
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => handleClearKey('gemini')}
+                    className="text-rose-600 hover:text-rose-700 dark:text-rose-400 hover:underline font-medium"
+                  >
+                    {lang === 'nl' ? 'Sleutel wissen' : 'Remove key'}
+                  </button>
+                </div>
               )}
             </div>
 
@@ -476,10 +506,19 @@ export const Settings: React.FC = () => {
                 </button>
               </div>
               {hasOpenaiKey && !openaiApiKey && (
-                <p className="text-[11px] text-emerald-600 dark:text-emerald-400 mt-1 flex items-center space-x-1 font-medium">
-                  <Check className="w-3 h-3" />
-                  <span>{lang === 'nl' ? `Huidige actieve sleutel: ${openaiKeyMasked}` : `Active key: ${openaiKeyMasked}`}</span>
-                </p>
+                <div className="flex items-center justify-between mt-1 text-[11px]">
+                  <p className="text-emerald-600 dark:text-emerald-400 flex items-center space-x-1 font-medium">
+                    <Check className="w-3 h-3" />
+                    <span>{lang === 'nl' ? `Huidige actieve sleutel: ${openaiKeyMasked}` : `Active key: ${openaiKeyMasked}`}</span>
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => handleClearKey('openai')}
+                    className="text-rose-600 hover:text-rose-700 dark:text-rose-400 hover:underline font-medium"
+                  >
+                    {lang === 'nl' ? 'Sleutel wissen' : 'Remove key'}
+                  </button>
+                </div>
               )}
             </div>
 

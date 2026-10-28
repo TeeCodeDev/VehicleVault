@@ -136,11 +136,28 @@ export class AiReceiptService {
 
     try {
       if (provider === 'gemini') {
-        const testUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${effectiveKey}`;
-        const res = await fetch(testUrl, {
+        const testUrl = effectiveKey.startsWith('AIza')
+          ? `https://generativelanguage.googleapis.com/v1beta/models?key=${effectiveKey}`
+          : `https://generativelanguage.googleapis.com/v1beta/models`;
+
+        let res = await fetch(testUrl, {
           method: 'GET',
+          headers: {
+            'x-goog-api-key': effectiveKey,
+          },
           signal: controller.signal,
         });
+
+        // Fallback retry with Bearer header if key is an OAuth / Bearer Authorization token (common for AQ. tokens)
+        if (res.status === 401) {
+          res = await fetch('https://generativelanguage.googleapis.com/v1beta/models', {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${effectiveKey}`,
+            },
+            signal: controller.signal,
+          });
+        }
 
         clearTimeout(timeout);
 
@@ -255,7 +272,9 @@ export class AiReceiptService {
     modelName: string
   ): Promise<AiReceiptExtraction> {
     const model = modelName || 'gemini-1.5-flash';
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    const endpoint = apiKey.startsWith('AIza')
+      ? `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
+      : `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
     const promptText = `You are a precision fuel receipt scanner for Dutch and European filling stations.
 Extract transaction details from this receipt image.
@@ -294,24 +313,51 @@ Ensure decimal numbers use standard dots. Do not add markdown or extra text. Out
     const timeout = setTimeout(() => controller.abort(), 25000);
 
     try {
-      const res = await fetch(endpoint, {
+      let res = await fetch(endpoint, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': apiKey,
+        },
         body: JSON.stringify(body),
         signal: controller.signal,
       });
 
+      // Fallback retry with Bearer header if key is an OAuth / Bearer Authorization token
+      if (res.status === 401) {
+        res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify(body),
+          signal: controller.signal,
+        });
+      }
+
       clearTimeout(timeout);
 
       if (!res.ok) {
-        const errText = await res.text();
-        throw new Error(`Gemini API returned status ${res.status}: ${errText}`);
+        let errDetail = `Status ${res.status}`;
+        try {
+          const errJson = await res.json() as any;
+          if (errJson?.error?.message) {
+            errDetail = errJson.error.message;
+          }
+        } catch {
+          try {
+            const errText = await res.text();
+            if (errText) errDetail = errText;
+          } catch {}
+        }
+        throw new Error(`Gemini API fout (${res.status}): ${errDetail}`);
       }
 
       const resJson = await res.json() as any;
       const rawJson = resJson.candidates?.[0]?.content?.parts?.[0]?.text;
       if (!rawJson) {
-        throw new Error('Gemini API did not return any candidate text');
+        throw new Error('Gemini API gaf geen herkenningsresultaat terug');
       }
 
       return this.normalizeAiResult(rawJson, 'gemini', model);
