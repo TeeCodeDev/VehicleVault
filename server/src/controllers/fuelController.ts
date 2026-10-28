@@ -3,6 +3,7 @@ import { Request, Response } from 'express';
 import { z } from 'zod';
 import { db } from '../db/database.js';
 import { OcrService } from '../services/ocrService.js';
+import { StationService } from '../services/stationService.js';
 
 const fuelSchema = z.object({
   vehicle_id: z.string().uuid(),
@@ -15,6 +16,10 @@ const fuelSchema = z.object({
   missed_previous: z.boolean().default(false),
   notes: z.string().optional().nullable(),
   receipt_path: z.string().optional().nullable(),
+  station_name: z.string().optional().nullable(),
+  station_address: z.string().optional().nullable(),
+  latitude: z.number().optional().nullable(),
+  longitude: z.number().optional().nullable(),
 });
 
 export class FuelController {
@@ -79,8 +84,9 @@ export class FuelController {
     db.run(
       `INSERT INTO fuel_entries (
         id, vehicle_id, date, odometer, liters, price_per_liter, total_cost,
-        is_full_tank, missed_previous, notes, receipt_path, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        is_full_tank, missed_previous, notes, receipt_path,
+        station_name, station_address, latitude, longitude, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         data.vehicle_id,
@@ -93,6 +99,10 @@ export class FuelController {
         data.missed_previous ? 1 : 0,
         data.notes || null,
         data.receipt_path || null,
+        data.station_name || null,
+        data.station_address || null,
+        data.latitude !== undefined ? data.latitude : null,
+        data.longitude !== undefined ? data.longitude : null,
         new Date().toISOString(),
       ]
     );
@@ -149,5 +159,40 @@ export class FuelController {
       res.status(500).json({ error: `OCR error: ${err?.message || 'Processing failed'}` });
     }
   }
-}
 
+  public static async getNearbyStations(req: Request, res: Response): Promise<void> {
+    const lat = parseFloat(req.query.lat as string);
+    const lon = parseFloat(req.query.lon as string);
+    const radius = parseFloat(req.query.radius as string) || 7;
+
+    if (isNaN(lat) || isNaN(lon)) {
+      res.status(400).json({ error: 'Geldige lat en lon parameters zijn verplicht.' });
+      return;
+    }
+
+    try {
+      const stations = await StationService.findNearbyStations(lat, lon, radius);
+      res.json({ stations });
+    } catch (err: any) {
+      res.status(500).json({ error: err?.message || 'Fout bij ophalen van tankstations in de buurt.' });
+    }
+  }
+
+  public static async searchStations(req: Request, res: Response): Promise<void> {
+    const q = ((req.query.q as string) || '').trim();
+    const lat = req.query.lat ? parseFloat(req.query.lat as string) : undefined;
+    const lon = req.query.lon ? parseFloat(req.query.lon as string) : undefined;
+
+    if (!q || q.length < 2) {
+      res.json({ stations: [] });
+      return;
+    }
+
+    try {
+      const stations = await StationService.searchStations(q, lat, lon);
+      res.json({ stations });
+    } catch (err: any) {
+      res.status(500).json({ error: err?.message || 'Fout bij zoeken naar tankstations.' });
+    }
+  }
+}

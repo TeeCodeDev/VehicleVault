@@ -9,3 +9,4 @@ router.put('/ai', requireAuth, SettingsController.updateAiSettings);
 router.post('/ai/test', requireAuth, SettingsController.testAiConnection);
 
 export default router;
+

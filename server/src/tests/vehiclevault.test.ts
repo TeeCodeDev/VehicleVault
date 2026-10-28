@@ -14,6 +14,7 @@ import { executeMcpTool } from '../mcp/tools.js';
 import { ImportService } from '../services/importService.js';
 import { RdwService } from '../services/rdwService.js';
 import { AiReceiptService, getSystemSetting, setSystemSetting, maskApiKey } from '../services/aiReceiptService.js';
+import { StationService } from '../services/stationService.js';
 
 describe('VehicleVault Comprehensive Test Suite', () => {
   let testUserId: string;
@@ -372,6 +373,57 @@ Date,Odometer,Fuel_amount,Price,Total_cost,Notes
       const res = await AiReceiptService.testConnection('gemini', '');
       assert.equal(res.success, false);
       assert.ok(res.message.includes('Geen API-sleutel ingevoerd'));
+    });
+  });
+
+  describe('Gas Station Location & GPS Service', () => {
+    it('should calculate Haversine distance in meters accurately', () => {
+      // Distance between two points in Steenwijk: ~1.8 km
+      const meters = StationService.calculateDistanceMeters(52.788, 6.121, 52.8037052, 6.1287276);
+      assert.ok(meters > 1700 && meters < 1950, `Expected ~1822m, got ${meters}`);
+    });
+
+    it('should format distance cleanly in meters and kilometers', () => {
+      assert.equal(StationService.formatDistance(120), '120 m');
+      assert.equal(StationService.formatDistance(999), '999 m');
+      assert.equal(StationService.formatDistance(1822), '1.8 km');
+      assert.equal(StationService.formatDistance(12400), '12.4 km');
+    });
+
+    it('should store and retrieve station location details on fuel entries', () => {
+      const fuelId = crypto.randomUUID();
+      db.run(
+        `INSERT INTO fuel_entries (
+          id, vehicle_id, date, odometer, liters, price_per_liter, total_cost,
+          is_full_tank, missed_previous, notes, station_name, station_address,
+          latitude, longitude, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          fuelId,
+          testVehicleId,
+          '2026-10-27',
+          65000,
+          40.89,
+          2.079,
+          85.01,
+          1,
+          0,
+          'Regular fill-up',
+          'Fieten Olie Steenwijk',
+          'Eeser Gaard 2, 8332 VN Steenwijk',
+          52.8037,
+          6.1287,
+          new Date().toISOString(),
+        ]
+      );
+
+      const entry = db.get<any>('SELECT * FROM fuel_entries WHERE id = ?', [fuelId]);
+      assert.equal(entry.station_name, 'Fieten Olie Steenwijk');
+      assert.equal(entry.station_address, 'Eeser Gaard 2, 8332 VN Steenwijk');
+      assert.equal(entry.latitude, 52.8037);
+      assert.equal(entry.longitude, 6.1287);
+
+      db.run('DELETE FROM fuel_entries WHERE id = ?', [fuelId]);
     });
   });
 });

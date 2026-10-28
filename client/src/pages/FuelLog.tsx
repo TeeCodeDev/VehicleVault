@@ -6,13 +6,19 @@ import {
   AlertTriangle,
   Trash2,
   Image,
-  CheckCircle2,
   History,
   Paperclip,
   X,
   FileText,
+  MapPin,
+  Navigation,
+  Search,
+  Loader2,
+  ExternalLink,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
-import { Vehicle, FuelEntry } from '../types/index.js';
+import { Vehicle, FuelEntry, GasStation } from '../types/index.js';
 import { apiFetch } from '../api/client.js';
 import { ReceiptScannerModal } from '../components/ReceiptScannerModal.js';
 import { DatePicker } from '../components/DatePicker.js';
@@ -43,6 +49,20 @@ export const FuelLog: React.FC = () => {
   const [receiptPath, setReceiptPath] = useState<string | null>(null);
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [uploadingReceipt, setUploadingReceipt] = useState(false);
+
+  // Station Location & GPS State
+  const [stationName, setStationName] = useState('');
+  const [stationAddress, setStationAddress] = useState('');
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
+  const [showLocationSection, setShowLocationSection] = useState(false);
+
+  const [loadingGps, setLoadingGps] = useState(false);
+  const [gpsError, setGpsError] = useState<string | null>(null);
+  const [nearbyStations, setNearbyStations] = useState<GasStation[]>([]);
+  const [showStationPicker, setShowStationPicker] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchingStations, setSearchingStations] = useState(false);
 
   // Warnings / Validation State
   const [warningMessage, setWarningMessage] = useState<string | null>(null);
@@ -126,6 +146,82 @@ export const FuelLog: React.FC = () => {
     }
   };
 
+  // Trigger browser GPS Geolocation to find nearest gas stations
+  const handleGetGpsStations = () => {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      setGpsError(lang === 'nl' ? 'GPS geolocatie wordt niet ondersteund door deze browser.' : 'Geolocation is not supported by your browser.');
+      return;
+    }
+
+    setLoadingGps(true);
+    setGpsError(null);
+    setShowLocationSection(true);
+    setShowStationPicker(true);
+
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = pos.coords.latitude;
+        const lon = pos.coords.longitude;
+        setLatitude(lat);
+        setLongitude(lon);
+
+        try {
+          const res = await apiFetch<{ stations: GasStation[] }>(
+            `/api/fuel/stations/nearby?lat=${lat}&lon=${lon}&radius=8`
+          );
+          setNearbyStations(res.stations || []);
+          if (!res.stations || res.stations.length === 0) {
+            setGpsError(lang === 'nl' ? 'Geen tankstations binnen 8 km gevonden.' : 'No gas stations found within 8 km.');
+          }
+        } catch (err: any) {
+          setGpsError(err?.message || 'Fout bij ophalen van tankstations in de buurt.');
+        } finally {
+          setLoadingGps(false);
+        }
+      },
+      (err) => {
+        setLoadingGps(false);
+        if (err.code === err.PERMISSION_DENIED) {
+          setGpsError(t('gpsPermissionDenied'));
+        } else {
+          setGpsError(err.message || 'GPS fout bij bepalen van positie.');
+        }
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+    );
+  };
+
+  // Search stations by text query
+  const handleSearchStations = async (q: string) => {
+    setSearchQuery(q);
+    if (q.trim().length < 2) return;
+
+    setSearchingStations(true);
+    setGpsError(null);
+    try {
+      const url = latitude && longitude
+        ? `/api/fuel/stations/search?q=${encodeURIComponent(q)}&lat=${latitude}&lon=${longitude}`
+        : `/api/fuel/stations/search?q=${encodeURIComponent(q)}`;
+      const res = await apiFetch<{ stations: GasStation[] }>(url);
+      setNearbyStations(res.stations || []);
+      setShowStationPicker(true);
+      setShowLocationSection(true);
+    } catch {
+      // ignore
+    } finally {
+      setSearchingStations(false);
+    }
+  };
+
+  const handleSelectStation = (st: GasStation) => {
+    setStationName(st.name);
+    setStationAddress(st.address);
+    setLatitude(st.lat);
+    setLongitude(st.lon);
+    setShowStationPicker(false);
+    setShowLocationSection(true);
+  };
+
   const handleOcrExtracted = (data: {
     date?: string | null;
     liters: number | null;
@@ -141,6 +237,11 @@ export const FuelLog: React.FC = () => {
     if (data.totalCost) setTotalCost(String(data.totalCost));
     setReceiptPath(data.receiptPath);
     setReceiptFile(null);
+
+    if (data.station) {
+      setStationName(data.station);
+      setShowLocationSection(true);
+    }
 
     if (data.station || data.fuelType) {
       const parts = [data.station, data.fuelType].filter(Boolean);
@@ -166,6 +267,10 @@ export const FuelLog: React.FC = () => {
         is_full_tank: isFullTank,
         missed_previous: missedPrevious,
         notes: notes || null,
+        station_name: stationName || null,
+        station_address: stationAddress || null,
+        latitude: latitude ?? null,
+        longitude: longitude ?? null,
       });
 
       alert(t('offlineSavedAlert'));
@@ -173,6 +278,10 @@ export const FuelLog: React.FC = () => {
       setPricePerLiter('');
       setTotalCost('');
       setNotes('');
+      setStationName('');
+      setStationAddress('');
+      setLatitude(null);
+      setLongitude(null);
       setReceiptPath(null);
       setReceiptFile(null);
       setWarningMessage(null);
@@ -207,6 +316,10 @@ export const FuelLog: React.FC = () => {
           missed_previous: missedPrevious,
           notes: notes || null,
           receipt_path: finalReceiptPath || null,
+          station_name: stationName || null,
+          station_address: stationAddress || null,
+          latitude: latitude ?? null,
+          longitude: longitude ?? null,
         }),
       });
 
@@ -215,6 +328,10 @@ export const FuelLog: React.FC = () => {
       setPricePerLiter('');
       setTotalCost('');
       setNotes('');
+      setStationName('');
+      setStationAddress('');
+      setLatitude(null);
+      setLongitude(null);
       setReceiptPath(null);
       setReceiptFile(null);
       setWarningMessage(null);
@@ -232,12 +349,20 @@ export const FuelLog: React.FC = () => {
           is_full_tank: isFullTank,
           missed_previous: missedPrevious,
           notes: notes || null,
+          station_name: stationName || null,
+          station_address: stationAddress || null,
+          latitude: latitude ?? null,
+          longitude: longitude ?? null,
         });
         alert(t('offlineSavedAlert'));
         setLiters('');
         setPricePerLiter('');
         setTotalCost('');
         setNotes('');
+        setStationName('');
+        setStationAddress('');
+        setLatitude(null);
+        setLongitude(null);
         setReceiptPath(null);
         setReceiptFile(null);
         setWarningMessage(null);
@@ -374,7 +499,7 @@ export const FuelLog: React.FC = () => {
                 type="text"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder={lang === 'nl' ? 'bijv. Shell A1, Euro 95 E10' : 'e.g. Shell A1, Euro 95 E10'}
+                placeholder={lang === 'nl' ? 'bijv. Euro 95 E10, bandenspanning gecheckt' : 'e.g. Euro 95 E10, tire pressure checked'}
                 className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-1.5 text-slate-900 dark:text-white focus:outline-none focus:border-sky-500 shadow-sm"
               />
             </div>
@@ -402,6 +527,137 @@ export const FuelLog: React.FC = () => {
             </div>
           </div>
 
+          {/* Optional Station & GPS Location Section */}
+          <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80">
+            <div className="flex items-center justify-between mb-2">
+              <button
+                type="button"
+                onClick={() => setShowLocationSection(!showLocationSection)}
+                className="text-slate-700 dark:text-slate-300 hover:text-sky-600 dark:hover:text-sky-400 font-bold text-xs inline-flex items-center space-x-1.5 transition"
+              >
+                <MapPin className="w-3.5 h-3.5 text-sky-500" />
+                <span>{t('stationAndLocation')}</span>
+                {showLocationSection ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+              </button>
+
+              <div className="flex items-center space-x-2">
+                <button
+                  type="button"
+                  onClick={handleGetGpsStations}
+                  disabled={loadingGps}
+                  className="inline-flex items-center space-x-1.5 px-3 py-1 bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800/60 hover:bg-sky-100 dark:hover:bg-sky-900/60 rounded-lg text-[11px] font-bold transition shadow-sm disabled:opacity-50"
+                >
+                  {loadingGps ? <Loader2 className="w-3 h-3 animate-spin text-sky-500" /> : <Navigation className="w-3 h-3 text-sky-500" />}
+                  <span>{loadingGps ? t('gettingGps') : t('findNearbyGps')}</span>
+                </button>
+              </div>
+            </div>
+
+            {showLocationSection && (
+              <div className="space-y-3 bg-slate-50/70 dark:bg-slate-950/40 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800">
+                {/* Search Bar for Stations */}
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                    {searchingStations ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
+                  </div>
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => handleSearchStations(e.target.value)}
+                    placeholder={t('searchStationPlaceholder')}
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-sky-500 shadow-sm"
+                  />
+                </div>
+
+                {gpsError && (
+                  <div className="p-2.5 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/50 text-rose-700 dark:text-rose-300 text-[11px] flex items-center space-x-1.5">
+                    <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                    <span>{gpsError}</span>
+                  </div>
+                )}
+
+                {/* Nearby Stations List Dropdown */}
+                {showStationPicker && nearbyStations.length > 0 && (
+                  <div className="space-y-1.5 max-h-48 overflow-y-auto p-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-md">
+                    <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase px-2 py-1 tracking-wider flex items-center justify-between">
+                      <span>{t('gpsNearbyFound')} ({nearbyStations.length})</span>
+                      <button
+                        type="button"
+                        onClick={() => setShowStationPicker(false)}
+                        className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                    {nearbyStations.map((st) => (
+                      <button
+                        key={st.id}
+                        type="button"
+                        onClick={() => handleSelectStation(st)}
+                        className="w-full text-left p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-between group transition"
+                      >
+                        <div className="min-w-0 pr-2">
+                          <div className="font-bold text-xs text-slate-900 dark:text-slate-100 flex items-center space-x-1.5">
+                            <span>{st.name}</span>
+                            {st.distanceFormatted && (
+                              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-sky-50 dark:bg-sky-950/80 text-sky-600 dark:text-sky-400 font-semibold border border-sky-100 dark:border-sky-900/40">
+                                {st.distanceFormatted}
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                            {st.address}
+                          </div>
+                        </div>
+                        <MapPin className="w-3.5 h-3.5 text-slate-400 group-hover:text-sky-500 shrink-0" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Direct Fields for Station Name and Address */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      {t('stationName')}
+                    </label>
+                    <input
+                      type="text"
+                      value={stationName}
+                      onChange={(e) => setStationName(e.target.value)}
+                      placeholder={lang === 'nl' ? 'bijv. Fieten Olie, Shell, Tango' : 'e.g. Shell, BP, Esso'}
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-1.5 text-slate-900 dark:text-white focus:outline-none focus:border-sky-500 shadow-sm"
+                    />
+                  </div>
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                        {t('stationAddress')}
+                      </label>
+                      {latitude && longitude && (
+                        <a
+                          href={`https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-[10px] text-sky-600 dark:text-sky-400 hover:underline inline-flex items-center space-x-0.5"
+                        >
+                          <span>{t('openInMaps')}</span>
+                          <ExternalLink className="w-2.5 h-2.5" />
+                        </a>
+                      )}
+                    </div>
+                    <input
+                      type="text"
+                      value={stationAddress}
+                      onChange={(e) => setStationAddress(e.target.value)}
+                      placeholder={lang === 'nl' ? 'bijv. Eeser Gaard 2, 8332 VN Steenwijk' : 'e.g. Main Street 12, London'}
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-1.5 text-slate-900 dark:text-white focus:outline-none focus:border-sky-500 shadow-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Manual Receipt Attachment or OCR Preview */}
           <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex flex-wrap items-center justify-between gap-3">
@@ -451,22 +707,18 @@ export const FuelLog: React.FC = () => {
                   />
                 </label>
               )}
-              <span className="text-[11px] text-slate-400 hidden sm:inline">
-                {receiptFile || receiptPath ? '' : (lang === 'nl' ? 'PDF of foto (.jpg, .png) van de kassabon' : 'PDF or receipt image (.jpg, .png)')}
-              </span>
             </div>
-          </div>
 
-          <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-3">
-            <div className="text-[11px] text-slate-500">
-              {receiptPath ? (
-                <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center space-x-1">
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>{t('ocrSuccess')}</span>
+            <div className="text-[11px] text-slate-400">
+              {entries.length > 0 ? (
+                <span>
+                  {lang === 'nl'
+                    ? `Vorige stand: ${Math.max(...entries.map((e) => e.odometer)).toLocaleString()} km`
+                    : `Previous: ${Math.max(...entries.map((e) => e.odometer)).toLocaleString()} km`}
                 </span>
               ) : (
                 lang === 'nl'
-                  ? 'Tip: Gebruik de OCR scanner om snel een kassabon van het tankstation in te lezen.'
+                  ? 'Tip: Gebruik de OCR scanner om snel je tankbon over te nemen.'
                   : 'Tip: Use the OCR scanner to quickly capture your fuel receipt.'
               )}
             </div>
@@ -526,58 +778,85 @@ export const FuelLog: React.FC = () => {
                   }
 
                   return (
-                  <tr key={f.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition">
-                    <td className="py-3 px-4 font-semibold text-slate-900 dark:text-slate-200">{f.date}</td>
-                    <td className="py-3 px-4 font-mono font-bold text-slate-800 dark:text-slate-300">
-                      {f.odometer.toLocaleString()} km
-                    </td>
-                    <td className="py-3 px-4 font-semibold">{f.liters.toFixed(2)} L</td>
-                    <td className="py-3 px-4">€ {f.price_per_liter.toFixed(3)}</td>
-                    <td className="py-3 px-4 font-black text-slate-900 dark:text-white text-sm">
-                      € {f.total_cost.toFixed(2)}
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex flex-col gap-1">
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold border border-slate-200 dark:border-slate-700 w-fit">
-                          {f.is_full_tank ? t('fullTank') : (lang === 'nl' ? 'Deeltank' : 'Partial')}
-                        </span>
-                        {economyText && (
-                          <span className="text-[11px] font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                            {economyText}
-                          </span>
+                    <tr key={f.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition">
+                      <td className="py-3 px-4">
+                        <div className="font-semibold text-slate-900 dark:text-slate-200">{f.date}</div>
+                        {(f.station_name || f.station_address) && (
+                          <div className="flex items-center space-x-1 text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                            <MapPin className="w-3 h-3 text-sky-500 shrink-0" />
+                            <span className="font-medium text-slate-700 dark:text-slate-300 truncate max-w-[140px]" title={f.station_name || ''}>
+                              {f.station_name || ''}
+                            </span>
+                            {f.station_name && f.station_address && <span>•</span>}
+                            <span className="truncate max-w-[150px]" title={f.station_address || ''}>
+                              {f.station_address || ''}
+                            </span>
+                            {f.latitude && f.longitude && (
+                              <a
+                                href={`https://www.google.com/maps/search/?api=1&query=${f.latitude},${f.longitude}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-sky-500 hover:text-sky-600 inline-flex items-center ml-0.5"
+                                title={t('openInMaps')}
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <ExternalLink className="w-2.5 h-2.5" />
+                              </a>
+                            )}
+                          </div>
                         )}
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      {f.receipt_path ? (
-                        <a
-                          href={`/uploads/receipts/${f.receipt_path}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-sky-600 dark:text-sky-400 hover:underline inline-flex items-center space-x-1 font-semibold"
-                        >
-                          {f.receipt_path.toLowerCase().endsWith('.pdf') ? (
-                            <FileText className="w-3.5 h-3.5" />
-                          ) : (
-                            <Image className="w-3.5 h-3.5" />
+                      </td>
+                      <td className="py-3 px-4 font-mono font-bold text-slate-800 dark:text-slate-300">
+                        {f.odometer.toLocaleString()} km
+                      </td>
+                      <td className="py-3 px-4 font-semibold">{f.liters.toFixed(2)} L</td>
+                      <td className="py-3 px-4">€ {f.price_per_liter.toFixed(3)}</td>
+                      <td className="py-3 px-4 font-black text-slate-900 dark:text-white text-sm">
+                        € {f.total_cost.toFixed(2)}
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex flex-col gap-1">
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold border border-slate-200 dark:border-slate-700 w-fit">
+                            {f.is_full_tank ? t('fullTank') : (lang === 'nl' ? 'Deeltank' : 'Partial')}
+                          </span>
+                          {economyText && (
+                            <span className="text-[11px] font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                              {economyText}
+                            </span>
                           )}
-                          <span>{t('view')}</span>
-                        </a>
-                      ) : (
-                        <span className="text-slate-400">—</span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4 text-right">
-                      <button
-                        onClick={() => handleDelete(f.id)}
-                        className="text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 p-1 rounded transition"
-                        title={t('delete')}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
-                );})}
+                        </div>
+                      </td>
+                      <td className="py-3 px-4">
+                        {f.receipt_path ? (
+                          <a
+                            href={`/uploads/receipts/${f.receipt_path}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-sky-600 dark:text-sky-400 hover:underline inline-flex items-center space-x-1 font-semibold"
+                          >
+                            {f.receipt_path.toLowerCase().endsWith('.pdf') ? (
+                              <FileText className="w-3.5 h-3.5" />
+                            ) : (
+                              <Image className="w-3.5 h-3.5" />
+                            )}
+                            <span>{t('view')}</span>
+                          </a>
+                        ) : (
+                          <span className="text-slate-400">—</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <button
+                          onClick={() => handleDelete(f.id)}
+                          className="text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 p-1 rounded transition"
+                          title={t('delete')}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

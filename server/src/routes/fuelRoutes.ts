@@ -8,6 +8,9 @@ const router = Router();
 
 router.use(requireAuth);
 
+router.get('/stations/nearby', FuelController.getNearbyStations);
+router.get('/stations/search', FuelController.searchStations);
+
 router.get('/', FuelController.list);
 router.get('/:vehicleId', FuelController.list);
 router.post('/', FuelController.create);
@@ -16,4 +19,3 @@ router.post('/upload-receipt', uploadLimiter, uploadReceipt.single('receipt'), F
 router.post('/ocr', uploadLimiter, uploadReceipt.single('receipt'), FuelController.ocrReceipt);
 
 export default router;
-

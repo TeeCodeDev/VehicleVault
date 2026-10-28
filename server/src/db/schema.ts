@@ -125,10 +125,27 @@ export function initializeDatabase(): void {
       missed_previous INTEGER NOT NULL DEFAULT 0,
       notes TEXT,
       receipt_path TEXT,
+      station_name TEXT,
+      station_address TEXT,
+      latitude REAL,
+      longitude REAL,
       created_at TEXT NOT NULL,
       FOREIGN KEY (vehicle_id) REFERENCES vehicles(id) ON DELETE CASCADE
     );
   `);
+
+  if (!columnExists('fuel_entries', 'station_name')) {
+    db.exec('ALTER TABLE fuel_entries ADD COLUMN station_name TEXT;');
+  }
+  if (!columnExists('fuel_entries', 'station_address')) {
+    db.exec('ALTER TABLE fuel_entries ADD COLUMN station_address TEXT;');
+  }
+  if (!columnExists('fuel_entries', 'latitude')) {
+    db.exec('ALTER TABLE fuel_entries ADD COLUMN latitude REAL;');
+  }
+  if (!columnExists('fuel_entries', 'longitude')) {
+    db.exec('ALTER TABLE fuel_entries ADD COLUMN longitude REAL;');
+  }
 
   // 6. Service categories
   db.exec(`

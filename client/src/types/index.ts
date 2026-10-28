@@ -43,7 +43,26 @@ export interface FuelEntry {
   missed_previous: number | boolean;
   notes?: string | null;
   receipt_path?: string | null;
+  station_name?: string | null;
+  station_address?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   created_at: string;
+}
+
+export interface GasStation {
+  id: string;
+  name: string;
+  brand?: string;
+  address: string;
+  street?: string;
+  houseNumber?: string;
+  city?: string;
+  postcode?: string;
+  lat: number;
+  lon: number;
+  distanceMeters?: number;
+  distanceFormatted?: string;
 }
 
 export interface ServiceCategory {

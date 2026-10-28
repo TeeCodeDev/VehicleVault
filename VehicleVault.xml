@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <Container version="2">
   <Name>VehicleVault</Name>
-  <Version>v1.0.4</Version>
+  <Version>v1.0.5</Version>
   <Repository>ghcr.io/teecodedev/vehichlevault:latest</Repository>
   <Registry>https://ghcr.io/teecodedev/vehichlevault</Registry>
   <Network>bridge</Network>
@@ -40,6 +40,12 @@ Open the web interface at [inline]http://[IP]:[PORT:3001]/[/inline]. The first u
   <DonateText>If you like VehicleVault, buy me a coffee!</DonateText>
   <DonateLink>https://ko-fi.com/D1D51ZGUNL</DonateLink>
   <Changes>
+### v1.0.5 (2026-10-28)
+- Tankstation & Adres Registratie: Optioneel vastleggen van tankstationnaam en straatadres bij elke tankbeurt.
+- Dynamische GPS Tankstation Finder: Mobiele PWA GPS-integratie om via OpenStreetMap direct de dichtstbijzijnde tankstations binnen handbereik te tonen gesorteerd op afstand (bijv. 120 m).
+- Slimme Tankstation Zoekbalk: Dynamisch zoeken naar tankstations op naam, merk of plaats (bijv. Fieten Steenwijk, Shell A28).
+- AI & Kaart Integratie: AI Vision vult automatisch het adres in, met directe doorklikbare Google Maps links op geregistreerde tankbeurten.
+
 ### v1.0.4 (2026-10-28)
 - AI Vision Bonherkenning: Koppel Google Gemini (1.5/2.0 Flash) of OpenAI (GPT-4o-mini) voor 100% accurate bonextractie van dot-matrix thermische tankbonnen (inclusief tankstation, datum, liters, literprijs en brandstoftype).
 - Automatische fallback naar lokale Tesseract OCR indien geen AI-sleutel ingesteld is.

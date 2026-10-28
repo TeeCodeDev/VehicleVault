@@ -11,6 +11,10 @@ export interface QueuedFuelEntry {
   is_full_tank: boolean;
   missed_previous: boolean;
   notes?: string | null;
+  station_name?: string | null;
+  station_address?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   queuedAt: string;
 }
 
@@ -76,6 +80,10 @@ export async function syncOfflineQueue(): Promise<{ syncedCount: number; errors:
           is_full_tank: item.is_full_tank,
           missed_previous: item.missed_previous,
           notes: item.notes,
+          station_name: item.station_name,
+          station_address: item.station_address,
+          latitude: item.latitude,
+          longitude: item.longitude,
         }),
       });
       syncedCount++;
