@@ -195,9 +195,12 @@ export const Dashboard: React.FC = () => {
             {(selectedVehicle?.current_odometer || selectedVehicle?.initial_odometer || 0).toLocaleString()}{' '}
             <span className="text-xs font-bold text-slate-400 uppercase">km</span>
           </div>
-          <span className="text-[11px] text-slate-400 font-medium">
-            {lang === 'nl' ? 'Bijgewerkt via laatste log' : 'Updated from latest entry'}
-          </span>
+          <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium pt-1 border-t border-slate-100 dark:border-slate-800/80 mt-1">
+            <span>{lang === 'nl' ? 'Aankoopstand' : 'Purchased at'}:</span>
+            <span className="font-mono font-semibold text-slate-600 dark:text-slate-300">
+              {(selectedVehicle?.initial_odometer || 0).toLocaleString()} km
+            </span>
+          </div>
         </div>
 
         {/* APK Inspection Status */}

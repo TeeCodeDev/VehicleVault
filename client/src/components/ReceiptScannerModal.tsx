@@ -5,7 +5,13 @@ import { useLanguage } from '../context/LanguageContext.js';
 interface ReceiptScannerModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onExtracted: (data: { liters: number | null; pricePerLiter: number | null; totalCost: number | null; receiptPath: string }) => void;
+  onExtracted: (data: {
+    date?: string | null;
+    liters: number | null;
+    pricePerLiter: number | null;
+    totalCost: number | null;
+    receiptPath: string;
+  }) => void;
 }
 
 export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({ isOpen, onClose, onExtracted }) => {
@@ -61,9 +67,10 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({ isOpen
   const handleApply = () => {
     if (ocrResult) {
       onExtracted({
-        liters: ocrResult.extracted.liters,
-        pricePerLiter: ocrResult.extracted.pricePerLiter,
-        totalCost: ocrResult.extracted.totalCost,
+        date: ocrResult.extracted?.date || null,
+        liters: ocrResult.extracted?.liters ?? null,
+        pricePerLiter: ocrResult.extracted?.pricePerLiter ?? null,
+        totalCost: ocrResult.extracted?.totalCost ?? null,
         receiptPath: ocrResult.receiptPath,
       });
       onClose();
@@ -72,9 +79,9 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({ isOpen
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl max-w-lg w-full p-5 text-slate-900 dark:text-slate-100 shadow-2xl">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full p-5 text-slate-900 dark:text-slate-100 shadow-2xl overflow-hidden">
         <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-4">
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2.5">
             <div className="w-8 h-8 rounded-lg bg-sky-100 dark:bg-sky-950 flex items-center justify-center text-sky-600 dark:text-sky-400">
               <Camera className="w-4 h-4" />
             </div>
@@ -83,21 +90,21 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({ isOpen
               <p className="text-[11px] text-slate-500">{t('ocrSupportedFormats')}</p>
             </div>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-white">
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {error && (
-          <div className="flex items-center space-x-2 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/50 text-rose-700 dark:text-rose-300 text-xs p-3 rounded-lg mb-3">
+          <div className="flex items-center space-x-2 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/50 text-rose-700 dark:text-rose-300 text-xs p-3 rounded-xl mb-3">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{error}</span>
           </div>
         )}
 
-        <div className="space-y-4">
+        <div className="space-y-3.5">
           {/* File picker */}
-          <div className="border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-500 rounded-xl p-6 text-center cursor-pointer transition bg-slate-50/50 dark:bg-slate-950/30">
+          <div className="border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-500 rounded-xl p-5 text-center cursor-pointer transition bg-slate-50/50 dark:bg-slate-950/30">
             <input
               type="file"
               accept="image/*"
@@ -107,36 +114,48 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({ isOpen
               id="receipt-file-input"
             />
             <label htmlFor="receipt-file-input" className="cursor-pointer flex flex-col items-center">
-              <Upload className="w-8 h-8 text-slate-400 mb-2" />
-              <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+              <Upload className="w-7 h-7 text-slate-400 mb-2" />
+              <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
                 {file ? file.name : t('ocrDropzoneText')}
               </span>
-              <span className="text-xs text-slate-500 mt-1">JPG, PNG, WEBP, HEIC</span>
+              <span className="text-[11px] text-slate-500 mt-0.5">JPG, PNG, WEBP, HEIC</span>
             </label>
           </div>
 
           {previewUrl && (
-            <div className="flex items-center space-x-3 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800">
-              <img src={previewUrl} alt="Receipt preview" className="w-16 h-16 object-cover rounded-md shadow-sm" />
-              <div className="flex-1 text-xs">
+            <div className="flex items-center space-x-3 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-xl border border-slate-200 dark:border-slate-800">
+              <img src={previewUrl} alt="Receipt preview" className="w-14 h-14 object-cover rounded-lg shadow-sm shrink-0" />
+              <div className="flex-1 min-w-0 text-xs">
                 <p className="font-semibold text-slate-800 dark:text-slate-200 truncate">{file?.name}</p>
-                <p className="text-slate-500">{Math.round((file?.size || 0) / 1024)} KB</p>
+                <p className="text-slate-500 text-[11px]">{Math.round((file?.size || 0) / 1024)} KB</p>
               </div>
               <button
                 type="button"
                 onClick={handleProcessOcr}
                 disabled={loading}
-                className="px-3.5 py-1.5 bg-slate-900 hover:bg-black text-white dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white rounded-md text-xs font-semibold inline-flex items-center space-x-1.5 transition disabled:opacity-50 shadow-sm"
+                className="shrink-0 px-3.5 py-2 bg-slate-900 hover:bg-black text-white dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white rounded-lg text-xs font-semibold inline-flex items-center space-x-1.5 transition disabled:opacity-50 shadow-sm"
               >
                 {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
-                <span>{loading ? t('scanningReceipt') : (lang === 'nl' ? 'Start OCR Scan' : 'Start OCR Scan')}</span>
+                <span>{loading ? (lang === 'nl' ? 'Analyseren...' : 'Analyzing...') : (lang === 'nl' ? 'Start OCR Scan' : 'Start OCR Scan')}</span>
               </button>
+            </div>
+          )}
+
+          {loading && (
+            <div className="flex items-center space-x-3 bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800/60 p-3 rounded-xl text-xs text-sky-800 dark:text-sky-200">
+              <Loader2 className="w-4 h-4 animate-spin text-sky-600 dark:text-sky-400 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <span className="font-semibold block">{t('scanningReceipt')}</span>
+                <span className="text-[11px] text-sky-600 dark:text-sky-400">
+                  {lang === 'nl' ? 'Tekst, datum, liters en bedragen worden geanalyseerd...' : 'Parsing text, date, liters, and amounts...'}
+                </span>
+              </div>
             </div>
           )}
 
           {/* OCR Result Preview */}
           {ocrResult && (
-            <div className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-3.5 text-xs space-y-2.5">
+            <div className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 text-xs space-y-2.5">
               <div className="flex items-center justify-between text-slate-700 dark:text-slate-300 font-semibold border-b border-slate-200 dark:border-slate-800 pb-2">
                 <span>{lang === 'nl' ? 'Herkende Gegevens' : 'Recognized Data'}</span>
                 <span className="text-emerald-600 dark:text-emerald-400 flex items-center space-x-1 font-medium">
@@ -145,23 +164,29 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({ isOpen
                 </span>
               </div>
 
-              <div className="grid grid-cols-3 gap-2 pt-1 text-center">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-center">
+                <div className="bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm">
+                  <span className="text-slate-500 block text-[10px] uppercase font-bold tracking-wider">{t('date')}</span>
+                  <span className="text-xs font-bold text-slate-900 dark:text-white">
+                    {ocrResult.extracted?.date || '—'}
+                  </span>
+                </div>
                 <div className="bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm">
                   <span className="text-slate-500 block text-[10px] uppercase font-bold tracking-wider">{t('liters')}</span>
-                  <span className="text-sm font-bold text-slate-900 dark:text-white">
-                    {ocrResult.extracted.liters ? `${ocrResult.extracted.liters} L` : '—'}
+                  <span className="text-xs font-bold text-slate-900 dark:text-white">
+                    {ocrResult.extracted?.liters ? `${ocrResult.extracted.liters} L` : '—'}
                   </span>
                 </div>
                 <div className="bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm">
                   <span className="text-slate-500 block text-[10px] uppercase font-bold tracking-wider">{t('pricePerLiter')}</span>
-                  <span className="text-sm font-bold text-slate-900 dark:text-white">
-                    {ocrResult.extracted.pricePerLiter ? `€ ${ocrResult.extracted.pricePerLiter}` : '—'}
+                  <span className="text-xs font-bold text-slate-900 dark:text-white">
+                    {ocrResult.extracted?.pricePerLiter ? `€ ${ocrResult.extracted.pricePerLiter}` : '—'}
                   </span>
                 </div>
                 <div className="bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm">
                   <span className="text-slate-500 block text-[10px] uppercase font-bold tracking-wider">{t('totalCost')}</span>
-                  <span className="text-sm font-bold text-slate-900 dark:text-white">
-                    {ocrResult.extracted.totalCost ? `€ ${ocrResult.extracted.totalCost}` : '—'}
+                  <span className="text-xs font-bold text-slate-900 dark:text-white">
+                    {ocrResult.extracted?.totalCost ? `€ ${ocrResult.extracted.totalCost}` : '—'}
                   </span>
                 </div>
               </div>
@@ -181,7 +206,7 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({ isOpen
             type="button"
             onClick={handleApply}
             disabled={!ocrResult}
-            className="px-4 py-1.5 bg-slate-900 text-white hover:bg-black dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white rounded-md text-xs font-semibold disabled:opacity-50 transition shadow-sm"
+            className="px-4 py-1.5 bg-slate-900 text-white hover:bg-black dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white rounded-lg text-xs font-semibold disabled:opacity-50 transition shadow-sm"
           >
             {lang === 'nl' ? 'Gegevens overnemen' : 'Apply values'}
           </button>

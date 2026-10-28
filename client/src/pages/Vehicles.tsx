@@ -323,11 +323,25 @@ export const Vehicles: React.FC = () => {
 
                 <div className="bg-slate-50 dark:bg-slate-950/70 p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800 text-xs space-y-2">
                   <div className="flex justify-between">
-                    <span className="text-slate-500">{t('odometer')}</span>
+                    <span className="text-slate-500">{lang === 'nl' ? 'Huidige stand' : t('odometer')}</span>
                     <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
                       {(v.current_odometer || v.initial_odometer || 0).toLocaleString()} km
                     </span>
                   </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">{lang === 'nl' ? 'Aankoopstand' : t('initialOdometer')}</span>
+                    <span className="font-mono font-medium text-slate-700 dark:text-slate-300">
+                      {(v.initial_odometer || 0).toLocaleString()} km
+                    </span>
+                  </div>
+                  {(v.current_odometer || v.initial_odometer || 0) > (v.initial_odometer || 0) && (
+                    <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-medium">
+                      <span>{lang === 'nl' ? 'Gereden na aankoop' : 'Driven since purchase'}</span>
+                      <span className="font-mono font-bold">
+                        +{((v.current_odometer || v.initial_odometer || 0) - (v.initial_odometer || 0)).toLocaleString()} km
+                      </span>
+                    </div>
+                  )}
                   <div className="flex justify-between">
                     <span className="text-slate-500">{t('apkDate')}</span>
                     <span className="font-semibold text-slate-800 dark:text-slate-200">
@@ -578,7 +592,8 @@ export const Vehicles: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">{t('initialOdometer')}</label>
+                  <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">{lang === 'nl' ? 'Aankoopstand (km)' : t('initialOdometer')}</label>
+                  <p className="text-[10px] text-slate-400 mb-1">{lang === 'nl' ? 'Kilometerstand op het moment van aankoop' : 'Odometer when purchased'}</p>
                   <input
                     type="number"
                     value={initialOdometer}

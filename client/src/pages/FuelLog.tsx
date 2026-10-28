@@ -121,11 +121,13 @@ export const FuelLog: React.FC = () => {
   };
 
   const handleOcrExtracted = (data: {
+    date?: string | null;
     liters: number | null;
     pricePerLiter: number | null;
     totalCost: number | null;
     receiptPath: string;
   }) => {
+    if (data.date) setDate(data.date);
     if (data.liters) setLiters(String(data.liters));
     if (data.pricePerLiter) setPricePerLiter(String(data.pricePerLiter));
     if (data.totalCost) setTotalCost(String(data.totalCost));

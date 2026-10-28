@@ -92,6 +92,7 @@ describe('VehicleVault Comprehensive Test Suite', () => {
       `;
 
       const parsed = OcrService.parseReceiptText(mockReceiptText, 92);
+      assert.equal(parsed.date, '2024-10-14');
       assert.equal(parsed.liters, 42.5);
       assert.equal(parsed.pricePerLiter, 1.949);
       assert.equal(parsed.totalCost, 82.83);
@@ -107,6 +108,26 @@ describe('VehicleVault Comprehensive Test Suite', () => {
       assert.equal(parsed.liters, 50.0);
       assert.equal(parsed.pricePerLiter, 2.0);
       assert.equal(parsed.totalCost, 100.0);
+    });
+
+    it('should extract date and mathematically reconcile liters on Dutch Fieten Olie dot-matrix receipt', () => {
+      const fietenReceipt = `
+        FIETEN OLIE
+        Datum 19-10-2026
+        08:16:03
+        Pomp 4 95 Ongelood
+        Volume 57 AI
+        rijs € 2.159/
+        TOTAAL E80 4%
+        *
+        BTW 21.00 % € 14.02
+        Netto € 66.75
+      `;
+      const parsed = OcrService.parseReceiptText(fietenReceipt, 85);
+      assert.equal(parsed.date, '2026-10-19');
+      assert.equal(parsed.pricePerLiter, 2.159);
+      assert.equal(parsed.totalCost, 80.77);
+      assert.equal(parsed.liters, 37.41);
     });
   });
 
