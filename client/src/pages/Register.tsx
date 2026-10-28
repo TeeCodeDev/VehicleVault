@@ -65,6 +65,7 @@ export const Register: React.FC = () => {
               <input
                 type="email"
                 required
+                autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="bestuurder@voorbeeld.nl"
@@ -80,6 +81,7 @@ export const Register: React.FC = () => {
               <input
                 type="password"
                 required
+                autoComplete="new-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Minimaal 8 tekens"
@@ -95,6 +97,7 @@ export const Register: React.FC = () => {
               <input
                 type="password"
                 required
+                autoComplete="new-password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Herhaal wachtwoord"
@@ -114,7 +117,7 @@ export const Register: React.FC = () => {
         </form>
 
         <div className="mt-6 text-center text-xs text-slate-500 dark:text-slate-400 border-t border-slate-100 dark:border-slate-800 pt-4">
-          <span>Al geregistreerd? </span>
+          <span>Heeft u al een account? </span>
           <Link to="/login" className="text-sky-600 dark:text-sky-400 hover:underline font-bold">
             Inloggen
           </Link>

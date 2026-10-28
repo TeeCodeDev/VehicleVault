@@ -20,7 +20,7 @@ export const Login: React.FC = () => {
       await login(email, password);
       navigate('/');
     } catch (err: any) {
-      setError(err?.message || 'Onjuiste inloggegevens');
+      setError(err?.message || 'Inloggen mislukt. Controleer uw gegevens.');
     } finally {
       setLoading(false);
     }
@@ -33,8 +33,10 @@ export const Login: React.FC = () => {
           <div className="w-12 h-12 rounded-xl bg-slate-900 text-white dark:bg-slate-800 dark:text-slate-100 flex items-center justify-center mb-3 shadow-md">
             <Shield className="w-6 h-6 text-sky-400" />
           </div>
-          <h1 className="text-xl font-black tracking-tight text-slate-900 dark:text-white">Inloggen bij VehicleVault</h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Privacy-first wagenpark &amp; TCO tracker</p>
+          <h1 className="text-xl font-black tracking-tight text-slate-900 dark:text-white">VehicleVault</h1>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            Log in op uw self-hosted wagenparkdashboard
+          </p>
         </div>
 
         {error && (
@@ -52,6 +54,7 @@ export const Login: React.FC = () => {
               <input
                 type="email"
                 required
+                autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="bestuurder@voorbeeld.nl"
@@ -67,6 +70,7 @@ export const Login: React.FC = () => {
               <input
                 type="password"
                 required
+                autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"

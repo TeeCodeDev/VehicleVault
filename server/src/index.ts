@@ -2,8 +2,17 @@ import { env } from './config/env.js';
 import { initializeDatabase } from './db/schema.js';
 import { createApp } from './app.js';
 
+// Global process error handlers to prevent unexpected termination
+process.on('uncaughtException', (err) => {
+  console.error('CRITICAL: Uncaught exception caught by process handler:', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('CRITICAL: Unhandled rejection at:', promise, 'reason:', reason);
+});
+
 async function bootstrap() {
-  console.log('Initializing VehicleVault Database (SQLite WAL mode)...');
+  console.log('Initializing VehicleVault Database (SQLite)...');
   initializeDatabase();
 
   const app = createApp();
@@ -34,4 +43,3 @@ bootstrap().catch((err) => {
   console.error('Fatal initialization error:', err);
   process.exit(1);
 });
-

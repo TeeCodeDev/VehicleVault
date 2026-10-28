@@ -21,11 +21,16 @@ import documentRoutes from './routes/documentRoutes.js';
 export function createApp(): express.Application {
   const app = express();
 
-  // Security headers (relaxed slightly for self-hosted local images/scripts)
+  // Trust reverse proxies and Docker gateway hops for accurate IP detection
+  app.set('trust proxy', 1);
+
+  // Security headers configured for self-hosted LAN / HTTP / HTTPS setups
   app.use(
     helmet({
       contentSecurityPolicy: false,
       crossOriginResourcePolicy: { policy: 'cross-origin' },
+      crossOriginOpenerPolicy: false,
+      originAgentCluster: false,
     })
   );
 

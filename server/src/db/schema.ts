@@ -1,6 +1,15 @@
 import crypto from 'node:crypto';
 import { db } from './database.js';
 
+function columnExists(table: string, column: string): boolean {
+  try {
+    const columns = db.query(`PRAGMA table_info(${table})`);
+    return columns.some((c: any) => c.name === column);
+  } catch {
+    return false;
+  }
+}
+
 export function initializeDatabase(): void {
   // 1. Users table
   db.exec(`
@@ -68,10 +77,8 @@ export function initializeDatabase(): void {
   `);
 
   // Safely migrate existing database tables if missing new columns
-  try {
+  if (!columnExists('vehicles', 'image_path')) {
     db.exec('ALTER TABLE vehicles ADD COLUMN image_path TEXT;');
-  } catch {
-    // column already exists
   }
 
   // Migrate legacy English preset names in existing database to Dutch
@@ -174,12 +181,12 @@ export function initializeDatabase(): void {
     );
   `);
 
-  try {
+  if (!columnExists('service_records', 'parts_cost')) {
     db.exec('ALTER TABLE service_records ADD COLUMN parts_cost REAL NOT NULL DEFAULT 0;');
-  } catch {}
-  try {
+  }
+  if (!columnExists('service_records', 'labor_cost')) {
     db.exec('ALTER TABLE service_records ADD COLUMN labor_cost REAL NOT NULL DEFAULT 0;');
-  } catch {}
+  }
   try {
     db.exec('UPDATE service_records SET parts_cost = cost WHERE parts_cost = 0 AND labor_cost = 0 AND cost > 0;');
   } catch {}
@@ -230,4 +237,3 @@ function seedPresets(): void {
     }
   }
 }
-
