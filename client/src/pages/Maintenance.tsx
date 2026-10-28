@@ -23,6 +23,7 @@ import { apiFetch } from '../api/client.js';
 import { IntervalProgressBar } from '../components/IntervalProgressBar.js';
 import { DatePicker } from '../components/DatePicker.js';
 import { useLanguage } from '../context/LanguageContext.js';
+import { formatDisplayDate } from '../utils/format.js';
 
 interface ContextType {
   vehicles: Vehicle[];
@@ -430,7 +431,7 @@ export const Maintenance: React.FC = () => {
                 {records.map((r) => (
                   <tr key={r.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition">
                     <td className="py-3 px-4 font-medium text-slate-900 dark:text-white whitespace-nowrap">
-                      {r.date}
+                      {formatDisplayDate(r.date)}
                     </td>
                     <td className="py-3 px-4 font-mono font-bold text-slate-800 dark:text-slate-200 whitespace-nowrap">
                       {r.odometer.toLocaleString()} km

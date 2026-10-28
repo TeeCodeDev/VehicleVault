@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <Container version="2">
   <Name>VehicleVault</Name>
-  <Version>v1.0.12</Version>
+  <Version>v1.0.13</Version>
   <Repository>ghcr.io/teecodedev/vehichlevault:latest</Repository>
   <Registry>https://ghcr.io/teecodedev/vehichlevault</Registry>
   <Network>bridge</Network>
@@ -40,6 +40,12 @@ Open the web interface at [inline]http://[IP]:[PORT:3001]/[/inline]. The first u
   <DonateText>If you like VehicleVault, buy me a coffee!</DonateText>
   <DonateLink>https://ko-fi.com/D1D51ZGUNL</DonateLink>
   <Changes>
+### v1.0.13 (2026-10-28)
+- Nederlandse Datumnotatie (DD-MM-YYYY): Alle datums op het dashboard, tankbeurten overzicht (recente tankbeurten), onderhoudslijst, TCO-statistieken, API-sleutels en scanner preview worden nu consistent in het Nederlandse formaat (DD-MM-YYYY) weergegeven in plaats van ISO (YYYY-MM-DD).
+- Verbeterde Adres Extractie van Tankbonnen: Versterkte AI-prompts en robuuste regex-extractie voor Nederlandse tankstationadressen (straat, huisnummer, postcode en stad direct onder het merk in de koptekst).
+- Opschoning Gemini Modellen: Verouderde en niet-compatibele modellen (zoals TTS-, audio-, image- en preview-modellen) gefilterd uit de modelselectie; focus op snelle multimodale Flash-modellen (zoals Gemini 3.8 Flash).
+- Provider Badge Tekst Geüpdatet: Badge tekst in Instellingen bijgewerkt naar "Flash • 100% accuraat &amp; snel".
+
 ### v1.0.12 (2026-10-28)
 - Inloggen Uitschakelen (Pangolin & Reverse Proxy Modus): Ondersteuning toegevoegd om inloggen volledig uit te schakelen via Instellingen of Docker omgevingsvariabele (DISABLE_AUTH=true).
 - Reverse Proxy Integratie: Automatische herkenning van proxy auth headers (Remote-User, X-Forwarded-User, X-Pangolin-User).

@@ -61,7 +61,7 @@ export function createApp(): express.Application {
         database: dbCheck?.healthy === 1 ? 'connected' : 'unhealthy',
         uptime: process.uptime(),
         timestamp: new Date().toISOString(),
-        version: '1.0.12',
+        version: '1.0.13',
       });
     } catch (err: any) {
       res.status(503).json({

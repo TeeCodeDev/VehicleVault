@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Camera, Upload, CheckCircle2, AlertCircle, AlertTriangle, Loader2, X, Sparkles, MapPin, Fuel } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext.js';
+import { formatDisplayDate } from '../utils/format.js';
 
 interface ReceiptScannerModalProps {
   isOpen: boolean;
@@ -293,7 +294,7 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({ isOpen
                 <div className="bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm">
                   <span className="text-slate-500 block text-[10px] uppercase font-bold tracking-wider">{t('date')}</span>
                   <span className="text-xs font-bold text-slate-900 dark:text-white">
-                    {ocrResult.extracted?.date || '—'}
+                    {formatDisplayDate(ocrResult.extracted?.date)}
                   </span>
                 </div>
                 <div className="bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm">

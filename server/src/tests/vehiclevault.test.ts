@@ -13,7 +13,16 @@ import { TcoService } from '../services/tcoService.js';
 import { executeMcpTool } from '../mcp/tools.js';
 import { ImportService } from '../services/importService.js';
 import { RdwService } from '../services/rdwService.js';
-import { AiReceiptService, getSystemSetting, setSystemSetting, maskApiKey } from '../services/aiReceiptService.js';
+import {
+  AiReceiptService,
+  getSystemSetting,
+  setSystemSetting,
+  maskApiKey,
+  extractDutchAddress,
+  filterVisionModels,
+  formatStationName,
+  formatAddress,
+} from '../services/aiReceiptService.js';
 import { StationService } from '../services/stationService.js';
 import { isAuthDisabled, getDefaultUser } from '../middleware/auth.js';
 
@@ -515,6 +524,75 @@ Date,Odometer,Fuel_amount,Price,Total_cost,Notes
       assert.equal(updated.notes, 'Updated notes');
 
       db.run('DELETE FROM fuel_entries WHERE id = ?', [fuelId]);
+    });
+
+    it('should extract Dutch station address and format brand names from receipt text', () => {
+      // 1. Exact Fieten Olie receipt header test
+      const receiptText = `FIETEN OLIE\nEeser Gaard 2\n8332 VN Steenwijk\nTelefoon:(0528) 34 12 93\nDatum 19-10-2026`;
+      const extractedAddr = extractDutchAddress(receiptText);
+      assert.equal(extractedAddr, 'Eeser Gaard 2, 8332 VN Steenwijk');
+
+      // 2. Format station brand name
+      assert.equal(formatStationName('FIETEN OLIE'), 'Fieten Olie');
+      assert.equal(formatStationName('SHELL EXPRESS'), 'Shell Express');
+      assert.equal(formatStationName('BP'), 'BP');
+      assert.equal(formatStationName('ESSO'), 'ESSO');
+
+      // 3. Format address casing keeping postal code uppercase
+      assert.equal(formatAddress('EESER GAARD 2, 8332 VN STEENWIJK'), 'Eeser Gaard 2, 8332 VN Steenwijk');
+
+      // 4. normalizeAiResult extracting address when combined in station or raw JSON
+      const aiJson = JSON.stringify({
+        date: '2026-10-19',
+        liters: 37.41,
+        pricePerLiter: 2.159,
+        totalCost: 80.77,
+        station: 'FIETEN OLIE, Eeser Gaard 2, 8332 VN Steenwijk',
+        fuelType: '95 Ongelood',
+      });
+      const parsed = AiReceiptService.normalizeAiResult(aiJson, 'gemini', 'gemini-3.8-flash');
+      assert.equal(parsed.station, 'Fieten Olie');
+      assert.equal(parsed.stationAddress, 'Eeser Gaard 2, 8332 VN Steenwijk');
+      assert.equal(parsed.liters, 37.41);
+      assert.equal(parsed.totalCost, 80.77);
+    });
+
+    it('should filter available Gemini models to only multimodal text/vision models', () => {
+      const rawApiModels = [
+        'gemini-3.8-flash-lite-tts',
+        'gemini-3.8-flash-tts',
+        'gemini-3.8-flash',
+        'gemini-2.5-flash-image',
+        'gemini-2.5-flash-lite',
+        'gemini-2.5-flash',
+        'gemini-2.0-flash',
+        'gemini-1.5-flash',
+        'gemini-1.5-pro',
+        'gemini-3.1-flash-lite-preview',
+        'embedding-001',
+        'text-bison-001',
+      ];
+
+      const filtered = filterVisionModels(rawApiModels);
+
+      // Must include valid vision models
+      assert.ok(filtered.includes('gemini-3.8-flash'));
+      assert.ok(filtered.includes('gemini-2.5-flash'));
+      assert.ok(filtered.includes('gemini-2.5-flash-lite'));
+      assert.ok(filtered.includes('gemini-3.1-flash-lite-preview'));
+
+      // Must exclude specialized TTS, image gen, embedding, and retired models
+      assert.ok(!filtered.includes('gemini-3.8-flash-lite-tts'));
+      assert.ok(!filtered.includes('gemini-3.8-flash-tts'));
+      assert.ok(!filtered.includes('gemini-2.5-flash-image'));
+      assert.ok(!filtered.includes('gemini-2.0-flash'));
+      assert.ok(!filtered.includes('gemini-1.5-flash'));
+      assert.ok(!filtered.includes('gemini-1.5-pro'));
+      assert.ok(!filtered.includes('embedding-001'));
+      assert.ok(!filtered.includes('text-bison-001'));
+
+      // Preferred recommended model must be first
+      assert.equal(filtered[0], 'gemini-3.8-flash');
     });
   });
 });

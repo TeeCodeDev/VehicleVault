@@ -119,6 +119,87 @@ export function formatAddress(val?: string | null): string | null {
   return trimmed;
 }
 
+/**
+ * Algorithmic safety net to extract Dutch addresses from receipt text or raw AI output:
+ * Pattern: Street + number, followed by 4 digits + 2 letters (postal code) and city/town.
+ * e.g. "Eeser Gaard 2, 8332 VN Steenwijk"
+ */
+export function extractDutchAddress(text?: string | null): string | null {
+  if (!text || typeof text !== 'string') return null;
+
+  // Clean quotes/json brackets from text
+  const cleanText = text.replace(/["'{}]/g, ' ');
+
+  // 1. Multi-line: Street + nr on one line, postal code + city on next line
+  const multiLineRegex = /(?:^|[\r\n])\s*([^\r\n,;:|]+?\s+\d+[a-zA-Z]?(?:\s*-\s*\d+)?)[,\s]*[\r\n]+\s*(\d{4}\s?[A-Za-z]{2})\s+([^\r\n,;:|]+?)(?:[\r\n;,|]|$)/;
+  const m1 = cleanText.match(multiLineRegex);
+  if (m1) {
+    const street = m1[1].trim();
+    const postal = m1[2].replace(/\s+/g, ' ').toUpperCase().trim();
+    const city = m1[3].trim();
+    if (!/^(pomp|datum|bon|tank|volume|teller|factuur|transactie)/i.test(street)) {
+      return formatAddress(`${street}, ${postal} ${city}`);
+    }
+  }
+
+  // 2. Single-line: "Street 123, 1234 AB City" or "Street 123 1234 AB City"
+  const singleLineRegex = /(?:^|[\r\n;,|:])\s*([^\r\n,;:|]+?\s+\d+[a-zA-Z]?(?:\s*-\s*\d+)?)[,\s]+(\d{4}\s?[A-Za-z]{2})\s+([^\r\n,;:|]+?)(?:[\r\n;,|]|$)/;
+  const m2 = cleanText.match(singleLineRegex);
+  if (m2) {
+    const street = m2[1].trim();
+    const postal = m2[2].replace(/\s+/g, ' ').toUpperCase().trim();
+    const city = m2[3].trim();
+    if (!/^(pomp|datum|bon|tank|volume|teller|factuur|transactie)/i.test(street)) {
+      return formatAddress(`${street}, ${postal} ${city}`);
+    }
+  }
+
+  // 3. Postal code + city only (e.g. "8332 VN Steenwijk")
+  const postalCityRegex = /\b(\d{4}\s?[A-Za-z]{2})\s+([A-Za-z\u00C0-\u017F'-]+)\b/;
+  const m3 = cleanText.match(postalCityRegex);
+  if (m3) {
+    const postal = m3[1].replace(/\s+/g, ' ').toUpperCase().trim();
+    const city = m3[2].trim();
+    return formatAddress(`${postal} ${city}`);
+  }
+
+  return null;
+}
+
+/**
+ * Filter available Gemini models to only multimodal text/vision models, excluding specialized non-chat endpoints.
+ */
+export function filterVisionModels(models: string[]): string[] {
+  const isExcluded = (name: string) => {
+    const lower = name.toLowerCase();
+    return (
+      lower.includes('-tts') ||
+      lower.includes('-image') ||
+      lower.includes('audio') ||
+      lower.includes('embed') ||
+      lower.includes('bison') ||
+      lower.includes('aqa') ||
+      lower.includes('imagen') ||
+      lower.includes('1.5-flash') ||
+      lower.includes('2.0-flash') ||
+      lower.includes('1.0-') ||
+      lower === 'gemini-1.5-pro'
+    );
+  };
+
+  return models
+    .filter((m) => !isExcluded(m))
+    .sort((a, b) => {
+      if (a === 'gemini-3.8-flash') return -1;
+      if (b === 'gemini-3.8-flash') return 1;
+      if (a === 'gemini-2.5-flash') return -1;
+      if (b === 'gemini-2.5-flash') return 1;
+      if (a.includes('flash') && !b.includes('flash')) return -1;
+      if (!a.includes('flash') && b.includes('flash')) return 1;
+      return a.localeCompare(b);
+    });
+}
+
 export class AiReceiptService {
   /**
    * Retrieve active AI settings, prioritizing stored database settings over environment variables.
@@ -237,16 +318,10 @@ export class AiReceiptService {
         try {
           const resJson = await res.json() as any;
           if (Array.isArray(resJson?.models)) {
-            availableModels = resJson.models
+            const rawModels = resJson.models
               .filter((m: any) => Array.isArray(m.supportedGenerationMethods) && m.supportedGenerationMethods.includes('generateContent'))
-              .map((m: any) => m.name.replace(/^models\//, ''))
-              .sort((a: string, b: string) => {
-                if (a.includes('3.8-flash')) return -1;
-                if (b.includes('3.8-flash')) return 1;
-                if (a.includes('flash') && !b.includes('flash')) return -1;
-                if (!a.includes('flash') && b.includes('flash')) return 1;
-                return a.localeCompare(b);
-              });
+              .map((m: any) => m.name.replace(/^models\//, ''));
+            availableModels = filterVisionModels(rawModels);
           }
         } catch {}
 
@@ -362,16 +437,10 @@ export class AiReceiptService {
       const data = await res.json() as any;
       if (!Array.isArray(data.models)) return [];
 
-      return data.models
+      const rawModels = data.models
         .filter((m: any) => Array.isArray(m.supportedGenerationMethods) && m.supportedGenerationMethods.includes('generateContent'))
-        .map((m: any) => m.name.replace(/^models\//, ''))
-        .sort((a: string, b: string) => {
-          if (a.includes('3.8-flash')) return -1;
-          if (b.includes('3.8-flash')) return 1;
-          if (a.includes('flash') && !b.includes('flash')) return -1;
-          if (!a.includes('flash') && b.includes('flash')) return 1;
-          return a.localeCompare(b);
-        });
+        .map((m: any) => m.name.replace(/^models\//, ''));
+      return filterVisionModels(rawModels);
     } catch {
       return [];
     }
@@ -424,14 +493,19 @@ export class AiReceiptService {
   ): Promise<AiReceiptExtraction> {
     const promptText = `You are a precision fuel receipt scanner for Dutch and European filling stations.
 Extract transaction details from this receipt image.
+
+IMPORTANT FOR PETROL STATION & ADDRESS:
+1. "station": Petrol station brand/company in Title Case (e.g. "Fieten Olie", "Shell", "Esso", "BP", "TotalEnergies", "Tamoil", "Argos", "Avia", never ALL CAPS).
+2. "stationAddress": The physical street address of the petrol station. In the Netherlands, filling stations print this directly under the station brand name at the top (header) or at the bottom (footer). Look for the street, house number, 4-digit + 2-letter postal code (e.g. "8332 VN"), and city/town (e.g. "Steenwijk"). Combine them into "Street Nr, PostalCode City" (e.g. "Eeser Gaard 2, 8332 VN Steenwijk"). You MUST extract this whenever visible on the receipt.
+
 Return ONLY a valid JSON object with the following fields:
 {
   "date": "YYYY-MM-DD" or null,
   "liters": number (volume in liters, e.g. 37.41) or null,
   "pricePerLiter": number (unit price in EUR, e.g. 2.159) or null,
   "totalCost": number (total amount paid in EUR, e.g. 80.77) or null,
-  "station": string (name/brand of petrol station in Title Case, e.g. "Fieten Olie", "Shell", "TotalEnergies", never ALL CAPS) or null,
-  "stationAddress": string (street address, house number, postal code and city/town found on receipt header or footer, e.g. "Eeser Gaard 2, 8332 VN Steenwijk") or null,
+  "station": string (e.g. "Fieten Olie") or null,
+  "stationAddress": string (e.g. "Eeser Gaard 2, 8332 VN Steenwijk") or null,
   "fuelType": string (e.g. "Euro 95 Ongelood", "Diesel", "SuperPlus 98") or null
 }
 Ensure decimal numbers use standard dots. Do not add markdown or extra text. Output strictly raw JSON.`;
@@ -570,14 +644,20 @@ Ensure decimal numbers use standard dots. Do not add markdown or extra text. Out
         {
           role: 'system',
           content: `You are an expert fuel receipt parser for Dutch and European filling stations.
-Extract transaction details from the receipt image and return ONLY a valid JSON object with the following fields:
+Extract transaction details from the receipt image.
+
+IMPORTANT FOR PETROL STATION & ADDRESS:
+1. "station": Petrol station brand/company in Title Case (e.g. "Fieten Olie", "Shell", "Esso", "BP", "TotalEnergies", "Tamoil", "Argos", "Avia", never ALL CAPS).
+2. "stationAddress": The physical street address of the petrol station. In the Netherlands, filling stations print this directly under the station brand name at the top (header) or at the bottom (footer). Look for the street, house number, 4-digit + 2-letter postal code (e.g. "8332 VN"), and city/town (e.g. "Steenwijk"). Combine them into "Street Nr, PostalCode City" (e.g. "Eeser Gaard 2, 8332 VN Steenwijk"). You MUST extract this whenever visible on the receipt.
+
+Return ONLY a valid JSON object with the following fields:
 {
   "date": "YYYY-MM-DD" or null,
   "liters": number (volume in liters, e.g. 37.41) or null,
   "pricePerLiter": number (unit price in EUR, e.g. 2.159) or null,
   "totalCost": number (total amount paid in EUR, e.g. 80.77) or null,
-  "station": string (name/brand of petrol station in Title Case, e.g. "Fieten Olie", "Shell", "TotalEnergies", never ALL CAPS) or null,
-  "stationAddress": string (street address, house number, postal code and city/town found on receipt header or footer, e.g. "Eeser Gaard 2, 8332 VN Steenwijk") or null,
+  "station": string (e.g. "Fieten Olie") or null,
+  "stationAddress": string (e.g. "Eeser Gaard 2, 8332 VN Steenwijk") or null,
   "fuelType": string (e.g. "Euro 95 Ongelood", "Diesel", "SuperPlus 98") or null
 }`,
         },
@@ -687,11 +767,9 @@ Extract transaction details from the receipt image and return ONLY a valid JSON 
       liters = Math.round((totalCost / pricePerLiter) * 100) / 100;
     }
 
-    const station = formatStationName(
-      typeof parsed.station === 'string' && parsed.station.trim().length > 0
-        ? parsed.station.trim()
-        : null
-    );
+    let rawStation = typeof parsed.station === 'string' && parsed.station.trim().length > 0
+      ? parsed.station.trim()
+      : null;
 
     const rawAddress = (typeof parsed.stationAddress === 'string' && parsed.stationAddress.trim().length > 0)
       ? parsed.stationAddress.trim()
@@ -699,9 +777,27 @@ Extract transaction details from the receipt image and return ONLY a valid JSON 
         ? parsed.address.trim()
         : (typeof parsed.station_address === 'string' && parsed.station_address.trim().length > 0)
           ? parsed.station_address.trim()
-          : null;
+          : (typeof parsed.location === 'string' && parsed.location.trim().length > 0)
+            ? parsed.location.trim()
+            : null;
 
-    const stationAddress = formatAddress(rawAddress);
+    let stationAddress = formatAddress(rawAddress);
+
+    // If station field contains the address (e.g. "Fieten Olie, Eeser Gaard 2, 8332 VN Steenwijk"), extract it
+    if (rawStation && /\d{4}\s?[A-Za-z]{2}/.test(rawStation)) {
+      const extractedAddr = extractDutchAddress(rawStation);
+      if (extractedAddr) {
+        if (!stationAddress) stationAddress = extractedAddr;
+        rawStation = rawStation.replace(/,\s*[A-Za-z\u00C0-\u017F.\s'-]+?\s+\d+[a-zA-Z]?.*$/, '').trim();
+      }
+    }
+
+    const station = formatStationName(rawStation);
+
+    // Algorithmic safety net: if AI did not populate stationAddress, check if it's anywhere in rawJson
+    if (!stationAddress && rawJson) {
+      stationAddress = extractDutchAddress(rawJson);
+    }
 
     const fuelType = typeof parsed.fuelType === 'string' && parsed.fuelType.trim().length > 0
       ? parsed.fuelType.trim()

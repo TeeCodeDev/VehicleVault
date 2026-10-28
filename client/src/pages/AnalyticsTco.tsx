@@ -30,6 +30,7 @@ import { apiFetch } from '../api/client.js';
 import { PdfExportModal } from '../components/PdfExportModal.js';
 import { DatePicker } from '../components/DatePicker.js';
 import { useLanguage } from '../context/LanguageContext.js';
+import { formatDisplayDate } from '../utils/format.js';
 
 interface ContextType {
   vehicles: Vehicle[];
@@ -574,7 +575,7 @@ export const AnalyticsTco: React.FC = () => {
               <p className="text-[11px] text-emerald-800/80 dark:text-emerald-400/80 mt-1">
                 {tco?.priceStats?.minPrice ? (
                   <>
-                    <span className="font-semibold">{tco.priceStats.minPrice.date}</span> • {tco.priceStats.minPrice.liters.toFixed(1)} L
+                    <span className="font-semibold">{formatDisplayDate(tco.priceStats.minPrice.date)}</span> • {tco.priceStats.minPrice.liters.toFixed(1)} L
                     {tco.priceStats.minPrice.station && ` • ${tco.priceStats.minPrice.station}`}
                   </>
                 ) : (
@@ -603,7 +604,7 @@ export const AnalyticsTco: React.FC = () => {
               <p className="text-[11px] text-rose-800/80 dark:text-rose-400/80 mt-1">
                 {tco?.priceStats?.maxPrice ? (
                   <>
-                    <span className="font-semibold">{tco.priceStats.maxPrice.date}</span> • {tco.priceStats.maxPrice.liters.toFixed(1)} L
+                    <span className="font-semibold">{formatDisplayDate(tco.priceStats.maxPrice.date)}</span> • {tco.priceStats.maxPrice.liters.toFixed(1)} L
                     {tco.priceStats.maxPrice.station && ` • ${tco.priceStats.maxPrice.station}`}
                   </>
                 ) : (
@@ -662,7 +663,7 @@ export const AnalyticsTco: React.FC = () => {
                         return (
                           <div className="bg-slate-900 border border-slate-700 p-3 rounded-xl shadow-xl text-white text-xs space-y-1">
                             <div className="font-bold text-slate-200 border-b border-slate-800 pb-1 mb-1 flex items-center justify-between gap-4">
-                              <span>{data.date}</span>
+                              <span>{formatDisplayDate(data.date)}</span>
                               <span className="font-mono text-slate-400">{data.odometer.toLocaleString()} km</span>
                             </div>
                             <div className="flex items-center justify-between gap-4">

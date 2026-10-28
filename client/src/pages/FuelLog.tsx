@@ -26,6 +26,7 @@ import { ReceiptScannerModal } from '../components/ReceiptScannerModal.js';
 import { DatePicker } from '../components/DatePicker.js';
 import { useLanguage } from '../context/LanguageContext.js';
 import { addToOfflineQueue } from '../utils/offlineQueue.js';
+import { formatDisplayDate } from '../utils/format.js';
 
 interface ContextType {
   vehicles: Vehicle[];
@@ -894,7 +895,7 @@ export const FuelLog: React.FC = () => {
                   return (
                     <tr key={f.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition">
                       <td className="py-3 px-4">
-                        <div className="font-semibold text-slate-900 dark:text-slate-200">{f.date}</div>
+                        <div className="font-semibold text-slate-900 dark:text-slate-200">{formatDisplayDate(f.date)}</div>
                         {(f.station_name || f.station_address) && (
                           <div className="flex items-center space-x-1 text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
                             <MapPin className="w-3 h-3 text-sky-500 shrink-0" />
@@ -999,7 +1000,7 @@ export const FuelLog: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="font-bold text-sm text-slate-900 dark:text-white">{t('editFuelEntry')}</h3>
-                  <p className="text-[11px] text-slate-500">{editingEntry.date} • {editingEntry.odometer.toLocaleString()} km</p>
+                  <p className="text-[11px] text-slate-500">{formatDisplayDate(editingEntry.date)} • {editingEntry.odometer.toLocaleString()} km</p>
                 </div>
               </div>
               <button

@@ -18,6 +18,7 @@ import { apiFetch } from '../api/client.js';
 import { StatusBadge } from '../components/StatusBadge.js';
 import { DatePicker } from '../components/DatePicker.js';
 import { useLanguage } from '../context/LanguageContext.js';
+import { formatDisplayDate } from '../utils/format.js';
 
 interface ContextType {
   vehicles: Vehicle[];
@@ -345,7 +346,7 @@ export const Vehicles: React.FC = () => {
                   <div className="flex justify-between">
                     <span className="text-slate-500">{t('apkDate')}</span>
                     <span className="font-semibold text-slate-800 dark:text-slate-200">
-                      {v.apk_expiration_date || '—'}
+                      {formatDisplayDate(v.apk_expiration_date)}
                     </span>
                   </div>
                   <div className="flex justify-between">

@@ -28,6 +28,7 @@ import { apiFetch } from '../api/client.js';
 import { useTheme } from '../context/ThemeContext.js';
 import { useLanguage } from '../context/LanguageContext.js';
 import { useAuth } from '../context/AuthContext.js';
+import { formatDisplayDate } from '../utils/format.js';
 
 export const Settings: React.FC = () => {
   const [apiKeys, setApiKeys] = useState<ApiKeyItem[]>([]);
@@ -420,7 +421,7 @@ export const Settings: React.FC = () => {
                   {lang === 'nl' ? 'Gratis' : 'Free'}
                 </span>
               </div>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">1.5 / 2.0 Flash • 100% accuraat &amp; snel</p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Flash • 100% accuraat &amp; snel</p>
             </button>
 
             <button
@@ -524,7 +525,7 @@ export const Settings: React.FC = () => {
                 </div>
                 <select
                   value={
-                    ['gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-3.0-flash', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro', ...discoveredGeminiModels].includes(geminiModel)
+                    ['gemini-3.8-flash', 'gemini-2.5-flash', ...discoveredGeminiModels].includes(geminiModel)
                       ? geminiModel
                       : 'custom'
                   }
@@ -535,15 +536,10 @@ export const Settings: React.FC = () => {
                   }}
                   className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 shadow-sm"
                 >
-                  <option value="gemini-3.8-flash">gemini-3.8-flash (Aanbevolen, nieuwste generatie &amp; gratis)</option>
-                  <option value="gemini-3.5-flash">gemini-3.5-flash</option>
-                  <option value="gemini-3.0-flash">gemini-3.0-flash</option>
+                  <option value="gemini-3.8-flash">gemini-3.8-flash (Aanbevolen, ultra snel &amp; gratis)</option>
                   <option value="gemini-2.5-flash">gemini-2.5-flash</option>
-                  <option value="gemini-2.0-flash">gemini-2.0-flash (Verouderd door Google)</option>
-                  <option value="gemini-1.5-flash">gemini-1.5-flash (Verouderd door Google)</option>
-                  <option value="gemini-1.5-pro">gemini-1.5-pro</option>
                   {discoveredGeminiModels
-                    .filter((m) => !['gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-3.0-flash', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'].includes(m))
+                    .filter((m) => !['gemini-3.8-flash', 'gemini-2.5-flash'].includes(m))
                     .map((m) => (
                       <option key={m} value={m}>{m} (Google Account)</option>
                     ))}
@@ -833,9 +829,9 @@ export const Settings: React.FC = () => {
                   <tr key={k.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/20">
                     <td className="py-3 px-3 font-bold text-slate-900 dark:text-slate-200">{k.name}</td>
                     <td className="py-3 px-3 font-mono font-semibold text-slate-600 dark:text-slate-400">{k.prefix}••••••••</td>
-                    <td className="py-3 px-3 text-slate-500">{k.created_at.split('T')[0]}</td>
+                    <td className="py-3 px-3 text-slate-500">{formatDisplayDate(k.created_at)}</td>
                     <td className="py-3 px-3 text-slate-500">
-                      {k.last_used_at ? k.last_used_at.split('T')[0] : (lang === 'nl' ? 'Nooit' : 'Never')}
+                      {k.last_used_at ? formatDisplayDate(k.last_used_at) : (lang === 'nl' ? 'Nooit' : 'Never')}
                     </td>
                     <td className="py-3 px-3 text-right">
                       <button

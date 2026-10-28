@@ -18,6 +18,7 @@ import { StatusBadge } from '../components/StatusBadge.js';
 import { IntervalProgressBar } from '../components/IntervalProgressBar.js';
 import { PdfExportModal } from '../components/PdfExportModal.js';
 import { useLanguage } from '../context/LanguageContext.js';
+import { formatDisplayDate } from '../utils/format.js';
 
 interface ContextType {
   vehicles: Vehicle[];
@@ -222,7 +223,7 @@ export const Dashboard: React.FC = () => {
             </div>
           </div>
           <div className="text-base font-extrabold text-slate-900 dark:text-white flex items-center space-x-2">
-            <span>{selectedVehicle?.apk_expiration_date || '—'}</span>
+            <span>{formatDisplayDate(selectedVehicle?.apk_expiration_date)}</span>
             {apkStatus?.isOverdue ? (
               <StatusBadge status="overdue" label={t('apkOverdue')} />
             ) : apkStatus?.isDueSoon ? (
@@ -382,7 +383,7 @@ export const Dashboard: React.FC = () => {
                         {fuel.liters.toFixed(2)} L <span className="text-xs font-normal text-slate-500">@ €{fuel.price_per_liter.toFixed(3)}/L</span>
                       </div>
                       <div className="text-[11px] text-slate-500 mt-0.5 flex items-center space-x-1.5 flex-wrap">
-                        <span>{fuel.date} • {fuel.odometer.toLocaleString()} km</span>
+                        <span>{formatDisplayDate(fuel.date)} • {fuel.odometer.toLocaleString()} km</span>
                         {consumptionBadge && (
                           <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.2 rounded border border-emerald-200/60 dark:border-emerald-800/40 text-[10px]">
                             {consumptionBadge}

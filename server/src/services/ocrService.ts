@@ -1,5 +1,5 @@
 import { createWorker } from 'tesseract.js';
-import { AiReceiptService } from './aiReceiptService.js';
+import { AiReceiptService, extractDutchAddress, formatStationName } from './aiReceiptService.js';
 
 export interface OcrParseResult {
   date: string | null;
@@ -156,11 +156,25 @@ export class OcrService {
       liters = Math.round((totalCost / pricePerLiter) * 100) / 100;
     }
 
+    // 7. Station brand & Dutch address extraction from OCR text
+    const stationAddress = extractDutchAddress(normalized);
+    const commonStations = ['Fieten Olie', 'Shell', 'Esso', 'BP', 'TotalEnergies', 'Total', 'Texaco', 'Avia', 'Tamoil', 'Argos', 'TinQ', 'Tango', 'Firezone', 'Gulf', 'Neste', 'OK'];
+    let station: string | null = null;
+    for (const s of commonStations) {
+      const reg = new RegExp(`\\b${s}\\b`, 'i');
+      if (reg.test(normalized)) {
+        station = formatStationName(s);
+        break;
+      }
+    }
+
     return {
       date,
       liters,
       pricePerLiter,
       totalCost,
+      station,
+      stationAddress,
       rawText: text,
       confidence,
       engine: 'tesseract',
