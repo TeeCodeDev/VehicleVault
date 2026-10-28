@@ -9,6 +9,15 @@ export interface TokenPayload {
   role: string;
 }
 
+const DEFAULT_JWT_SECRET = 'vehiclevault_super_secret_jwt_key_change_in_production_12345';
+
+export function getJwtSecret(): string {
+  if (env.JWT_SECRET && env.JWT_SECRET.trim().length > 0) {
+    return env.JWT_SECRET.trim();
+  }
+  return DEFAULT_JWT_SECRET;
+}
+
 export async function hashPassword(password: string): Promise<string> {
   const salt = await bcrypt.genSalt(10);
   return bcrypt.hash(password, salt);
@@ -19,14 +28,14 @@ export async function comparePassword(password: string, hash: string): Promise<b
 }
 
 export function generateAccessToken(payload: TokenPayload): string {
-  return jwt.sign(payload, env.JWT_SECRET, {
-    expiresIn: env.JWT_EXPIRES_IN as any,
+  return jwt.sign(payload, getJwtSecret(), {
+    expiresIn: (env.JWT_EXPIRES_IN || '15m') as any,
   });
 }
 
 export function verifyAccessToken(token: string): TokenPayload | null {
   try {
-    return jwt.verify(token, env.JWT_SECRET) as TokenPayload;
+    return jwt.verify(token, getJwtSecret()) as TokenPayload;
   } catch {
     return null;
   }
@@ -36,7 +45,7 @@ export function generateRefreshToken(): { token: string; hash: string; expiresAt
   const token = crypto.randomBytes(40).toString('hex');
   const hash = hashToken(token);
   const expires = new Date();
-  expires.setDate(expires.getDate() + env.JWT_REFRESH_EXPIRES_IN_DAYS);
+  expires.setDate(expires.getDate() + (env.JWT_REFRESH_EXPIRES_IN_DAYS || 7));
   return {
     token,
     hash,
@@ -55,4 +64,3 @@ export function generateApiKey(name: string): { rawKey: string; keyHash: string;
   const keyHash = hashToken(rawKey);
   return { rawKey, keyHash, prefix };
 }
-
