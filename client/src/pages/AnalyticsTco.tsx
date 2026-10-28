@@ -8,8 +8,6 @@ import {
   FileDown,
   Fuel,
   MapPin,
-  ChevronDown,
-  ChevronUp,
   TrendingDown,
   TrendingUp,
 } from 'lucide-react';
@@ -57,7 +55,6 @@ export const AnalyticsTco: React.FC = () => {
 
   // Modal
   const [isPdfOpen, setIsPdfOpen] = useState(false);
-  const [showTankStats, setShowTankStats] = useState(false);
 
   useEffect(() => {
     if (selectedVehicle) {
@@ -214,20 +211,7 @@ export const AnalyticsTco: React.FC = () => {
               </span>
             </label>
 
-            {/* Tankstatistieken Option Toggle */}
-            <button
-              type="button"
-              onClick={() => setShowTankStats(!showTankStats)}
-              className={`flex items-center space-x-2 px-3.5 py-2 rounded-xl border text-xs font-bold transition shadow-sm ${
-                showTankStats
-                  ? 'bg-amber-500 text-white border-amber-500 hover:bg-amber-600'
-                  : 'bg-slate-50 dark:bg-slate-950 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
-              }`}
-            >
-              <Fuel className="w-3.5 h-3.5 text-amber-500 group-hover:text-amber-400" />
-              <span>{showTankStats ? t('hideTankStats') : t('toggleTankStats')}</span>
-              {showTankStats ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-            </button>
+
           </div>
         </div>
 
@@ -742,9 +726,8 @@ export const AnalyticsTco: React.FC = () => {
         </div>
       </div>
 
-      {/* Uitgebreide Tank- & Actieradius Statistieken (Optioneel) */}
-      {showTankStats && (
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 space-y-6 shadow-sm transition-colors animate-in fade-in-50 duration-300">
+      {/* Uitgebreide Tank- & Actieradius Statistieken */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 space-y-6 shadow-sm transition-colors">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800 gap-2">
             <div>
               <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center space-x-2">
@@ -918,7 +901,6 @@ export const AnalyticsTco: React.FC = () => {
             </div>
           )}
         </div>
-      )}
 
       <PdfExportModal
         isOpen={isPdfOpen}
