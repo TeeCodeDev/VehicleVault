@@ -78,7 +78,14 @@ export class AiReceiptService {
     const provider = (storedProvider || envProvider || 'gemini') as 'gemini' | 'openai' | 'none';
 
     const geminiApiKey = getSystemSetting('gemini_api_key') || process.env.GEMINI_API_KEY || '';
-    const geminiModel = getSystemSetting('gemini_model') || process.env.GEMINI_MODEL || 'gemini-2.0-flash';
+    let geminiModel = getSystemSetting('gemini_model') || process.env.GEMINI_MODEL || 'gemini-3.8-flash';
+    // Auto-migrate retired models (e.g. gemini-1.5-flash and gemini-2.0-flash retired by Google in favor of gemini-3.8-flash)
+    if (geminiModel === 'gemini-1.5-flash' || geminiModel === 'gemini-2.0-flash' || geminiModel === 'gemini-1.5-pro') {
+      geminiModel = 'gemini-3.8-flash';
+      try {
+        setSystemSetting('gemini_model', 'gemini-3.8-flash');
+      } catch {}
+    }
 
     const openaiApiKey = getSystemSetting('openai_api_key') || process.env.OPENAI_API_KEY || '';
     const openaiModel = getSystemSetting('openai_model') || process.env.OPENAI_MODEL || 'gpt-4o-mini';
@@ -116,7 +123,7 @@ export class AiReceiptService {
     apiKey?: string,
     model?: string,
     baseUrl?: string
-  ): Promise<{ success: boolean; message: string }> {
+  ): Promise<{ success: boolean; message: string; models?: string[] }> {
     const currentSettings = this.getActiveSettings();
     const effectiveKey = apiKey !== undefined
       ? apiKey.trim()
@@ -175,9 +182,27 @@ export class AiReceiptService {
           };
         }
 
+        let availableModels: string[] = [];
+        try {
+          const resJson = await res.json() as any;
+          if (Array.isArray(resJson?.models)) {
+            availableModels = resJson.models
+              .filter((m: any) => Array.isArray(m.supportedGenerationMethods) && m.supportedGenerationMethods.includes('generateContent'))
+              .map((m: any) => m.name.replace(/^models\//, ''))
+              .sort((a: string, b: string) => {
+                if (a.includes('3.8-flash')) return -1;
+                if (b.includes('3.8-flash')) return 1;
+                if (a.includes('flash') && !b.includes('flash')) return -1;
+                if (!a.includes('flash') && b.includes('flash')) return 1;
+                return a.localeCompare(b);
+              });
+          }
+        } catch {}
+
         return {
           success: true,
           message: 'Verbinding met Google Gemini AI succesvol tot stand gebracht!',
+          models: availableModels,
         };
       }
 
@@ -288,7 +313,14 @@ export class AiReceiptService {
 
       return data.models
         .filter((m: any) => Array.isArray(m.supportedGenerationMethods) && m.supportedGenerationMethods.includes('generateContent'))
-        .map((m: any) => m.name.replace(/^models\//, ''));
+        .map((m: any) => m.name.replace(/^models\//, ''))
+        .sort((a: string, b: string) => {
+          if (a.includes('3.8-flash')) return -1;
+          if (b.includes('3.8-flash')) return 1;
+          if (a.includes('flash') && !b.includes('flash')) return -1;
+          if (!a.includes('flash') && b.includes('flash')) return 1;
+          return a.localeCompare(b);
+        });
     } catch {
       return [];
     }
@@ -376,37 +408,44 @@ Ensure decimal numbers use standard dots. Do not add markdown or extra text. Out
     const timeout = setTimeout(() => controller.abort(), 25000);
 
     try {
-      const requestedModel = modelName || 'gemini-2.0-flash';
+      const requestedModel = modelName || 'gemini-3.8-flash';
       let activeModel = requestedModel;
 
       // 1. Try requested model on v1beta
       let res = await this.postGemini(activeModel, 'v1beta', apiKey, body, controller.signal);
 
-      // If 404 (e.g. models/gemini-1.5-flash is not found for API version v1beta):
+      // If 404 (e.g. models/gemini-2.0-flash is no longer available):
       if (res.status === 404) {
-        console.log(`Gemini model ${activeModel} on v1beta returned 404, attempting fallback to v1...`);
-        // 2. Try requested model on stable v1
-        res = await this.postGemini(activeModel, 'v1', apiKey, body, controller.signal);
+        let suggestedModel: string | null = null;
+        try {
+          const errClone = res.clone();
+          const errJson = await errClone.json() as any;
+          const msg = errJson?.error?.message || '';
+          // Extract model from Google's advice, e.g. "Please update your code to use models/gemini-3.8-flash"
+          const match = msg.match(/use models\/([a-zA-Z0-9\.\-_]+)/i) || msg.match(/models\/([a-zA-Z0-9\.\-_]+)/i);
+          if (match && match[1] && match[1] !== activeModel) {
+            suggestedModel = match[1];
+          }
+        } catch {}
 
-        // 3. If still 404, try modern gemini-2.0-flash on v1beta
-        if (res.status === 404 && activeModel !== 'gemini-2.0-flash') {
-          console.log(`Fallback to gemini-2.0-flash on v1beta...`);
-          activeModel = 'gemini-2.0-flash';
+        if (suggestedModel) {
+          console.log(`Google Gemini advised replacement model: ${suggestedModel}`);
+          activeModel = suggestedModel;
           res = await this.postGemini(activeModel, 'v1beta', apiKey, body, controller.signal);
         }
 
-        // 4. If still 404, try gemini-2.5-flash on v1beta
-        if (res.status === 404 && activeModel !== 'gemini-2.5-flash') {
-          console.log(`Fallback to gemini-2.5-flash on v1beta...`);
-          activeModel = 'gemini-2.5-flash';
+        // 2. If still 404, try modern gemini-3.8-flash on v1beta
+        if (res.status === 404 && activeModel !== 'gemini-3.8-flash') {
+          console.log(`Fallback to gemini-3.8-flash on v1beta...`);
+          activeModel = 'gemini-3.8-flash';
           res = await this.postGemini(activeModel, 'v1beta', apiKey, body, controller.signal);
         }
 
-        // 5. If still 404, dynamically query user's allowed models
+        // 3. If still 404, dynamically query user's allowed models
         if (res.status === 404) {
           console.log(`Dynamically discovering available models for API key...`);
           const available = await this.getAvailableGeminiModels(apiKey);
-          const discovered = available.find((m) => m.includes('flash')) || available[0];
+          const discovered = available.find((m) => m.includes('3.8-flash')) || available.find((m) => m.includes('flash')) || available[0];
           if (discovered && discovered !== activeModel) {
             activeModel = discovered;
             console.log(`Using discovered model: ${activeModel}`);
@@ -414,9 +453,17 @@ Ensure decimal numbers use standard dots. Do not add markdown or extra text. Out
           }
         }
 
-        // Persist newly discovered working model so subsequent requests don't hit 404
+        // 4. If still 404, try requested model on stable v1
+        if (res.status === 404) {
+          console.log(`Fallback to ${activeModel} on stable v1...`);
+          res = await this.postGemini(activeModel, 'v1', apiKey, body, controller.signal);
+        }
+
+        // Persist newly discovered/suggested working model so subsequent requests don't hit 404
         if (res.ok && activeModel !== requestedModel) {
-          setSystemSetting('gemini_model', activeModel);
+          try {
+            setSystemSetting('gemini_model', activeModel);
+          } catch {}
         }
       }
 

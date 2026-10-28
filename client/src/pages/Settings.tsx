@@ -37,7 +37,8 @@ export const Settings: React.FC = () => {
   // AI Vision Receipt Scanner State
   const [aiProvider, setAiProvider] = useState<'gemini' | 'openai' | 'none'>('gemini');
   const [geminiApiKey, setGeminiApiKey] = useState('');
-  const [geminiModel, setGeminiModel] = useState('gemini-2.0-flash');
+  const [geminiModel, setGeminiModel] = useState('gemini-3.8-flash');
+  const [discoveredGeminiModels, setDiscoveredGeminiModels] = useState<string[]>([]);
   const [hasGeminiKey, setHasGeminiKey] = useState(false);
   const [geminiKeyMasked, setGeminiKeyMasked] = useState<string | null>(null);
   const [showGeminiKey, setShowGeminiKey] = useState(false);
@@ -87,6 +88,7 @@ export const Settings: React.FC = () => {
         geminiModel: string;
         hasGeminiKey: boolean;
         geminiKeyMasked: string | null;
+        availableGeminiModels?: string[];
         openaiModel: string;
         openaiBaseUrl: string;
         hasOpenaiKey: boolean;
@@ -94,9 +96,12 @@ export const Settings: React.FC = () => {
       }>('/api/settings/ai');
 
       setAiProvider(res.provider || 'gemini');
-      setGeminiModel(res.geminiModel || 'gemini-2.0-flash');
+      setGeminiModel(res.geminiModel || 'gemini-3.8-flash');
       setHasGeminiKey(res.hasGeminiKey);
       setGeminiKeyMasked(res.geminiKeyMasked);
+      if (res.availableGeminiModels && res.availableGeminiModels.length > 0) {
+        setDiscoveredGeminiModels(res.availableGeminiModels);
+      }
 
       setOpenaiModel(res.openaiModel || 'gpt-4o-mini');
       setOpenaiBaseUrl(res.openaiBaseUrl || 'https://api.openai.com/v1');
@@ -122,11 +127,18 @@ export const Settings: React.FC = () => {
         payload.baseUrl = openaiBaseUrl;
       }
 
-      const res = await apiFetch<{ success: boolean; message: string }>('/api/settings/ai/test', {
+      const res = await apiFetch<{ success: boolean; message: string; models?: string[] }>('/api/settings/ai/test', {
         method: 'POST',
         body: JSON.stringify(payload),
       });
       setAiTestResult(res);
+      if (res.models && res.models.length > 0) {
+        setDiscoveredGeminiModels(res.models);
+        if (!res.models.includes(geminiModel) || geminiModel === 'gemini-1.5-flash' || geminiModel === 'gemini-2.0-flash') {
+          const best = res.models.find((m) => m.includes('3.8-flash')) || res.models.find((m) => m.includes('flash')) || res.models[0];
+          if (best) setGeminiModel(best);
+        }
+      }
     } catch (err: any) {
       setAiTestResult({
         success: false,
@@ -460,19 +472,56 @@ export const Settings: React.FC = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-1 block">
-                  {t('geminiModelLabel')}
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    {t('geminiModelLabel')}
+                  </label>
+                  {discoveredGeminiModels.length > 0 && (
+                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
+                      ✓ {discoveredGeminiModels.length} modellen actief
+                    </span>
+                  )}
+                </div>
                 <select
-                  value={geminiModel}
-                  onChange={(e) => setGeminiModel(e.target.value)}
+                  value={
+                    ['gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-3.0-flash', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro', ...discoveredGeminiModels].includes(geminiModel)
+                      ? geminiModel
+                      : 'custom'
+                  }
+                  onChange={(e) => {
+                    if (e.target.value !== 'custom') {
+                      setGeminiModel(e.target.value);
+                    }
+                  }}
                   className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 shadow-sm"
                 >
-                  <option value="gemini-2.0-flash">gemini-2.0-flash (Aanbevolen, ultra snel &amp; gratis)</option>
-                  <option value="gemini-2.5-flash">gemini-2.5-flash (Nieuwste generatie)</option>
-                  <option value="gemini-1.5-flash">gemini-1.5-flash (Stabiel)</option>
-                  <option value="gemini-1.5-pro">gemini-1.5-pro (Krachtigste redenering)</option>
+                  <option value="gemini-3.8-flash">gemini-3.8-flash (Aanbevolen, nieuwste generatie &amp; gratis)</option>
+                  <option value="gemini-3.5-flash">gemini-3.5-flash</option>
+                  <option value="gemini-3.0-flash">gemini-3.0-flash</option>
+                  <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+                  <option value="gemini-2.0-flash">gemini-2.0-flash (Verouderd door Google)</option>
+                  <option value="gemini-1.5-flash">gemini-1.5-flash (Verouderd door Google)</option>
+                  <option value="gemini-1.5-pro">gemini-1.5-pro</option>
+                  {discoveredGeminiModels
+                    .filter((m) => !['gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-3.0-flash', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'].includes(m))
+                    .map((m) => (
+                      <option key={m} value={m}>{m} (Google Account)</option>
+                    ))}
+                  <option value="custom">Aangepast model invoeren...</option>
                 </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-1 block">
+                  Actieve Modelnaam
+                </label>
+                <input
+                  type="text"
+                  value={geminiModel}
+                  onChange={(e) => setGeminiModel(e.target.value)}
+                  placeholder="bijv. gemini-3.8-flash"
+                  className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 shadow-sm"
+                />
               </div>
             </div>
           </div>

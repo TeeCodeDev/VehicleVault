@@ -13,11 +13,19 @@ export class SettingsController {
       const hasGeminiKey = Boolean(settings.geminiApiKey && settings.geminiApiKey.trim().length > 0);
       const hasOpenaiKey = Boolean(settings.openaiApiKey && settings.openaiApiKey.trim().length > 0);
 
+      let availableGeminiModels: string[] = [];
+      if (hasGeminiKey && settings.geminiApiKey) {
+        try {
+          availableGeminiModels = await AiReceiptService.getAvailableGeminiModels(settings.geminiApiKey);
+        } catch {}
+      }
+
       res.json({
         provider: settings.provider,
         geminiModel: settings.geminiModel,
         hasGeminiKey,
         geminiKeyMasked: maskApiKey(settings.geminiApiKey),
+        availableGeminiModels,
         openaiModel: settings.openaiModel,
         openaiBaseUrl: settings.openaiBaseUrl,
         hasOpenaiKey,
@@ -109,6 +117,27 @@ export class SettingsController {
         success: false,
         message: `Fout tijdens verbindingstest: ${err?.message || 'Onbekende fout'}`,
       });
+    }
+  }
+
+  public static async getGeminiModels(req: Request, res: Response): Promise<void> {
+    try {
+      const apiKeyQuery = req.query.apiKey as string | undefined;
+      const settings = AiReceiptService.getActiveSettings();
+      const trimmedQuery = typeof apiKeyQuery === 'string' ? apiKeyQuery.trim() : '';
+      const effectiveKey = (trimmedQuery.length > 0 && !trimmedQuery.includes('••••') && !trimmedQuery.includes('...'))
+        ? trimmedQuery
+        : settings.geminiApiKey;
+
+      if (!effectiveKey) {
+        res.status(400).json({ error: 'Geen API-sleutel beschikbaar om modellen op te halen' });
+        return;
+      }
+
+      const models = await AiReceiptService.getAvailableGeminiModels(effectiveKey);
+      res.json({ models });
+    } catch (err: any) {
+      res.status(500).json({ error: err?.message || 'Fout bij ophalen van Gemini modellen' });
     }
   }
 }

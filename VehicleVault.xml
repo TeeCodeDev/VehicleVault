@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <Container version="2">
   <Name>VehicleVault</Name>
-  <Version>v1.0.9</Version>
+  <Version>v1.0.10</Version>
   <Repository>ghcr.io/teecodedev/vehichlevault:latest</Repository>
   <Registry>https://ghcr.io/teecodedev/vehichlevault</Registry>
   <Network>bridge</Network>
@@ -40,6 +40,12 @@ Open the web interface at [inline]http://[IP]:[PORT:3001]/[/inline]. The first u
   <DonateText>If you like VehicleVault, buy me a coffee!</DonateText>
   <DonateLink>https://ko-fi.com/D1D51ZGUNL</DonateLink>
   <Changes>
+### v1.0.10 (2026-10-28)
+- Google Gemini 3.8 Flash Migratie: Default Gemini model bijgewerkt naar gemini-3.8-flash zoals voorgeschreven door Google API (gemini-2.0-flash en 1.5-flash zijn door Google uitgefaseerd).
+- Automatische Model Migratie: Bestaande installaties met 1.5-flash of 2.0-flash worden automatisch gemigreerd naar gemini-3.8-flash.
+- Dynamische Model Detectie: Automatisch modellen ophalen via Google API en foutmeldingen automatisch ontleden om direct over te schakelen naar het geadviseerde model.
+- Aanpasbaar Model Veld: Directe invoer en selectie van willekeurige AI-modellen in de instellingen.
+
 ### v1.0.9 (2026-10-28)
 - Google Gemini 2.0 Flash migratie: Standaard Gemini model bijgewerkt naar gemini-2.0-flash ter vervanging van verouderde 1.5-flash endpoints.
 - Automatische Fallback & Self-Healing AI: Intelligente cascading endpoint fallback (v1beta -> v1 -> gemini-2.0-flash -> dynamische modelherkenning) zodat 404-fouten automatisch worden opgevangen en de werkende configuratie direct wordt opgeslagen.

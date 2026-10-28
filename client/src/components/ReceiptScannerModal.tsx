@@ -34,7 +34,7 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({ isOpen
         .then((r) => r.json())
         .then((data) => {
           if (data.provider === 'gemini' && data.hasGeminiKey) {
-            setEngineInfo({ name: `Google Gemini (${data.geminiModel || '2.0-flash'})`, isAi: true });
+            setEngineInfo({ name: `Google Gemini (${data.geminiModel || '3.8-flash'})`, isAi: true });
           } else if (data.provider === 'openai' && data.hasOpenaiKey) {
             setEngineInfo({ name: `OpenAI Vision (${data.openaiModel || 'gpt-4o-mini'})`, isAi: true });
           } else {

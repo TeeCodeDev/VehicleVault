@@ -5,6 +5,7 @@ import { requireAuth } from '../middleware/auth.js';
 const router = Router();
 
 router.get('/ai', requireAuth, SettingsController.getAiSettings);
+router.get('/ai/gemini-models', requireAuth, SettingsController.getGeminiModels);
 router.put('/ai', requireAuth, SettingsController.updateAiSettings);
 router.post('/ai/test', requireAuth, SettingsController.testAiConnection);
 

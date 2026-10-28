@@ -320,11 +320,18 @@ Date,Odometer,Fuel_amount,Price,Total_cost,Notes
     it('should save and retrieve system settings correctly', () => {
       setSystemSetting('ai_provider', 'gemini');
       setSystemSetting('gemini_api_key', 'AIzaSyTestKey1234567890');
-      setSystemSetting('gemini_model', 'gemini-1.5-flash');
+      setSystemSetting('gemini_model', 'gemini-3.8-flash');
 
       assert.equal(getSystemSetting('ai_provider'), 'gemini');
       assert.equal(getSystemSetting('gemini_api_key'), 'AIzaSyTestKey1234567890');
-      assert.equal(getSystemSetting('gemini_model'), 'gemini-1.5-flash');
+      assert.equal(getSystemSetting('gemini_model'), 'gemini-3.8-flash');
+    });
+
+    it('should auto-migrate deprecated gemini models to gemini-3.8-flash', () => {
+      setSystemSetting('gemini_model', 'gemini-2.0-flash');
+      const settings = AiReceiptService.getActiveSettings();
+      assert.equal(settings.geminiModel, 'gemini-3.8-flash');
+      assert.equal(getSystemSetting('gemini_model'), 'gemini-3.8-flash');
     });
 
     it('should mask API keys securely without exposing raw secrets', () => {
