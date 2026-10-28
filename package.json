@@ -1,6 +1,6 @@
 {
   "name": "vehiclevault",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "private": true,
   "description": "Self-hosted vehicle lifecycle, fueling, maintenance, and TCO platform with OCR and MCP server",
   "workspaces": [

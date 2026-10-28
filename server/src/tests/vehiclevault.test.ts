@@ -13,6 +13,7 @@ import { TcoService } from '../services/tcoService.js';
 import { executeMcpTool } from '../mcp/tools.js';
 import { ImportService } from '../services/importService.js';
 import { RdwService } from '../services/rdwService.js';
+import { AiReceiptService, getSystemSetting, setSystemSetting, maskApiKey } from '../services/aiReceiptService.js';
 
 describe('VehicleVault Comprehensive Test Suite', () => {
   let testUserId: string;
@@ -311,6 +312,66 @@ Date,Odometer,Fuel_amount,Price,Total_cost,Notes
       const res = await executeMcpTool('check_maintenance_alerts', { vehicle_id: testVehicleId });
       assert.ok(typeof res.count === 'number');
       assert.ok(Array.isArray(res.alerts));
+    });
+  });
+
+  describe('AI Vision Receipt Scanner & System Settings', () => {
+    it('should save and retrieve system settings correctly', () => {
+      setSystemSetting('ai_provider', 'gemini');
+      setSystemSetting('gemini_api_key', 'AIzaSyTestKey1234567890');
+      setSystemSetting('gemini_model', 'gemini-1.5-flash');
+
+      assert.equal(getSystemSetting('ai_provider'), 'gemini');
+      assert.equal(getSystemSetting('gemini_api_key'), 'AIzaSyTestKey1234567890');
+      assert.equal(getSystemSetting('gemini_model'), 'gemini-1.5-flash');
+    });
+
+    it('should mask API keys securely without exposing raw secrets', () => {
+      const masked = maskApiKey('AIzaSyD-1234567890abcdef');
+      assert.equal(masked, 'AIzaSy...cdef');
+
+      const shortMasked = maskApiKey('short');
+      assert.equal(shortMasked, '••••••••');
+
+      assert.equal(maskApiKey(''), null);
+      assert.equal(maskApiKey(null), null);
+    });
+
+    it('should normalize and reconcile AI JSON extraction accurately', () => {
+      const mockGeminiJson = JSON.stringify({
+        date: '2026-10-19',
+        liters: 37.41,
+        pricePerLiter: 2.159,
+        totalCost: null, // should be reconciled
+        station: 'Fieten Olie Steenwijk',
+        fuelType: '95 Ongelood',
+      });
+
+      const result = AiReceiptService.normalizeAiResult(mockGeminiJson, 'gemini', 'gemini-1.5-flash');
+      assert.equal(result.date, '2026-10-19');
+      assert.equal(result.liters, 37.41);
+      assert.equal(result.pricePerLiter, 2.159);
+      assert.equal(result.totalCost, 80.77); // 37.41 * 2.159 = 80.76819 -> 80.77
+      assert.equal(result.station, 'Fieten Olie Steenwijk');
+      assert.equal(result.fuelType, '95 Ongelood');
+      assert.equal(result.engine, 'gemini');
+    });
+
+    it('should handle markdown fenced JSON codeblocks from LLMs', () => {
+      const fencedJson = '```json\n{"date":"27-10-2026","liters":"40.89","pricePerLiter":"2.079","totalCost":"85.01","station":"Fieten Olie","fuelType":"95 Ongelood"}\n```';
+      const result = AiReceiptService.normalizeAiResult(fencedJson, 'openai', 'gpt-4o-mini');
+      assert.equal(result.date, '2026-10-27');
+      assert.equal(result.liters, 40.89);
+      assert.equal(result.pricePerLiter, 2.079);
+      assert.equal(result.totalCost, 85.01);
+      assert.equal(result.station, 'Fieten Olie');
+      assert.equal(result.fuelType, '95 Ongelood');
+    });
+
+    it('should test connection validation rejecting empty keys', async () => {
+      const res = await AiReceiptService.testConnection('gemini', '');
+      assert.equal(res.success, false);
+      assert.ok(res.message.includes('Geen API-sleutel ingevoerd'));
     });
   });
 });

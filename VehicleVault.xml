@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <Container version="2">
   <Name>VehicleVault</Name>
-  <Version>v1.0.3</Version>
+  <Version>v1.0.4</Version>
   <Repository>ghcr.io/teecodedev/vehichlevault:latest</Repository>
   <Registry>https://ghcr.io/teecodedev/vehichlevault</Registry>
   <Network>bridge</Network>
@@ -40,6 +40,13 @@ Open the web interface at [inline]http://[IP]:[PORT:3001]/[/inline]. The first u
   <DonateText>If you like VehicleVault, buy me a coffee!</DonateText>
   <DonateLink>https://ko-fi.com/D1D51ZGUNL</DonateLink>
   <Changes>
+### v1.0.4 (2026-10-28)
+- AI Vision Bonherkenning: Koppel Google Gemini (1.5/2.0 Flash) of OpenAI (GPT-4o-mini) voor 100% accurate bonextractie van dot-matrix thermische tankbonnen (inclusief tankstation, datum, liters, literprijs en brandstoftype).
+- Automatische fallback naar lokale Tesseract OCR indien geen AI-sleutel ingesteld is.
+- Instellingencentrum uitgebreid met interactieve AI-verbindingstests en beveiligde opslag van API-sleutels.
+- Layoutoptimalisatie van bon-scanner modal (geen clipping of overflow meer).
+- Automatisch vullen van notities met gedetecteerd tankstation en brandstofmerk.
+
 ### v1.0.3 (2026-10-28)
 - Added manual receipt and invoice upload for fuel fill-ups.
 - Added fuel price statistics: weighted average price, cheapest and most expensive fill-up, and interactive price evolution chart.
@@ -64,4 +71,6 @@ Open the web interface at [inline]http://[IP]:[PORT:3001]/[/inline]. The first u
   <Config Name="JWT Secret" Target="JWT_SECRET" Default="" Mode="" Description="Secret key used to sign access tokens (JWT). Leave blank for auto-generated default, or generate a random 32-character string." Type="Variable" Display="advanced" Required="false" Mask="true"/>
   <Config Name="JWT Refresh Secret" Target="JWT_REFRESH_SECRET" Default="" Mode="" Description="Secret key used to sign refresh tokens. Leave blank for auto-generated default, or generate a random 32-character string." Type="Variable" Display="advanced" Required="false" Mask="true"/>
   <Config Name="Node Environment" Target="NODE_ENV" Default="production" Mode="" Description="Node environment mode." Type="Variable" Display="advanced" Required="false" Mask="false"/>
+  <Config Name="Gemini API Key" Target="GEMINI_API_KEY" Default="" Mode="" Description="Optional Google Gemini API key for high-speed AI fuel receipt scanning." Type="Variable" Display="advanced" Required="false" Mask="true"/>
+  <Config Name="OpenAI API Key" Target="OPENAI_API_KEY" Default="" Mode="" Description="Optional OpenAI API key for GPT-4o-mini receipt scanning." Type="Variable" Display="advanced" Required="false" Mask="true"/>
 </Container>

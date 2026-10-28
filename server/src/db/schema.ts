@@ -209,6 +209,15 @@ export function initializeDatabase(): void {
     );
   `);
 
+  // 10. System settings (AI providers, API keys, global configurations)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS system_settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+  `);
+
   // Seed default presets
   seedPresets();
 }

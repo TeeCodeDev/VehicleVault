@@ -1,19 +1,46 @@
 import { createWorker } from 'tesseract.js';
+import { AiReceiptService } from './aiReceiptService.js';
 
 export interface OcrParseResult {
   date: string | null;
   liters: number | null;
   pricePerLiter: number | null;
   totalCost: number | null;
+  station?: string | null;
+  fuelType?: string | null;
   rawText: string;
   confidence: number;
+  engine?: 'gemini' | 'openai' | 'tesseract';
 }
 
 export class OcrService {
   /**
-   * Performs OCR recognition and regex extraction on a receipt image.
+   * Performs AI Vision extraction (Gemini / OpenAI) if configured, with graceful fallback to local Tesseract OCR.
    */
   public static async processReceipt(imagePath: string): Promise<OcrParseResult> {
+    // 1. Attempt AI Vision extraction if an API key (Gemini / OpenAI) is configured
+    if (AiReceiptService.isConfigured()) {
+      try {
+        const aiResult = await AiReceiptService.analyzeReceipt(imagePath);
+        if (aiResult && (aiResult.liters || aiResult.totalCost || aiResult.date || aiResult.pricePerLiter)) {
+          return {
+            date: aiResult.date,
+            liters: aiResult.liters,
+            pricePerLiter: aiResult.pricePerLiter,
+            totalCost: aiResult.totalCost,
+            station: aiResult.station,
+            fuelType: aiResult.fuelType,
+            rawText: `AI Vision Analysis (${aiResult.engine.toUpperCase()} • ${aiResult.model})`,
+            confidence: aiResult.confidence,
+            engine: aiResult.engine,
+          };
+        }
+      } catch (aiErr: any) {
+        console.warn('AI Receipt Vision encountered an error, falling back to local Tesseract OCR:', aiErr?.message || aiErr);
+      }
+    }
+
+    // 2. Local Tesseract OCR fallback
     let worker;
     try {
       worker = await createWorker('nld+eng');
@@ -22,7 +49,11 @@ export class OcrService {
       const confidence = ret.data.confidence;
       await worker.terminate();
 
-      return this.parseReceiptText(text, confidence);
+      const parsed = this.parseReceiptText(text, confidence);
+      return {
+        ...parsed,
+        engine: 'tesseract',
+      };
     } catch (err: any) {
       if (worker) {
         try {
@@ -38,6 +69,7 @@ export class OcrService {
         totalCost: null,
         rawText: `OCR processing note: ${err?.message || 'Failed to parse image'}`,
         confidence: 0,
+        engine: 'tesseract',
       };
     }
   }
@@ -122,6 +154,7 @@ export class OcrService {
       totalCost,
       rawText: text,
       confidence,
+      engine: 'tesseract',
     };
   }
 }

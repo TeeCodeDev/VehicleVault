@@ -132,6 +132,8 @@ export const FuelLog: React.FC = () => {
     pricePerLiter: number | null;
     totalCost: number | null;
     receiptPath: string;
+    station?: string | null;
+    fuelType?: string | null;
   }) => {
     if (data.date) setDate(data.date);
     if (data.liters) setLiters(String(data.liters));
@@ -139,6 +141,13 @@ export const FuelLog: React.FC = () => {
     if (data.totalCost) setTotalCost(String(data.totalCost));
     setReceiptPath(data.receiptPath);
     setReceiptFile(null);
+
+    if (data.station || data.fuelType) {
+      const parts = [data.station, data.fuelType].filter(Boolean);
+      if (parts.length > 0 && !notes) {
+        setNotes(parts.join(' • '));
+      }
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

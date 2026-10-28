@@ -17,6 +17,7 @@ import analyticsRoutes from './routes/analyticsRoutes.js';
 import importRoutes from './routes/importRoutes.js';
 import mcpRoutes from './routes/mcpRoutes.js';
 import documentRoutes from './routes/documentRoutes.js';
+import settingsRoutes from './routes/settingsRoutes.js';
 
 export function createApp(): express.Application {
   const app = express();
@@ -60,7 +61,7 @@ export function createApp(): express.Application {
         database: dbCheck?.healthy === 1 ? 'connected' : 'unhealthy',
         uptime: process.uptime(),
         timestamp: new Date().toISOString(),
-        version: '1.0.3',
+        version: '1.0.4',
       });
     } catch (err: any) {
       res.status(503).json({
@@ -82,6 +83,7 @@ export function createApp(): express.Application {
   app.use('/api/import', importRoutes);
   app.use('/api/mcp', mcpRoutes);
   app.use('/api/documents', documentRoutes);
+  app.use('/api/settings', settingsRoutes);
 
   // Serve static client PWA in production or unified container
   const possiblePaths = [
