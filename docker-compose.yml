@@ -1,0 +1,42 @@
+services:
+  vehiclevault:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: vehiclevault
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - DATA_DIR=/data
+      - JWT_SECRET=${JWT_SECRET:-change_this_to_a_random_secure_secret_in_production}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-change_this_to_another_random_secure_secret}
+      # Optional PostgreSQL connection (Leave empty to use built-in SQLite WAL mode)
+      - DATABASE_URL=${DATABASE_URL:-}
+    volumes:
+      - ./data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # Optional PostgreSQL database container (Activated with `docker compose --profile postgres up`)
+  postgres:
+    image: postgres:16-alpine
+    container_name: vehiclevault-db
+    restart: unless-stopped
+    profiles:
+      - postgres
+    environment:
+      - POSTGRES_USER=vehiclevault
+      - POSTGRES_PASSWORD=vehiclevault_secure_pass
+      - POSTGRES_DB=vehiclevault
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+

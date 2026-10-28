@@ -1,0 +1,71 @@
+# Dependencies
+node_modules/
+*/node_modules/
+.pnp
+.pnp.js
+
+# Production & Build outputs
+dist/
+*/dist/
+build/
+out/
+
+# Persistent data, SQLite databases, and user uploads
+data/
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+uploads/
+server/uploads/
+receipts/
+invoices/
+documents/
+vehicles/
+
+# Environment variables & secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.pem
+*.key
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Operating System files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# IDE & Editor files
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+
+# Testing & Coverage
+coverage/
+.nyc_output/
+
+# Cache directories
+.cache/
+.parcel-cache/
+.turbo/
+.eslintcache
