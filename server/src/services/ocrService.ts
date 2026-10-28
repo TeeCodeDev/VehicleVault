@@ -7,6 +7,7 @@ export interface OcrParseResult {
   pricePerLiter: number | null;
   totalCost: number | null;
   station?: string | null;
+  stationAddress?: string | null;
   fuelType?: string | null;
   rawText: string;
   confidence: number;
@@ -32,6 +33,7 @@ export class OcrService {
             pricePerLiter: aiResult.pricePerLiter,
             totalCost: aiResult.totalCost,
             station: aiResult.station,
+            stationAddress: aiResult.stationAddress,
             fuelType: aiResult.fuelType,
             rawText: `AI Vision Analysis (${aiResult.engine.toUpperCase()} • ${aiResult.model})`,
             confidence: aiResult.confidence,

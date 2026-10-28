@@ -249,6 +249,7 @@ export const FuelLog: React.FC = () => {
     totalCost: number | null;
     receiptPath: string;
     station?: string | null;
+    stationAddress?: string | null;
     fuelType?: string | null;
   }) => {
     if (data.date) setDate(data.date);
@@ -260,6 +261,11 @@ export const FuelLog: React.FC = () => {
 
     if (data.station) {
       setStationName(data.station);
+      setShowLocationSection(true);
+    }
+
+    if (data.stationAddress) {
+      setStationAddress(data.stationAddress);
       setShowLocationSection(true);
     }
 

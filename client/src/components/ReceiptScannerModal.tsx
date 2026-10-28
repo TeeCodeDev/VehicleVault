@@ -12,6 +12,7 @@ interface ReceiptScannerModalProps {
     totalCost: number | null;
     receiptPath: string;
     station?: string | null;
+    stationAddress?: string | null;
     fuelType?: string | null;
   }) => void;
 }
@@ -98,6 +99,7 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({ isOpen
         totalCost: ocrResult.extracted?.totalCost ?? null,
         receiptPath: ocrResult.receiptPath,
         station: ocrResult.extracted?.station || null,
+        stationAddress: ocrResult.extracted?.stationAddress || null,
         fuelType: ocrResult.extracted?.fuelType || null,
       });
       onClose();
@@ -259,23 +261,30 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({ isOpen
                 </div>
               )}
 
-              {/* Station and Fuel Type pill banner if detected */}
-              {(ocrResult.extracted?.station || ocrResult.extracted?.fuelType) && (
-                <div className="flex flex-wrap items-center gap-1.5 p-2 bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/40 rounded-lg text-[11px]">
-                  {ocrResult.extracted?.station && (
-                    <span className="inline-flex items-center space-x-1 font-semibold text-indigo-900 dark:text-indigo-200">
-                      <MapPin className="w-3.5 h-3.5 text-indigo-500" />
-                      <span>{ocrResult.extracted.station}</span>
-                    </span>
-                  )}
-                  {ocrResult.extracted?.station && ocrResult.extracted?.fuelType && (
-                    <span className="text-indigo-300 dark:text-indigo-700">•</span>
-                  )}
-                  {ocrResult.extracted?.fuelType && (
-                    <span className="inline-flex items-center space-x-1 text-indigo-700 dark:text-indigo-300 font-medium">
-                      <Fuel className="w-3.5 h-3.5 text-indigo-500" />
-                      <span>{ocrResult.extracted.fuelType}</span>
-                    </span>
+              {/* Station, Address and Fuel Type banner if detected */}
+              {(ocrResult.extracted?.station || ocrResult.extracted?.stationAddress || ocrResult.extracted?.fuelType) && (
+                <div className="flex flex-col gap-1 p-2.5 bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/40 rounded-lg text-[11px]">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {ocrResult.extracted?.station && (
+                      <span className="inline-flex items-center space-x-1 font-bold text-indigo-900 dark:text-indigo-200">
+                        <MapPin className="w-3.5 h-3.5 text-indigo-500" />
+                        <span>{ocrResult.extracted.station}</span>
+                      </span>
+                    )}
+                    {ocrResult.extracted?.station && ocrResult.extracted?.fuelType && (
+                      <span className="text-indigo-300 dark:text-indigo-700">•</span>
+                    )}
+                    {ocrResult.extracted?.fuelType && (
+                      <span className="inline-flex items-center space-x-1 text-indigo-700 dark:text-indigo-300 font-medium">
+                        <Fuel className="w-3.5 h-3.5 text-indigo-500" />
+                        <span>{ocrResult.extracted.fuelType}</span>
+                      </span>
+                    )}
+                  </div>
+                  {ocrResult.extracted?.stationAddress && (
+                    <div className="text-[11px] text-slate-600 dark:text-slate-400 pl-4">
+                      {ocrResult.extracted.stationAddress}
+                    </div>
                   )}
                 </div>
               )}

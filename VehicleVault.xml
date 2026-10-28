@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <Container version="2">
   <Name>VehicleVault</Name>
-  <Version>v1.0.10</Version>
+  <Version>v1.0.11</Version>
   <Repository>ghcr.io/teecodedev/vehichlevault:latest</Repository>
   <Registry>https://ghcr.io/teecodedev/vehichlevault</Registry>
   <Network>bridge</Network>
@@ -40,6 +40,11 @@ Open the web interface at [inline]http://[IP]:[PORT:3001]/[/inline]. The first u
   <DonateText>If you like VehicleVault, buy me a coffee!</DonateText>
   <DonateLink>https://ko-fi.com/D1D51ZGUNL</DonateLink>
   <Changes>
+### v1.0.11 (2026-10-28)
+- Automatische Tankstation Adres Extractie: AI Vision (OpenAI & Gemini) extraheert nu automatisch het volledige adres (straat, huisnummer, postcode en plaats) van het tankstation vanaf de bon en vult dit direct in het adresveld.
+- Tankstation Naam Formattering: Tankstationnamen in hoofdletters (bijv. FIETEN OLIE) worden automatisch omgezet naar nette Title Case (Fieten Olie), met behoud van afkortingen zoals BP, Q8, AVIA en OK.
+- AI Scanner Preview Verbetering: Het herkende adres wordt nu direct getoond in de scanner-popup onder het tankstation.
+
 ### v1.0.10 (2026-10-28)
 - Google Gemini 3.8 Flash Migratie: Default Gemini model bijgewerkt naar gemini-3.8-flash zoals voorgeschreven door Google API (gemini-2.0-flash en 1.5-flash zijn door Google uitgefaseerd).
 - Automatische Model Migratie: Bestaande installaties met 1.5-flash of 2.0-flash worden automatisch gemigreerd naar gemini-3.8-flash.

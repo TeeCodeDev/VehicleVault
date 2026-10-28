@@ -8,6 +8,7 @@ export interface AiReceiptExtraction {
   pricePerLiter: number | null;
   totalCost: number | null;
   station: string | null;
+  stationAddress: string | null;
   fuelType: string | null;
   confidence: number;
   engine: 'gemini' | 'openai';
@@ -66,6 +67,56 @@ function getMimeType(filePath: string): string {
     default:
       return 'image/jpeg';
   }
+}
+
+/**
+ * Format petrol station brand/name to clean Title Case (e.g. "FIETEN OLIE" -> "Fieten Olie")
+ */
+export function formatStationName(val?: string | null): string | null {
+  if (!val || typeof val !== 'string') return null;
+  const trimmed = val.trim();
+  if (!trimmed) return null;
+
+  // Well-known brands/acronyms to keep uppercase
+  const acronyms = new Set(['BP', 'OK', 'Q8', 'AVIA', 'AVIF', 'TAMOIL', 'ESSO', 'ARGOS', 'NRA']);
+
+  return trimmed
+    .split(/\s+/)
+    .map((word) => {
+      if (!word) return '';
+      const upper = word.toUpperCase();
+      if (acronyms.has(upper)) return upper;
+      // If word or entire string is ALL CAPS, convert to Title Case
+      if (trimmed === trimmed.toUpperCase() || word === word.toUpperCase()) {
+        return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+      }
+      return word;
+    })
+    .join(' ');
+}
+
+/**
+ * Format address to clean casing while keeping Dutch postal codes uppercase (e.g. "8332 VN")
+ */
+export function formatAddress(val?: string | null): string | null {
+  if (!val || typeof val !== 'string') return null;
+  const trimmed = val.trim();
+  if (!trimmed) return null;
+
+  if (trimmed === trimmed.toUpperCase()) {
+    return trimmed
+      .split(/\s+/)
+      .map((word) => {
+        if (!word) return '';
+        // Dutch postal code letters e.g. "VN", "AB", "VN,"
+        if (/^[a-zA-Z]{2}[,.]?$/.test(word)) {
+          return word.toUpperCase();
+        }
+        return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+      })
+      .join(' ');
+  }
+  return trimmed;
 }
 
 export class AiReceiptService {
@@ -379,7 +430,8 @@ Return ONLY a valid JSON object with the following fields:
   "liters": number (volume in liters, e.g. 37.41) or null,
   "pricePerLiter": number (unit price in EUR, e.g. 2.159) or null,
   "totalCost": number (total amount paid in EUR, e.g. 80.77) or null,
-  "station": string (name of petrol station and town/city, e.g. "Fieten Olie Steenwijk") or null,
+  "station": string (name/brand of petrol station in Title Case, e.g. "Fieten Olie", "Shell", "TotalEnergies", never ALL CAPS) or null,
+  "stationAddress": string (street address, house number, postal code and city/town found on receipt header or footer, e.g. "Eeser Gaard 2, 8332 VN Steenwijk") or null,
   "fuelType": string (e.g. "Euro 95 Ongelood", "Diesel", "SuperPlus 98") or null
 }
 Ensure decimal numbers use standard dots. Do not add markdown or extra text. Output strictly raw JSON.`;
@@ -521,11 +573,12 @@ Ensure decimal numbers use standard dots. Do not add markdown or extra text. Out
 Extract transaction details from the receipt image and return ONLY a valid JSON object with the following fields:
 {
   "date": "YYYY-MM-DD" or null,
-  "liters": number or null,
-  "pricePerLiter": number or null,
-  "totalCost": number or null,
-  "station": string or null,
-  "fuelType": string or null
+  "liters": number (volume in liters, e.g. 37.41) or null,
+  "pricePerLiter": number (unit price in EUR, e.g. 2.159) or null,
+  "totalCost": number (total amount paid in EUR, e.g. 80.77) or null,
+  "station": string (name/brand of petrol station in Title Case, e.g. "Fieten Olie", "Shell", "TotalEnergies", never ALL CAPS) or null,
+  "stationAddress": string (street address, house number, postal code and city/town found on receipt header or footer, e.g. "Eeser Gaard 2, 8332 VN Steenwijk") or null,
+  "fuelType": string (e.g. "Euro 95 Ongelood", "Diesel", "SuperPlus 98") or null
 }`,
         },
         {
@@ -634,9 +687,21 @@ Extract transaction details from the receipt image and return ONLY a valid JSON 
       liters = Math.round((totalCost / pricePerLiter) * 100) / 100;
     }
 
-    const station = typeof parsed.station === 'string' && parsed.station.trim().length > 0
-      ? parsed.station.trim()
-      : null;
+    const station = formatStationName(
+      typeof parsed.station === 'string' && parsed.station.trim().length > 0
+        ? parsed.station.trim()
+        : null
+    );
+
+    const rawAddress = (typeof parsed.stationAddress === 'string' && parsed.stationAddress.trim().length > 0)
+      ? parsed.stationAddress.trim()
+      : (typeof parsed.address === 'string' && parsed.address.trim().length > 0)
+        ? parsed.address.trim()
+        : (typeof parsed.station_address === 'string' && parsed.station_address.trim().length > 0)
+          ? parsed.station_address.trim()
+          : null;
+
+    const stationAddress = formatAddress(rawAddress);
 
     const fuelType = typeof parsed.fuelType === 'string' && parsed.fuelType.trim().length > 0
       ? parsed.fuelType.trim()
@@ -648,6 +713,7 @@ Extract transaction details from the receipt image and return ONLY a valid JSON 
       pricePerLiter,
       totalCost,
       station,
+      stationAddress,
       fuelType,
       confidence: 99,
       engine,

@@ -351,18 +351,35 @@ Date,Odometer,Fuel_amount,Price,Total_cost,Notes
         liters: 37.41,
         pricePerLiter: 2.159,
         totalCost: null, // should be reconciled
-        station: 'Fieten Olie Steenwijk',
+        station: 'FIETEN OLIE', // all caps from receipt header -> should be Title Cased
+        stationAddress: 'Eeser Gaard 2, 8332 VN Steenwijk',
         fuelType: '95 Ongelood',
       });
 
-      const result = AiReceiptService.normalizeAiResult(mockGeminiJson, 'gemini', 'gemini-1.5-flash');
+      const result = AiReceiptService.normalizeAiResult(mockGeminiJson, 'gemini', 'gemini-3.8-flash');
       assert.equal(result.date, '2026-10-19');
       assert.equal(result.liters, 37.41);
       assert.equal(result.pricePerLiter, 2.159);
       assert.equal(result.totalCost, 80.77); // 37.41 * 2.159 = 80.76819 -> 80.77
-      assert.equal(result.station, 'Fieten Olie Steenwijk');
+      assert.equal(result.station, 'Fieten Olie');
+      assert.equal(result.stationAddress, 'Eeser Gaard 2, 8332 VN Steenwijk');
       assert.equal(result.fuelType, '95 Ongelood');
       assert.equal(result.engine, 'gemini');
+    });
+
+    it('should format all-caps station names and addresses correctly', () => {
+      const mockOpenAiJson = JSON.stringify({
+        date: '2026-10-27',
+        liters: 40.89,
+        pricePerLiter: 2.079,
+        totalCost: 85.01,
+        station: 'FIETEN OLIE STEENWIJK',
+        stationAddress: 'EESER GAARD 2, 8332 VN STEENWIJK',
+      });
+
+      const result = AiReceiptService.normalizeAiResult(mockOpenAiJson, 'openai', 'gpt-4o-mini');
+      assert.equal(result.station, 'Fieten Olie Steenwijk');
+      assert.equal(result.stationAddress, 'Eeser Gaard 2, 8332 VN Steenwijk');
     });
 
     it('should handle markdown fenced JSON codeblocks from LLMs', () => {
