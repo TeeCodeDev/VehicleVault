@@ -31,7 +31,7 @@ interface ContextType {
 
 export const Maintenance: React.FC = () => {
   const { selectedVehicle } = useOutletContext<ContextType>();
-  const { t, translateCategory } = useLanguage();
+  const { t, translateCategory, lang } = useLanguage();
   const [intervals, setIntervals] = useState<MaintenanceInterval[]>([]);
   const [records, setRecords] = useState<ServiceRecord[]>([]);
   const [categories, setCategories] = useState<ServiceCategory[]>([]);
@@ -523,7 +523,7 @@ export const Maintenance: React.FC = () => {
                   required
                   value={serviceItem}
                   onChange={(e) => setServiceItem(e.target.value)}
-                  placeholder="e.g. Engine Oil & Filter Change"
+                  placeholder={lang === 'nl' ? 'bijv. Motorolie & Oliefilter' : 'e.g. Engine Oil & Filter Change'}
                   className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-sky-500 shadow-sm"
                 />
               </div>
@@ -674,7 +674,7 @@ export const Maintenance: React.FC = () => {
                   rows={2}
                   value={serviceNotes}
                   onChange={(e) => setServiceNotes(e.target.value)}
-                  placeholder="e.g. 5W-30 synthetic, replaced copper washer"
+                  placeholder={lang === 'nl' ? 'bijv. 5W-30 synthetisch, koperen ring vervangen' : 'e.g. 5W-30 synthetic, replaced copper washer'}
                   className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-sky-500 shadow-sm"
                 />
               </div>
@@ -755,7 +755,7 @@ export const Maintenance: React.FC = () => {
                   type="text"
                   value={customName}
                   onChange={(e) => setCustomName(e.target.value)}
-                  placeholder="e.g. Brembo High Performance Brake Pads"
+                  placeholder={lang === 'nl' ? 'bijv. Brembo High Performance Remblokken' : 'e.g. Brembo High Performance Brake Pads'}
                   className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-sky-500 shadow-sm"
                 />
               </div>

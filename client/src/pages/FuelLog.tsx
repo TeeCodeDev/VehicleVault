@@ -283,7 +283,7 @@ export const FuelLog: React.FC = () => {
                 required
                 value={odometer}
                 onChange={(e) => handleOdometerChange(e.target.value)}
-                placeholder="e.g. 58240"
+                placeholder={lang === 'nl' ? 'bijv. 58240' : 'e.g. 58240'}
                 className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-1.5 text-slate-900 dark:text-white font-mono font-bold focus:outline-none focus:border-sky-500 shadow-sm"
               />
             </div>
@@ -297,7 +297,7 @@ export const FuelLog: React.FC = () => {
                 required
                 value={liters}
                 onChange={(e) => handleLitersChange(e.target.value)}
-                placeholder="e.g. 45.20"
+                placeholder={lang === 'nl' ? 'bijv. 45.20' : 'e.g. 45.20'}
                 className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-1.5 text-slate-900 dark:text-white font-bold focus:outline-none focus:border-sky-500 shadow-sm"
               />
             </div>
@@ -311,7 +311,7 @@ export const FuelLog: React.FC = () => {
                 required
                 value={pricePerLiter}
                 onChange={(e) => handlePriceChange(e.target.value)}
-                placeholder="e.g. 1.949"
+                placeholder={lang === 'nl' ? 'bijv. 1.949' : 'e.g. 1.949'}
                 className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-1.5 text-slate-900 dark:text-white font-bold focus:outline-none focus:border-sky-500 shadow-sm"
               />
             </div>
@@ -328,7 +328,7 @@ export const FuelLog: React.FC = () => {
                 required
                 value={totalCost}
                 onChange={(e) => handleTotalChange(e.target.value)}
-                placeholder="Calculated or manual"
+                placeholder={lang === 'nl' ? 'Berekend of handmatig' : 'Calculated or manual'}
                 className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-1.5 font-black text-slate-900 dark:text-white text-sm focus:outline-none focus:border-sky-500 shadow-sm"
               />
             </div>
@@ -341,7 +341,7 @@ export const FuelLog: React.FC = () => {
                 type="text"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="e.g. Shell A1, Euro 95 E10"
+                placeholder={lang === 'nl' ? 'bijv. Shell A1, Euro 95 E10' : 'e.g. Shell A1, Euro 95 E10'}
                 className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-1.5 text-slate-900 dark:text-white focus:outline-none focus:border-sky-500 shadow-sm"
               />
             </div>

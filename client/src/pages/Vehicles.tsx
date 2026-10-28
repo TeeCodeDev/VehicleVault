@@ -513,7 +513,7 @@ export const Vehicles: React.FC = () => {
                     required
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="e.g. Golf 7 Daily"
+                    placeholder={lang === 'nl' ? 'bijv. Golf 7 Daily' : 'e.g. Golf 7 Daily'}
                     className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-sky-500 shadow-sm"
                   />
                 </div>
@@ -574,7 +574,7 @@ export const Vehicles: React.FC = () => {
                     type="text"
                     value={fuelType}
                     onChange={(e) => setFuelType(e.target.value)}
-                    placeholder="Benzine, Diesel, Electric"
+                    placeholder={lang === 'nl' ? 'Benzine, Diesel, Elektrisch' : 'Petrol, Diesel, Electric'}
                     className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-sky-500 shadow-sm"
                   />
                 </div>
@@ -636,7 +636,7 @@ export const Vehicles: React.FC = () => {
                   rows={2}
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Paint code, options, tire sizes..."
+                  placeholder={lang === 'nl' ? 'Kleurcode, opties, bandenmaten...' : 'Paint code, options, tire sizes...'}
                   className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-sky-500 shadow-sm"
                 />
               </div>
