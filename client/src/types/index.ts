@@ -132,6 +132,31 @@ export interface FuelDetailedStats {
   stations: StationComparison[];
 }
 
+export interface FuelPriceRecord {
+  price: number;
+  date: string;
+  station: string | null;
+  liters: number;
+  odometer: number;
+  totalCost: number;
+}
+
+export interface FuelPricePoint {
+  date: string;
+  odometer: number;
+  pricePerLiter: number;
+  liters: number;
+  totalCost: number;
+  station: string | null;
+}
+
+export interface FuelPriceStats {
+  avgPrice: number | null;
+  minPrice: FuelPriceRecord | null;
+  maxPrice: FuelPriceRecord | null;
+  history: FuelPricePoint[];
+}
+
 export interface TcoSummary {
   vehicleId: string;
   vehicleName: string;
@@ -165,6 +190,7 @@ export interface TcoSummary {
     total: number;
   }[];
   fuelStats?: FuelDetailedStats;
+  priceStats?: FuelPriceStats;
 }
 
 export interface User {

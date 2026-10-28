@@ -122,6 +122,14 @@ export class FuelController {
     res.json({ success: true, message: 'Fuel entry deleted' });
   }
 
+  public static async uploadReceiptFile(req: Request, res: Response): Promise<void> {
+    if (!req.file) {
+      res.status(400).json({ error: 'No receipt or invoice file uploaded' });
+      return;
+    }
+    res.json({ fileName: req.file.filename });
+  }
+
   public static async ocrReceipt(req: Request, res: Response): Promise<void> {
     if (!req.file) {
       res.status(400).json({ error: 'No receipt image uploaded' });

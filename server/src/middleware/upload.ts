@@ -60,7 +60,7 @@ const fileFilter = (allowedMimes: string[]) => {
 export const uploadReceipt = multer({
   storage: receiptStorage,
   limits: { fileSize: 15 * 1024 * 1024 }, // 15MB
-  fileFilter: fileFilter(['image/jpeg', 'image/png', 'image/webp', 'image/heic']),
+  fileFilter: fileFilter(['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'application/pdf']),
 });
 
 export const uploadInvoice = multer({

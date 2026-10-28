@@ -57,6 +57,31 @@ export interface FuelDetailedStats {
   stations: StationComparison[];
 }
 
+export interface FuelPriceRecord {
+  price: number;
+  date: string;
+  station: string | null;
+  liters: number;
+  odometer: number;
+  totalCost: number;
+}
+
+export interface FuelPricePoint {
+  date: string;
+  odometer: number;
+  pricePerLiter: number;
+  liters: number;
+  totalCost: number;
+  station: string | null;
+}
+
+export interface FuelPriceStats {
+  avgPrice: number | null;
+  minPrice: FuelPriceRecord | null;
+  maxPrice: FuelPriceRecord | null;
+  history: FuelPricePoint[];
+}
+
 export interface VehicleTcoSummary {
   vehicleId: string;
   vehicleName: string;
@@ -75,6 +100,7 @@ export interface VehicleTcoSummary {
   fuelTrends: FuelTrendPoint[];
   monthlyBreakdown: MonthlySpendBreakdown[];
   fuelStats?: FuelDetailedStats;
+  priceStats?: FuelPriceStats;
 }
 
 export class TcoService {
@@ -257,7 +283,7 @@ export class TcoService {
     const tankDistances: number[] = [];
     const stationMap = new Map<string, { totalSpend: number; totalLiters: number; count: number }>();
 
-    const knownBrands = ['Shell', 'BP', 'Esso', 'Total', 'TotalEnergies', 'Texaco', 'Avia', 'Tango', 'TinQ', 'Q8', 'Lukoil', 'Circle K', 'Tamoil', 'Argos', 'Gulf', 'Firezone', 'Makro'];
+    const knownBrands = ['Shell', 'BP', 'Esso', 'Total', 'TotalEnergies', 'Texaco', 'Avia', 'Tango', 'TinQ', 'Q8', 'Lukoil', 'Circle K', 'Tamoil', 'Argos', 'Gulf', 'Firezone', 'Makro', 'Fieten', 'Fieten Olie', 'Haan', 'De Haan', 'Amigo', 'Berkman', 'Kuster', 'NXT', 'Sakko', 'SuperTank', 'Tam'];
 
     for (let i = 0; i < fuelEntries.length; i++) {
       const current = fuelEntries[i];
@@ -342,8 +368,60 @@ export class TcoService {
       tripMetrics,
       stations,
     };
+    // 5. Fuel Price Statistics & Price History
+    let minPriceRecord: FuelPriceRecord | null = null;
+    let maxPriceRecord: FuelPriceRecord | null = null;
+    const priceHistory: FuelPricePoint[] = [];
 
-    // 5. Total Cost of Ownership
+    for (const current of fuelEntries) {
+      if (current.price_per_liter && current.price_per_liter > 0) {
+        let stationLabel: string | null = null;
+        if (current.notes && current.notes.trim()) {
+          const noteText = current.notes.trim();
+          const found = knownBrands.find((b) => new RegExp(`\\b${b}\\b`, 'i').test(noteText));
+          stationLabel = found || (noteText.length <= 40 ? noteText : noteText.substring(0, 40) + '...');
+        }
+
+        const priceRec: FuelPriceRecord = {
+          price: current.price_per_liter,
+          date: current.date,
+          station: stationLabel,
+          liters: current.liters,
+          odometer: current.odometer,
+          totalCost: current.total_cost,
+        };
+
+        if (!minPriceRecord || current.price_per_liter < minPriceRecord.price) {
+          minPriceRecord = priceRec;
+        }
+        if (!maxPriceRecord || current.price_per_liter > maxPriceRecord.price) {
+          maxPriceRecord = priceRec;
+        }
+
+        priceHistory.push({
+          date: current.date,
+          odometer: current.odometer,
+          pricePerLiter: current.price_per_liter,
+          liters: current.liters,
+          totalCost: current.total_cost,
+          station: stationLabel,
+        });
+      }
+    }
+
+    const avgPricePerLiter =
+      totalFuelLiters > 0 ? Math.round((totalFuelCost / totalFuelLiters) * 1000) / 1000 : null;
+
+    const priceStats: FuelPriceStats = {
+      avgPrice: avgPricePerLiter,
+      minPrice: minPriceRecord,
+      maxPrice: maxPriceRecord,
+      history: priceHistory,
+    };
+
+
+
+    // 6. Total Cost of Ownership
     const purchasePrice = vehicle.purchase_price || 0;
     const totalCost = Math.round(
       (totalFuelCost + totalServiceCost + (includePurchasePrice ? purchasePrice : 0)) * 100
@@ -353,8 +431,6 @@ export class TcoService {
       totalDistanceKm > 0 ? Math.round((totalCost / totalDistanceKm) * 1000) / 1000 : 0;
     const costPerMonth = Math.round((totalCost / totalMonths) * 100) / 100;
 
-    const avgPricePerLiter =
-      totalFuelLiters > 0 ? Math.round((totalFuelCost / totalFuelLiters) * 1000) / 1000 : null;
     const avgLPer100Km =
       cumulativeKmForAvg > 0
         ? Math.round((cumulativeLitersForAvg / cumulativeKmForAvg) * 100 * 100) / 100
@@ -380,6 +456,7 @@ export class TcoService {
       fuelTrends,
       monthlyBreakdown,
       fuelStats,
+      priceStats,
     };
   }
 }

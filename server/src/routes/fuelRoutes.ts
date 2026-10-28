@@ -11,6 +11,7 @@ router.use(requireAuth);
 router.get('/', FuelController.list);
 router.post('/', FuelController.create);
 router.delete('/:id', FuelController.delete);
+router.post('/upload-receipt', uploadLimiter, uploadReceipt.single('receipt'), FuelController.uploadReceiptFile);
 router.post('/ocr', uploadLimiter, uploadReceipt.single('receipt'), FuelController.ocrReceipt);
 
 export default router;

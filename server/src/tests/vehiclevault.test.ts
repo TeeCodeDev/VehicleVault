@@ -235,6 +235,21 @@ describe('VehicleVault Comprehensive Test Suite', () => {
       assert.equal(assetTco.includePurchasePrice, true);
       assert.equal(assetTco.totalCost, 15415.5);
     });
+    it('should calculate fuel price statistics including average, min (cheapest), and max (most expensive) fuel prices', () => {
+      const tco = TcoService.calculateTco({
+        vehicleId: testVehicleId,
+      });
+
+      assert.ok(tco.priceStats);
+      assert.equal(tco.priceStats.minPrice?.price, 1.9);
+      assert.equal(tco.priceStats.minPrice?.date, '2023-06-01');
+      assert.equal(tco.priceStats.maxPrice?.price, 2.0);
+      assert.equal(tco.priceStats.maxPrice?.date, '2023-07-01');
+      assert.equal(tco.priceStats.history.length, 2);
+      // Weighted average: (85.5 + 80.0) / (45 + 40) = 165.5 / 85 = 1.947
+      assert.equal(tco.priceStats.avgPrice, 1.947);
+    });
+
   });
 
   describe('CSV Import Engine', () => {
