@@ -185,13 +185,13 @@ export const translations = {
     fuelPriceTrend: 'Brandstofprijs Ontwikkeling (€/L)',
     monthlyCostBreakdown: 'Maandelijkse Kostenverdeling (Gestapeld)',
     rollingAverage: 'Voortschrijdend gemiddelde (3 tankbeurten)',
-    exportPdf: 'PDF Service Dossier Downloaden',
+    exportPdf: 'PDF Voertuighistorie Downloaden',
 
     // PDF Export Modal
-    pdfModalTitle: 'Digitaal Service Paspoort Exporteren',
-    pdfModalSubtitle: 'Genereer een representatief PDF serviceboekje geschikt voor voertuigverkoop of eigen archief.',
+    pdfModalTitle: 'Voertuighistorie & Dossier Exporteren',
+    pdfModalSubtitle: 'Genereer een overzicht van je onderhoud en tankbeurten voor je eigen administratie of overdracht.',
     includeFuel: 'Brandstofhistorie en verbruiksstatistieken opnemen',
-    includeReceipts: 'Factuur- en bonminiaturen bijsluiten',
+    includeReceipts: 'Bon- en factuurminiaturen bijsluiten',
     generatePdf: 'PDF Genereren & Downloaden',
     generatingPdf: 'PDF samenstellen...',
 
@@ -476,13 +476,13 @@ export const translations = {
     fuelPriceTrend: 'Fuel Price Evolution (€/L)',
     monthlyCostBreakdown: 'Monthly Cost Breakdown (Stacked)',
     rollingAverage: 'Rolling average (3 fill-ups)',
-    exportPdf: 'Download PDF Service Dossier',
+    exportPdf: 'Download Vehicle History (PDF)',
 
     // PDF Export Modal
-    pdfModalTitle: 'Export Digital Service Booklet',
-    pdfModalSubtitle: 'Generate a clean, professional PDF service dossier suitable for vehicle sale or archives.',
+    pdfModalTitle: 'Export Vehicle History & Dossier',
+    pdfModalSubtitle: 'Generate a summary of maintenance and fuel stops for personal records or vehicle transfer.',
     includeFuel: 'Include fuel logs and consumption statistics',
-    includeReceipts: 'Include invoice and receipt thumbnails',
+    includeReceipts: 'Include receipt & invoice thumbnails',
     generatePdf: 'Generate & Download PDF',
     generatingPdf: 'Building PDF booklet...',
 

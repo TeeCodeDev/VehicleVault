@@ -428,7 +428,7 @@ export class TcoService {
     ) / 100;
 
     const costPerKm =
-      totalDistanceKm > 0 ? Math.round((totalCost / totalDistanceKm) * 1000) / 1000 : 0;
+      totalDistanceKm > 0 ? Math.round((totalCost / totalDistanceKm) * 100) / 100 : 0;
     const costPerMonth = Math.round((totalCost / totalMonths) * 100) / 100;
 
     const avgLPer100Km =

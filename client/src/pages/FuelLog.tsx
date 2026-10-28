@@ -51,6 +51,7 @@ export const FuelLog: React.FC = () => {
   useEffect(() => {
     if (selectedVehicle) {
       loadEntries(selectedVehicle.id);
+      window.dispatchEvent(new CustomEvent('vv_fuel_logged'));
       const current = selectedVehicle.current_odometer || selectedVehicle.initial_odometer || 0;
       setOdometer(current > 0 ? String(current) : '');
     }
@@ -503,7 +504,19 @@ export const FuelLog: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
-                {entries.map((f) => (
+                {entries.map((f, idx) => {
+                  const nextChronological = entries[idx + 1];
+                  let economyText: string | null = null;
+                  if (f.is_full_tank && !f.missed_previous && nextChronological && nextChronological.is_full_tank) {
+                    const deltaKm = f.odometer - nextChronological.odometer;
+                    if (deltaKm > 0 && f.liters > 0) {
+                      const kml = deltaKm / f.liters;
+                      const l100 = (f.liters / deltaKm) * 100;
+                      economyText = lang === 'nl' ? `1 op ${kml.toFixed(1)} (${l100.toFixed(1)} L/100)` : `${l100.toFixed(1)} L/100km`;
+                    }
+                  }
+
+                  return (
                   <tr key={f.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition">
                     <td className="py-3 px-4 font-semibold text-slate-900 dark:text-slate-200">{f.date}</td>
                     <td className="py-3 px-4 font-mono font-bold text-slate-800 dark:text-slate-300">
@@ -515,9 +528,16 @@ export const FuelLog: React.FC = () => {
                       € {f.total_cost.toFixed(2)}
                     </td>
                     <td className="py-3 px-4">
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold border border-slate-200 dark:border-slate-700">
-                        {f.is_full_tank ? t('fullTank') : (lang === 'nl' ? 'Deeltank' : 'Partial')}
-                      </span>
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold border border-slate-200 dark:border-slate-700 w-fit">
+                          {f.is_full_tank ? t('fullTank') : (lang === 'nl' ? 'Deeltank' : 'Partial')}
+                        </span>
+                        {economyText && (
+                          <span className="text-[11px] font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                            {economyText}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="py-3 px-4">
                       {f.receipt_path ? (
@@ -548,7 +568,7 @@ export const FuelLog: React.FC = () => {
                       </button>
                     </td>
                   </tr>
-                ))}
+                );})}
               </tbody>
             </table>
           </div>

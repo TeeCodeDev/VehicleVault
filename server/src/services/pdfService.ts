@@ -76,8 +76,8 @@ export class PdfService {
       // --- Header / Cover Banner ---
       doc.rect(40, 40, 515, 80).fill('#0f172a');
       doc.fillColor('#ffffff').fontSize(22).font('Helvetica-Bold').text('VEHICLEVAULT', 60, 56);
-      doc.fontSize(10).font('Helvetica').fillColor('#94a3b8').text('OFFICIEEL DIGITAAL SERVICEPASPOORT & DOSSIER', 60, 84);
-      doc.fillColor('#38bdf8').fontSize(11).text('VERKOOPDOSSIER', 410, 65, { align: 'right', width: 125 });
+      doc.fontSize(10).font('Helvetica').fillColor('#94a3b8').text('VOERTUIGHISTORIE & DOSSIER', 60, 84);
+      doc.fillColor('#38bdf8').fontSize(11).text('OVERZICHT', 410, 65, { align: 'right', width: 125 });
       doc.fillColor('#cbd5e1').fontSize(8).text(`Datum: ${new Date().toLocaleDateString('nl-NL')}`, 410, 85, { align: 'right', width: 125 });
 
       doc.moveDown(4);
@@ -184,28 +184,66 @@ export class PdfService {
 
       // --- Section: Attached Receipts & Invoices ---
       if (includeReceipts) {
-        const recordsWithImages = services.filter((s: any) => s.invoice_path && fs.existsSync(path.join(DATA_PATHS.invoices, s.invoice_path)));
-        if (recordsWithImages.length > 0) {
+        const serviceReceipts = services.filter((s: any) => s.invoice_path && fs.existsSync(path.join(DATA_PATHS.invoices, s.invoice_path)));
+        const fuelReceipts = fuels.filter((f: any) => f.receipt_path && fs.existsSync(path.join(DATA_PATHS.receipts, f.receipt_path)));
+
+        if (serviceReceipts.length > 0 || fuelReceipts.length > 0) {
           doc.addPage();
           curY = 50;
-          doc.fillColor('#0f172a').fontSize(14).font('Helvetica-Bold').text('Gekoppelde Werkbonnen & Facturen', 40, curY);
-          curY += 30;
+          doc.fillColor('#0f172a').fontSize(14).font('Helvetica-Bold').text('Gekoppelde Bonnen & Facturen', 40, curY);
+          curY += 25;
 
-          for (const rec of recordsWithImages) {
+          // Maintenance invoices
+          for (const rec of serviceReceipts) {
             const filePath = path.join(DATA_PATHS.invoices, rec.invoice_path);
-            if (filePath.endsWith('.jpg') || filePath.endsWith('.png') || filePath.endsWith('.jpeg')) {
+            const ext = path.extname(filePath).toLowerCase();
+            if (ext === '.jpg' || ext === '.jpeg' || ext === '.png') {
               try {
-                if (curY > 500) {
+                if (curY > 520) {
                   doc.addPage();
                   curY = 50;
                 }
-                doc.fontSize(10).font('Helvetica-Bold').fillColor('#334155').text(`${rec.date} — ${rec.service_item} (€${rec.cost})`, 40, curY);
+                doc.fontSize(10).font('Helvetica-Bold').fillColor('#1e293b').text(`Onderhoud: ${rec.date} — ${rec.service_item} (€ ${rec.cost.toFixed(2)})`, 40, curY);
                 curY += 15;
-                doc.image(filePath, 40, curY, { fit: [300, 200] });
-                curY += 220;
+                doc.image(filePath, 40, curY, { fit: [280, 180] });
+                curY += 195;
               } catch {
-                // skip if corrupt
+                // skip if corrupt image
               }
+            } else if (ext === '.pdf') {
+              if (curY > 700) {
+                doc.addPage();
+                curY = 50;
+              }
+              doc.fontSize(9).font('Helvetica').fillColor('#64748b').text(`Onderhoud: ${rec.date} — ${rec.service_item} [PDF Document gekoppeld: ${rec.invoice_path}]`, 40, curY);
+              curY += 18;
+            }
+          }
+
+          // Fuel receipts
+          for (const rec of fuelReceipts) {
+            const filePath = path.join(DATA_PATHS.receipts, rec.receipt_path);
+            const ext = path.extname(filePath).toLowerCase();
+            if (ext === '.jpg' || ext === '.jpeg' || ext === '.png') {
+              try {
+                if (curY > 520) {
+                  doc.addPage();
+                  curY = 50;
+                }
+                doc.fontSize(10).font('Helvetica-Bold').fillColor('#1e293b').text(`Tankbon: ${rec.date} — ${rec.liters.toFixed(2)} L @ € ${rec.price_per_liter.toFixed(3)}/L (€ ${rec.total_cost.toFixed(2)})`, 40, curY);
+                curY += 15;
+                doc.image(filePath, 40, curY, { fit: [280, 180] });
+                curY += 195;
+              } catch {
+                // skip if corrupt image
+              }
+            } else if (ext === '.pdf') {
+              if (curY > 700) {
+                doc.addPage();
+                curY = 50;
+              }
+              doc.fontSize(9).font('Helvetica').fillColor('#64748b').text(`Tankbon: ${rec.date} — ${rec.liters.toFixed(2)} L [PDF Document gekoppeld: ${rec.receipt_path}]`, 40, curY);
+              curY += 18;
             }
           }
         }
@@ -213,7 +251,7 @@ export class PdfService {
 
       // --- Footer ---
       doc.fontSize(7).fillColor('#94a3b8').text(
-        'Gegenereerd via VehicleVault — Het Privacy-First Voertuigbeheer & TCO Platform',
+        'Gegenereerd met VehicleVault — Voertuigbeheer & Historie',
         40,
         790,
         { align: 'center', width: 515 }

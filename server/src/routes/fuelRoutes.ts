@@ -9,6 +9,7 @@ const router = Router();
 router.use(requireAuth);
 
 router.get('/', FuelController.list);
+router.get('/:vehicleId', FuelController.list);
 router.post('/', FuelController.create);
 router.delete('/:id', FuelController.delete);
 router.post('/upload-receipt', uploadLimiter, uploadReceipt.single('receipt'), FuelController.uploadReceiptFile);

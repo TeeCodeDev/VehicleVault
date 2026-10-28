@@ -50,7 +50,10 @@ export const AnalyticsTco: React.FC = () => {
   const [minOdometer, setMinOdometer] = useState('');
   const [maxOdometer, setMaxOdometer] = useState('');
   const [includePurchasePrice, setIncludePurchasePrice] = useState(false);
-  const [economyUnit, setEconomyUnit] = useState<'l100km' | 'kml'>('l100km');
+  const [economyUnit, setEconomyUnit] = useState<'l100km' | 'kml'>(() => {
+    const saved = localStorage.getItem('vv_lang') || 'nl';
+    return saved === 'nl' ? 'kml' : 'l100km';
+  });
 
   // Modal
   const [isPdfOpen, setIsPdfOpen] = useState(false);
@@ -308,7 +311,7 @@ export const AnalyticsTco: React.FC = () => {
             </div>
           </div>
           <div className="text-2xl font-black text-slate-900 dark:text-white font-mono">
-            € {tco?.costPerKm.toFixed(3) || '0.000'} <span className="text-xs font-normal text-slate-400">/ km</span>
+            € {tco?.costPerKm.toFixed(2) || '0.00'} <span className="text-xs font-normal text-slate-400">/ km</span>
           </div>
           <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
             {lang === 'nl' ? `Over ${tco?.totalDistanceKm.toLocaleString() || 0} gereden km` : `Over ${tco?.totalDistanceKm.toLocaleString() || 0} driven km`}
@@ -341,21 +344,26 @@ export const AnalyticsTco: React.FC = () => {
               onClick={() => setEconomyUnit(economyUnit === 'l100km' ? 'kml' : 'l100km')}
               className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 font-bold uppercase hover:bg-slate-200 transition"
             >
-              {economyUnit === 'l100km' ? 'L/100km' : 'km/L'}
+              {economyUnit === 'l100km' ? 'L/100km' : (lang === 'nl' ? '1 op X' : 'km/L')}
             </button>
           </div>
           <div className="text-2xl font-black text-slate-900 dark:text-white">
-            {economyUnit === 'l100km'
-              ? tco?.avgLPer100Km
-                ? `${tco.avgLPer100Km} L/100`
+            {economyUnit === 'kml'
+              ? tco?.avgKmPerLiter
+                ? (lang === 'nl' ? `1 op ${tco.avgKmPerLiter.toFixed(1)}` : `${tco.avgKmPerLiter.toFixed(1)} km/L`)
                 : '—'
-              : tco?.avgKmPerLiter
-              ? `${tco.avgKmPerLiter} km/L`
+              : tco?.avgLPer100Km
+              ? `${tco.avgLPer100Km.toFixed(2)} L/100`
               : '—'}
           </div>
-          <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-            {lang === 'nl' ? 'Gem. Literprijs:' : 'Avg Price/L:'} {tco?.avgPricePerLiter ? `€ ${tco.avgPricePerLiter.toFixed(3)}/L` : '—'}
-          </span>
+          <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 font-medium flex items-center justify-between flex-wrap gap-1">
+            <span>
+              {economyUnit === 'kml'
+                ? tco?.avgLPer100Km ? `(${tco.avgLPer100Km.toFixed(2)} L/100km)` : ''
+                : tco?.avgKmPerLiter ? (lang === 'nl' ? `(1 op ${tco.avgKmPerLiter.toFixed(1)})` : `(${tco.avgKmPerLiter.toFixed(1)} km/L)`) : ''}
+            </span>
+            <span>{lang === 'nl' ? 'Gem. Literprijs:' : 'Avg Price/L:'} {tco?.avgPricePerLiter ? `€ ${tco.avgPricePerLiter.toFixed(3)}/L` : '—'}</span>
+          </div>
         </div>
       </div>
 
@@ -390,7 +398,14 @@ export const AnalyticsTco: React.FC = () => {
 
           {bestL100 && worstL100 && (
             <div className="text-[11px] text-slate-500 hidden sm:block">
-              {lang === 'nl' ? 'Zuinigste:' : 'Best:'} <span className="text-emerald-600 dark:text-emerald-400 font-bold">{bestL100} L/100km</span> • {lang === 'nl' ? 'Hoogste:' : 'Worst:'} <span className="text-rose-600 dark:text-rose-400 font-bold">{worstL100} L/100km</span>
+              {lang === 'nl' ? 'Zuinigste:' : 'Best:'}{' '}
+              <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                {lang === 'nl' ? `1 op ${(100 / bestL100).toFixed(1)} (${bestL100} L/100km)` : `${bestL100} L/100km`}
+              </span>{' '}
+              • {lang === 'nl' ? 'Hoogste verbruik:' : 'Worst:'}{' '}
+              <span className="text-rose-600 dark:text-rose-400 font-bold">
+                {lang === 'nl' ? `1 op ${(100 / worstL100).toFixed(1)} (${worstL100} L/100km)` : `${worstL100} L/100km`}
+              </span>
             </div>
           )}
         </div>

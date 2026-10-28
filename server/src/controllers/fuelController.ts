@@ -19,9 +19,9 @@ const fuelSchema = z.object({
 
 export class FuelController {
   public static async list(req: Request, res: Response): Promise<void> {
-    const { vehicleId } = req.query;
+    const vehicleId = (req.params.vehicleId || req.query.vehicleId) as string;
     if (!vehicleId) {
-      res.status(400).json({ error: 'vehicleId query parameter is required' });
+      res.status(400).json({ error: 'vehicleId is required' });
       return;
     }
 

@@ -39,16 +39,26 @@ export const Dashboard: React.FC = () => {
       loadVehicleData(selectedVehicle.id);
     }
     loadFleetAlerts();
+
+    const handleUpdate = () => {
+      if (selectedVehicle) loadVehicleData(selectedVehicle.id);
+    };
+    window.addEventListener('vv_offline_synced', handleUpdate);
+    window.addEventListener('vv_fuel_logged', handleUpdate);
+    return () => {
+      window.removeEventListener('vv_offline_synced', handleUpdate);
+      window.removeEventListener('vv_fuel_logged', handleUpdate);
+    };
   }, [selectedVehicle?.id]);
 
   const loadVehicleData = async (vehicleId: string) => {
     try {
       const [intRes, fuelRes] = await Promise.all([
-        apiFetch<{ intervals: MaintenanceInterval[] }>(`/api/maintenance/intervals/${vehicleId}`),
-        apiFetch<{ entries: FuelEntry[] }>(`/api/fuel/${vehicleId}`),
+        apiFetch<{ intervals: MaintenanceInterval[] }>(`/api/maintenance/intervals/${vehicleId}`).catch(() => ({ intervals: [] })),
+        apiFetch<{ entries: FuelEntry[] }>(`/api/fuel?vehicleId=${vehicleId}`).catch(() => ({ entries: [] })),
       ]);
-      setIntervals(intRes.intervals);
-      setRecentFuels(fuelRes.entries.slice(0, 5));
+      setIntervals(intRes.intervals || []);
+      setRecentFuels((fuelRes.entries || []).slice(0, 5));
     } catch {
       // ignore
     }
@@ -353,24 +363,42 @@ export const Dashboard: React.FC = () => {
             </div>
           ) : (
             <div className="divide-y divide-slate-100 dark:divide-slate-800/60">
-              {recentFuels.map((fuel) => (
-                <div key={fuel.id} className="py-3 flex items-center justify-between text-xs">
-                  <div>
-                    <div className="font-bold text-slate-900 dark:text-white text-sm">
-                      {fuel.liters.toFixed(2)} L <span className="text-xs font-normal text-slate-500">@ €{fuel.price_per_liter.toFixed(3)}/L</span>
+              {recentFuels.map((fuel, idx) => {
+                const prevFuel = recentFuels[idx + 1];
+                let consumptionBadge: string | null = null;
+                if (fuel.is_full_tank && !fuel.missed_previous && prevFuel && prevFuel.is_full_tank) {
+                  const dist = fuel.odometer - prevFuel.odometer;
+                  if (dist > 0 && fuel.liters > 0) {
+                    const kml = dist / fuel.liters;
+                    const l100 = (fuel.liters / dist) * 100;
+                    consumptionBadge = lang === 'nl' ? `1 op ${kml.toFixed(1)} (${l100.toFixed(1)} L/100)` : `${l100.toFixed(1)} L/100km`;
+                  }
+                }
+
+                return (
+                  <div key={fuel.id} className="py-3 flex items-center justify-between text-xs">
+                    <div>
+                      <div className="font-bold text-slate-900 dark:text-white text-sm">
+                        {fuel.liters.toFixed(2)} L <span className="text-xs font-normal text-slate-500">@ €{fuel.price_per_liter.toFixed(3)}/L</span>
+                      </div>
+                      <div className="text-[11px] text-slate-500 mt-0.5 flex items-center space-x-1.5 flex-wrap">
+                        <span>{fuel.date} • {fuel.odometer.toLocaleString()} km</span>
+                        {consumptionBadge && (
+                          <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.2 rounded border border-emerald-200/60 dark:border-emerald-800/40 text-[10px]">
+                            {consumptionBadge}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <div className="text-[11px] text-slate-500 mt-0.5">
-                      {fuel.date} • {fuel.odometer.toLocaleString()} km
+                    <div className="text-right">
+                      <div className="font-black text-slate-900 dark:text-white text-sm">€{fuel.total_cost.toFixed(2)}</div>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-semibold border border-slate-200 dark:border-slate-700">
+                        {fuel.is_full_tank ? t('fullTank') : (lang === 'nl' ? 'Deeltank' : 'Partial')}
+                      </span>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="font-black text-slate-900 dark:text-white text-sm">€{fuel.total_cost.toFixed(2)}</div>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-semibold border border-slate-200 dark:border-slate-700">
-                      {fuel.is_full_tank ? t('fullTank') : (lang === 'nl' ? 'Deeltank' : 'Partial')}
-                    </span>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
