@@ -11,6 +11,8 @@ import {
   Route,
   Disc,
   Settings as SettingsIcon,
+  Coffee,
+  ExternalLink,
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext.js';
 import { useAuth } from '../context/AuthContext.js';
@@ -97,6 +99,30 @@ export const Sidebar: React.FC = () => {
             <span>{t('settings')}</span>
           </NavLink>
         )}
+
+        {/* Support on Ko-fi */}
+        <a
+          href="https://ko-fi.com/D1D51ZGUNL"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group flex items-center justify-between p-2 rounded-xl bg-rose-50/70 hover:bg-rose-100/80 dark:bg-rose-950/25 dark:hover:bg-rose-900/35 border border-rose-200/80 dark:border-rose-900/40 transition shadow-2xs"
+          title="Support the development on Ko-fi"
+        >
+          <div className="flex items-center space-x-2.5 min-w-0">
+            <div className="w-7 h-7 rounded-full bg-rose-100 dark:bg-rose-900/50 border border-rose-200 dark:border-rose-800/60 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 shadow-2xs">
+              <Coffee className="w-3.5 h-3.5" />
+            </div>
+            <div className="min-w-0">
+              <span className="block font-bold text-xs text-slate-800 dark:text-slate-100 group-hover:text-rose-600 dark:group-hover:text-rose-400 transition leading-tight truncate">
+                Support on Ko-fi
+              </span>
+              <span className="block text-[10px] text-slate-500 dark:text-slate-400 leading-tight truncate">
+                Buy the dev a coffee
+              </span>
+            </div>
+          </div>
+          <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover:text-rose-500 dark:group-hover:text-rose-400 transition shrink-0 ml-1.5 opacity-70 group-hover:opacity-100" />
+        </a>
 
         <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800/80 text-[11px] text-slate-500 dark:text-slate-400 shadow-sm">
           <div className="flex items-center justify-between font-mono mb-1 font-semibold text-slate-800 dark:text-slate-200">

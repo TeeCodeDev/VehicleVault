@@ -11,6 +11,7 @@
   [![Docker](https://img.shields.io/badge/Docker-Multi--Arch%20Ready-2496ED.svg)](https://www.docker.com/)
   [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-REST%20%26%20HACS-41BDF5.svg)](https://www.home-assistant.io/)
   [![MCP](https://img.shields.io/badge/MCP-Model%20Context%20Protocol-8A2BE2.svg)](https://modelcontextprotocol.io/)
+  [![Ko-fi](https://img.shields.io/badge/Ko--fi-Support%20Development-FF5E5B.svg?logo=kofi&logoColor=white)](https://ko-fi.com/D1D51ZGUNL)
 </div>
 
 ---
@@ -211,6 +212,18 @@ npm run dev:all
 - **Hashed Secrets:** Passwords hashed with bcrypt; API keys and tokens hashed with SHA-256.
 - **Path Traversal Protection:** All file upload and download endpoints strictly sanitize paths with `path.basename`.
 - **Health Checks:** Diagnostic endpoint available at `/healthz`.
+
+---
+
+## ☕ Support the Project
+
+If VehicleVault helps you manage your vehicles, track your fuel expenses, or streamline your vehicle maintenance, consider supporting development on Ko-fi!
+
+<div align="center">
+  <a href="https://ko-fi.com/D1D51ZGUNL" target="_blank">
+    <img src="https://storage.ko-fi.com/cdn/kofi3.png?v=3" height="40" style="border:0px;height:40px;" alt="Buy Me a Coffee at ko-fi.com" />
+  </a>
+</div>
 
 ---
 
