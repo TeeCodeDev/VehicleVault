@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { NotificationService } from '../services/notificationService.js';
+import { EmailService } from '../services/emailService.js';
 
 export class NotificationController {
   public static getSettings(_req: Request, res: Response): void {
@@ -34,6 +35,21 @@ export class NotificationController {
     } catch (err: any) {
       console.error('Test notification error:', err);
       res.status(500).json({ success: false, message: err?.message || 'Fout bij verzenden van testmelding' });
+    }
+  }
+
+  public static async testSmtp(req: Request, res: Response): Promise<void> {
+    try {
+      const { targetTo } = req.body || {};
+      const result = await EmailService.sendTestEmail(targetTo);
+      if (!result.success) {
+        res.status(400).json(result);
+        return;
+      }
+      res.json(result);
+    } catch (err: any) {
+      console.error('Test SMTP error:', err);
+      res.status(500).json({ success: false, message: err?.message || 'Fout bij testen van SMTP-verbinding' });
     }
   }
 

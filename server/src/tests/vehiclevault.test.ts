@@ -42,6 +42,7 @@ import { getVehicleAccess } from '../utils/vehicleAccess.js';
 import { ShowcaseService } from '../services/showcaseService.js';
 import { ShowcaseZipService } from '../services/showcaseZipService.js';
 import { AuthController } from '../controllers/authController.js';
+import { EmailService } from '../services/emailService.js';
 
 describe('VehicleVault Comprehensive Test Suite', () => {
   let testUserId: string;
@@ -671,6 +672,154 @@ Date,Odometer,Fuel_amount,Price,Total_cost,Notes
       const res = await NotificationService.testNotification();
       assert.equal(res.success, false);
       assert.ok(res.message.includes('uitgeschakeld'));
+    });
+
+    it('should configure and persist SMTP settings including password masking', () => {
+      EmailService.saveSmtpConfig({
+        host: 'smtp.example.com',
+        port: 465,
+        secure: true,
+        user: 'vault@example.com',
+        pass: 'supersecretpassword',
+        from: 'VehicleVault <vault@example.com>',
+        to: 'admin@example.com',
+      });
+
+      const smtp = EmailService.getSmtpConfig();
+      assert.equal(smtp.host, 'smtp.example.com');
+      assert.equal(smtp.port, 465);
+      assert.equal(smtp.secure, true);
+      assert.equal(smtp.user, 'vault@example.com');
+      assert.equal(smtp.pass, 'supersecretpassword');
+      assert.equal(smtp.to, 'admin@example.com');
+
+      // Saving masked pass must not overwrite real password
+      EmailService.saveSmtpConfig({
+        pass: '••••••••',
+        host: 'smtp.example.com',
+      });
+      const smtpUpdated = EmailService.getSmtpConfig();
+      assert.equal(smtpUpdated.pass, 'supersecretpassword');
+    });
+
+    it('should handle email notification provider dispatch correctly', async () => {
+      NotificationService.saveSettings({
+        provider: 'email',
+        smtpHost: 'smtp.invalid.local',
+        smtpTo: 'recipient@example.com',
+      });
+
+      const settings = NotificationService.getSettings();
+      assert.equal(settings.provider, 'email');
+      assert.equal(settings.smtpHost, 'smtp.invalid.local');
+      assert.equal(settings.smtpTo, 'recipient@example.com');
+    });
+  });
+
+  describe('Password Reset & Forgotten Password Flow', () => {
+    it('should create a valid reset token and verify it correctly', async () => {
+      const resetUserEmail = `reset_${crypto.randomUUID().slice(0, 8)}@example.com`;
+      const hash = await hashPassword('InitialPass123!');
+      const userId = crypto.randomUUID();
+      const now = new Date().toISOString();
+
+      try {
+        db.run(
+          'INSERT INTO users (id, email, password_hash, role, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
+          [userId, resetUserEmail, hash, 'user', now, now]
+        );
+
+        // 1. Request forgot password
+        let forgotResData: any = null;
+        await AuthController.forgotPassword(
+          { body: { email: resetUserEmail }, headers: { host: 'localhost:3084' }, protocol: 'http' } as any,
+          { json: (d: any) => { forgotResData = d; } } as any
+        );
+
+        assert.ok(forgotResData);
+        assert.equal(forgotResData.success, true);
+        assert.ok(forgotResData.resetLink);
+        assert.ok(forgotResData.resetLink.includes('/reset-password?token='));
+
+        const tokenMatch = forgotResData.resetLink.match(/token=([a-f0-9]+)/);
+        assert.ok(tokenMatch);
+        const rawToken = tokenMatch[1];
+
+        // 2. Verify reset token
+        let verifyResData: any = null;
+        let verifyStatusCode = 200;
+        await AuthController.verifyResetToken(
+          { query: { token: rawToken } } as any,
+          {
+            json: (d: any) => { verifyResData = d; },
+            status: (code: number) => { verifyStatusCode = code; return { json: (d: any) => { verifyResData = d; } }; },
+          } as any
+        );
+
+        assert.equal(verifyStatusCode, 200);
+        assert.ok(verifyResData.valid);
+        assert.equal(verifyResData.email, resetUserEmail);
+
+        // 3. Reset password
+        let resetResData: any = null;
+        await AuthController.resetPassword(
+          { body: { token: rawToken, newPassword: 'NewSecurePassword456!' } } as any,
+          {
+            json: (d: any) => { resetResData = d; },
+            status: (code: number) => { return { json: (d: any) => { resetResData = d; } }; },
+          } as any
+        );
+
+        assert.ok(resetResData);
+        assert.equal(resetResData.success, true);
+
+        // 4. Verify user can now authenticate with the new password
+        const updatedUser = db.get<any>('SELECT password_hash FROM users WHERE id = ?', [userId]);
+        const passwordMatches = await comparePassword('NewSecurePassword456!', updatedUser.password_hash);
+        assert.equal(passwordMatches, true);
+
+        // 5. Verify token cannot be reused
+        let reuseResData: any = null;
+        let reuseStatusCode = 200;
+        await AuthController.verifyResetToken(
+          { query: { token: rawToken } } as any,
+          {
+            json: (d: any) => { reuseResData = d; },
+            status: (code: number) => { reuseStatusCode = code; return { json: (d: any) => { reuseResData = d; } }; },
+          } as any
+        );
+        assert.equal(reuseStatusCode, 400);
+        assert.equal(reuseResData.valid, false);
+      } finally {
+        db.run('DELETE FROM users WHERE id = ?', [userId]);
+      }
+    });
+
+    it('should allow admin to generate password reset links for managed users', async () => {
+      const adminTargetEmail = `admintarget_${crypto.randomUUID().slice(0, 8)}@example.com`;
+      const hash = await hashPassword('InitialPass123!');
+      const userId = crypto.randomUUID();
+      const now = new Date().toISOString();
+
+      try {
+        db.run(
+          'INSERT INTO users (id, email, password_hash, role, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
+          [userId, adminTargetEmail, hash, 'driver', now, now]
+        );
+
+        let resData: any = null;
+        await AuthController.generateUserResetLink(
+          { params: { id: userId }, body: { sendEmail: false }, headers: { host: 'localhost:3084' }, protocol: 'http' } as any,
+          { json: (d: any) => { resData = d; } } as any
+        );
+
+        assert.ok(resData);
+        assert.equal(resData.success, true);
+        assert.ok(resData.resetLink);
+        assert.ok(resData.resetLink.includes('/reset-password?token='));
+      } finally {
+        db.run('DELETE FROM users WHERE id = ?', [userId]);
+      }
     });
   });
 

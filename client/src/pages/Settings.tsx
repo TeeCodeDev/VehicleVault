@@ -46,6 +46,8 @@ import {
   Clock,
   LogIn,
   Edit3,
+  Mail,
+  Send,
 } from 'lucide-react';
 import { ApiKeyItem, Vehicle } from '../types/index.js';
 import { useOutletContext, useSearchParams } from 'react-router-dom';
@@ -141,7 +143,7 @@ export const Settings: React.FC = () => {
   const [creatingUser, setCreatingUser] = useState(false);
 
   // Notifications State
-  const [notifProvider, setNotifProvider] = useState<'none' | 'ntfy' | 'gotify' | 'webhook'>('none');
+  const [notifProvider, setNotifProvider] = useState<'none' | 'email' | 'ntfy' | 'gotify' | 'webhook'>('none');
   const [ntfyUrl, setNtfyUrl] = useState('');
   const [ntfyToken, setNtfyToken] = useState('');
   const [gotifyUrl, setGotifyUrl] = useState('');
@@ -153,6 +155,22 @@ export const Settings: React.FC = () => {
   const [notifTestResult, setNotifTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const [notifSaving, setNotifSaving] = useState(false);
   const [notifSaveSuccess, setNotifSaveSuccess] = useState(false);
+
+  // SMTP E-mail Settings State
+  const [smtpHost, setSmtpHost] = useState('');
+  const [smtpPort, setSmtpPort] = useState(587);
+  const [smtpSecure, setSmtpSecure] = useState(false);
+  const [smtpUser, setSmtpUser] = useState('');
+  const [smtpPass, setSmtpPass] = useState('');
+  const [smtpFrom, setSmtpFrom] = useState('');
+  const [smtpTo, setSmtpTo] = useState('');
+  const [showSmtpPass, setShowSmtpPass] = useState(false);
+
+  // User Password Reset Modal State
+  const [resetModalUser, setResetModalUser] = useState<{ id: string; email: string; resetLink?: string } | null>(null);
+  const [generatingReset, setGeneratingReset] = useState(false);
+  const [resetFeedback, setResetFeedback] = useState<string | null>(null);
+  const [resetCopied, setResetCopied] = useState(false);
 
   // Home Assistant State
   const [haCopied, setHaCopied] = useState(false);
@@ -539,6 +557,13 @@ export const Settings: React.FC = () => {
       setWebhookUrl(res.webhookUrl || '');
       setNotifApk(res.enabledApk ?? true);
       setNotifMaintenance(res.enabledMaintenance ?? true);
+      setSmtpHost(res.smtpHost || '');
+      setSmtpPort(res.smtpPort || 587);
+      setSmtpSecure(res.smtpSecure ?? false);
+      setSmtpUser(res.smtpUser || '');
+      setSmtpPass(res.smtpPass || '');
+      setSmtpFrom(res.smtpFrom || '');
+      setSmtpTo(res.smtpTo || '');
     } catch {}
   };
 
@@ -557,6 +582,13 @@ export const Settings: React.FC = () => {
           webhookUrl,
           enabledApk: notifApk,
           enabledMaintenance: notifMaintenance,
+          smtpHost,
+          smtpPort: Number(smtpPort) || 587,
+          smtpSecure,
+          smtpUser,
+          smtpPass,
+          smtpFrom,
+          smtpTo,
         }),
       });
       setNotifSaveSuccess(true);
@@ -565,6 +597,28 @@ export const Settings: React.FC = () => {
       alert(err?.message || 'Fout bij opslaan van notificatie-instellingen');
     } finally {
       setNotifSaving(false);
+    }
+  };
+
+  const handleGenerateReset = async (userId: string, userEmail: string, sendEmail = false) => {
+    setGeneratingReset(true);
+    setResetFeedback(null);
+    setResetCopied(false);
+    try {
+      const res = await apiFetch<any>(`/api/auth/users/${userId}/reset-link`, {
+        method: 'POST',
+        body: JSON.stringify({ sendEmail }),
+      });
+      if (res.resetLink) {
+        setResetModalUser({ id: userId, email: userEmail, resetLink: res.resetLink });
+        if (sendEmail) {
+          setResetFeedback(res.emailSent ? 'Herstel-e-mail verzonden naar gebruiker!' : res.emailMessage || 'E-mail kon niet worden verzonden.');
+        }
+      }
+    } catch (err: any) {
+      alert(err?.message || 'Fout bij genereren van herstellink');
+    } finally {
+      setGeneratingReset(false);
     }
   };
 
@@ -1601,19 +1655,111 @@ rest:
                           {formatDisplayDate(u.created_at)}
                         </td>
                         <td className="py-3 px-3 text-right">
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteUser(u.id, u.email)}
-                            className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-                            title="Gebruiker Verwijderen"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                          <div className="flex items-center justify-end space-x-1">
+                            <button
+                              type="button"
+                              onClick={() => handleGenerateReset(u.id, u.email)}
+                              className="p-1.5 text-slate-400 hover:text-sky-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                              title="Wachtwoord Herstellink Genereren"
+                            >
+                              <KeyRound className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteUser(u.id, u.email)}
+                              className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                              title="Gebruiker Verwijderen"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
+              </div>
+            )}
+
+            {/* Password Reset Modal */}
+            {resetModalUser && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+                    <div className="flex items-center space-x-2">
+                      <KeyRound className="w-4 h-4 text-sky-500" />
+                      <h3 className="font-bold text-sm text-slate-900 dark:text-white">
+                        Wachtwoord Herstellen
+                      </h3>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setResetModalUser(null)}
+                      className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <p className="text-xs text-slate-600 dark:text-slate-300">
+                    Er is een veilige, eenmalige herstellink gegenereerd voor <strong>{resetModalUser.email}</strong> (1 uur geldig).
+                  </p>
+
+                  {resetModalUser.resetLink && (
+                    <div className="space-y-2">
+                      <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                        Herstellink
+                      </label>
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="text"
+                          readOnly
+                          value={resetModalUser.resetLink}
+                          className="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-mono text-slate-900 dark:text-white focus:outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(resetModalUser.resetLink || '');
+                            setResetCopied(true);
+                            setTimeout(() => setResetCopied(false), 2000);
+                          }}
+                          className="px-3 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-bold transition flex items-center space-x-1 shrink-0"
+                        >
+                          {resetCopied ? <Check className="w-3.5 h-3.5 text-emerald-300" /> : <Copy className="w-3.5 h-3.5" />}
+                          <span>{resetCopied ? 'Gekopieerd' : 'Kopiëren'}</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {resetFeedback && (
+                    <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl text-xs text-emerald-800 dark:text-emerald-300 flex items-center space-x-2">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span>{resetFeedback}</span>
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between pt-2">
+                    <button
+                      type="button"
+                      disabled={generatingReset}
+                      onClick={() => handleGenerateReset(resetModalUser.id, resetModalUser.email, true)}
+                      className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-xl text-xs font-bold transition inline-flex items-center space-x-1.5 disabled:opacity-50"
+                    >
+                      {generatingReset ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5 text-sky-500" />}
+                      <span>Herstelmail Verzenden</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setResetModalUser(null)}
+                      className="px-4 py-2 bg-slate-900 hover:bg-black dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white text-white rounded-xl text-xs font-bold transition"
+                    >
+                      Sluiten
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
           </div>
@@ -1708,9 +1854,10 @@ rest:
             </div>
 
             {/* Provider Buttons */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
               {[
                 { id: 'none', label: 'Uitgeschakeld' },
+                { id: 'email', label: 'E-mail (SMTP)' },
                 { id: 'ntfy', label: 'Ntfy.sh / Self-Hosted' },
                 { id: 'gotify', label: 'Gotify' },
                 { id: 'webhook', label: 'Aangepaste Webhook' },
@@ -1731,6 +1878,123 @@ rest:
             </div>
 
             {/* Provider Specific Inputs */}
+            {notifProvider === 'email' && (
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/50 border border-slate-200/80 dark:border-slate-800/80 space-y-4 text-xs">
+                <div className="p-3 bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800 rounded-lg text-sky-800 dark:text-sky-300">
+                  <span className="font-bold block">💡 Gedeelde SMTP E-mailservice</span>
+                  <span className="text-[11px] block mt-0.5">
+                    Deze SMTP-serverconfiguratie wordt gebruikt voor periodieke APK &amp; onderhoudswaarschuwingen én voor het versturen van <strong>wachtwoordherstel-links</strong> naar gebruikers.
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="sm:col-span-2">
+                    <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                      SMTP Host / Server *
+                    </label>
+                    <input
+                      type="text"
+                      value={smtpHost}
+                      onChange={(e) => setSmtpHost(e.target.value)}
+                      placeholder="bijv. smtp.gmail.com of mail.uwdomein.nl"
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                      Poort *
+                    </label>
+                    <input
+                      type="number"
+                      value={smtpPort}
+                      onChange={(e) => setSmtpPort(parseInt(e.target.value, 10) || 587)}
+                      placeholder="587"
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-2 pt-0.5">
+                  <input
+                    type="checkbox"
+                    id="smtpSecureToggle"
+                    checked={smtpSecure}
+                    onChange={(e) => setSmtpSecure(e.target.checked)}
+                    className="rounded border-slate-300 text-purple-600 focus:ring-purple-500"
+                  />
+                  <label htmlFor="smtpSecureToggle" className="font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
+                    SSL / TLS directe encryptie (meestal voor poort 465; uitvinken voor poort 587 STARTTLS)
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                      SMTP Gebruiker / E-mailadres
+                    </label>
+                    <input
+                      type="text"
+                      value={smtpUser}
+                      onChange={(e) => setSmtpUser(e.target.value)}
+                      placeholder="bijv. notificaties@uwdomein.nl"
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                      SMTP Wachtwoord / App Wachtwoord
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showSmtpPass ? 'text' : 'password'}
+                        value={smtpPass}
+                        onChange={(e) => setSmtpPass(e.target.value)}
+                        placeholder="••••••••"
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg pl-3 pr-10 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 font-mono"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowSmtpPass(!showSmtpPass)}
+                        className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                      >
+                        {showSmtpPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                      Afzender E-mail &amp; Naam (From)
+                    </label>
+                    <input
+                      type="text"
+                      value={smtpFrom}
+                      onChange={(e) => setSmtpFrom(e.target.value)}
+                      placeholder="VehicleVault <notificaties@uwdomein.nl>"
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                      Ontvanger(s) Notificaties (To) *
+                    </label>
+                    <input
+                      type="text"
+                      value={smtpTo}
+                      onChange={(e) => setSmtpTo(e.target.value)}
+                      placeholder="bijv. beheerder@uwdomein.nl"
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 font-mono"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
             {notifProvider === 'ntfy' && (
               <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/50 border border-slate-200/80 dark:border-slate-800/80 space-y-3 text-xs">
                 <div>
@@ -1862,8 +2126,20 @@ rest:
                   disabled={notifTesting}
                   className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-xl text-xs font-semibold inline-flex items-center space-x-2 transition disabled:opacity-50"
                 >
-                  {notifTesting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Radio className="w-3.5 h-3.5 text-purple-500" />}
-                  <span>{notifTesting ? 'Verzenden...' : 'Test Notificatie Verzenden'}</span>
+                  {notifTesting ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : notifProvider === 'email' ? (
+                    <Mail className="w-3.5 h-3.5 text-purple-500" />
+                  ) : (
+                    <Radio className="w-3.5 h-3.5 text-purple-500" />
+                  )}
+                  <span>
+                    {notifTesting
+                      ? 'Verzenden...'
+                      : notifProvider === 'email'
+                      ? 'Test E-mail Verzenden'
+                      : 'Test Notificatie Verzenden'}
+                  </span>
                 </button>
               ) : <div />}
 

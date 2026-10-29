@@ -405,6 +405,20 @@ export function initializeDatabase(): void {
     CREATE INDEX IF NOT EXISTS idx_vehicle_showcases_slug ON vehicle_showcases (public_slug);
   `);
 
+  // 16. Password reset tokens
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS password_resets (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      token_hash TEXT NOT NULL,
+      expires_at TEXT NOT NULL,
+      used_at TEXT,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_password_resets_token_hash ON password_resets (token_hash);
+  `);
+
   // Auto-migrate legacy single vehicle image into vehicle_photos if missing
   try {
     const vehiclesWithImage = db.query<any>("SELECT id, image_path, created_at FROM vehicles WHERE image_path IS NOT NULL AND image_path != ''");

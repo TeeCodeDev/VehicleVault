@@ -1,8 +1,9 @@
 import { db } from '../db/database.js';
 import { RdwService } from './rdwService.js';
+import { EmailService } from './emailService.js';
 
 export interface NotificationSettings {
-  provider: 'none' | 'ntfy' | 'gotify' | 'webhook';
+  provider: 'none' | 'email' | 'ntfy' | 'gotify' | 'webhook';
   ntfyUrl: string;
   ntfyToken?: string;
   gotifyUrl: string;
@@ -10,6 +11,13 @@ export interface NotificationSettings {
   webhookUrl: string;
   enabledApk: boolean;
   enabledMaintenance: boolean;
+  smtpHost?: string;
+  smtpPort?: number;
+  smtpSecure?: boolean;
+  smtpUser?: string;
+  smtpPass?: string;
+  smtpFrom?: string;
+  smtpTo?: string;
 }
 
 export class NotificationService {
@@ -23,6 +31,8 @@ export class NotificationService {
       }
     };
 
+    const smtp = EmailService.getSmtpConfig();
+
     return {
       provider: (getVal('notification_provider', 'none') as any) || 'none',
       ntfyUrl: getVal('notification_ntfy_url', ''),
@@ -32,6 +42,13 @@ export class NotificationService {
       webhookUrl: getVal('notification_webhook_url', ''),
       enabledApk: getVal('notification_enabled_apk', 'true') === 'true',
       enabledMaintenance: getVal('notification_enabled_maintenance', 'true') === 'true',
+      smtpHost: smtp.host,
+      smtpPort: smtp.port,
+      smtpSecure: smtp.secure,
+      smtpUser: smtp.user,
+      smtpPass: smtp.pass ? '••••••••' : '',
+      smtpFrom: smtp.from,
+      smtpTo: smtp.to,
     };
   }
 
@@ -54,6 +71,27 @@ export class NotificationService {
     if (settings.webhookUrl !== undefined) setVal('notification_webhook_url', settings.webhookUrl.trim());
     if (settings.enabledApk !== undefined) setVal('notification_enabled_apk', settings.enabledApk ? 'true' : 'false');
     if (settings.enabledMaintenance !== undefined) setVal('notification_enabled_maintenance', settings.enabledMaintenance ? 'true' : 'false');
+
+    // Save SMTP configurations if provided
+    if (
+      settings.smtpHost !== undefined ||
+      settings.smtpPort !== undefined ||
+      settings.smtpSecure !== undefined ||
+      settings.smtpUser !== undefined ||
+      settings.smtpPass !== undefined ||
+      settings.smtpFrom !== undefined ||
+      settings.smtpTo !== undefined
+    ) {
+      EmailService.saveSmtpConfig({
+        host: settings.smtpHost,
+        port: settings.smtpPort,
+        secure: settings.smtpSecure,
+        user: settings.smtpUser,
+        pass: settings.smtpPass,
+        from: settings.smtpFrom,
+        to: settings.smtpTo,
+      });
+    }
   }
 
   public static async send(
@@ -137,6 +175,14 @@ export class NotificationService {
         return { success: true, message: 'Webhook alert succesvol verzonden' };
       }
 
+      if (config.provider === 'email') {
+        const res = await EmailService.sendNotificationEmail(title, message, priority);
+        if (!res.success) {
+          throw new Error(res.message);
+        }
+        return res;
+      }
+
       return { success: false, message: 'Onbekende notificatie provider' };
     } catch (err: any) {
       console.error('Notification dispatch error:', err);
@@ -145,6 +191,10 @@ export class NotificationService {
   }
 
   public static async testNotification(): Promise<{ success: boolean; message: string }> {
+    const config = this.getSettings();
+    if (config.provider === 'email') {
+      return EmailService.sendTestEmail();
+    }
     return this.send(
       '🚗 VehicleVault Testnotificatie',
       'Dit is een succesvolle testmelding vanuit VehicleVault. Uw notificatiekoppeling werkt perfect!',

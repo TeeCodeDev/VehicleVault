@@ -92,8 +92,15 @@ export const Login: React.FC = () => {
                 onChange={(e) => setRememberMe(e.target.checked)}
                 className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-accent-600 focus:ring-accent-500/20"
               />
-              <span className="text-[11px] font-medium">Blijf ingelogd op dit apparaat</span>
+              <span className="text-[11px] font-medium">Blijf ingelogd</span>
             </label>
+
+            <Link
+              to="/forgot-password"
+              className="text-[11px] font-bold text-sky-600 dark:text-sky-400 hover:underline"
+            >
+              Wachtwoord vergeten?
+            </Link>
           </div>
 
           <button

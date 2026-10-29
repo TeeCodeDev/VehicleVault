@@ -7,6 +7,7 @@ const router = Router();
 router.get('/settings', requireAuth, requireAdmin, NotificationController.getSettings);
 router.put('/settings', requireAuth, requireAdmin, NotificationController.updateSettings);
 router.post('/test', requireAuth, requireAdmin, NotificationController.testNotification);
+router.post('/test-smtp', requireAuth, requireAdmin, NotificationController.testSmtp);
 router.post('/check', requireAuth, NotificationController.checkAlerts);
 
 export default router;

@@ -18,6 +18,8 @@ import { Tires } from './pages/Tires.js';
 import { Settings } from './pages/Settings.js';
 import { Login } from './pages/Login.js';
 import { Register } from './pages/Register.js';
+import { ForgotPassword } from './pages/ForgotPassword.js';
+import { ResetPassword } from './pages/ResetPassword.js';
 import { PublicShowcase } from './pages/PublicShowcase.js';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -48,6 +50,8 @@ export const App: React.FC = () => {
               <Routes>
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/showcase/:slug" element={<PublicShowcase />} />
                 <Route path="/auto/:slug" element={<PublicShowcase />} />
 

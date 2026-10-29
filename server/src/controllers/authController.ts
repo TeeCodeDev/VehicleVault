@@ -3,6 +3,7 @@ import { Request, Response } from 'express';
 import { z } from 'zod';
 import { db } from '../db/database.js';
 import { isAuthDisabled, getDefaultUser, getProxyUser } from '../middleware/auth.js';
+import { EmailService } from '../services/emailService.js';
 import {
   hashPassword,
   comparePassword,
@@ -487,6 +488,211 @@ export class AuthController {
     } catch (err: any) {
       console.error('Delete user error:', err);
       res.status(500).json({ error: err?.message || 'Gebruiker verwijderen mislukt' });
+    }
+  }
+
+  public static async forgotPassword(req: Request, res: Response): Promise<void> {
+    try {
+      const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+      if (!email || !email.includes('@')) {
+        res.status(400).json({ error: 'Voer een geldig e-mailadres in' });
+        return;
+      }
+
+      const user = db.get<any>('SELECT id, email FROM users WHERE LOWER(email) = ?', [email]);
+      if (!user) {
+        // Return generic success to prevent email enumeration
+        res.json({
+          success: true,
+          message: 'Als dit e-mailadres bij ons bekend is, is er een herstellink verzonden.',
+        });
+        return;
+      }
+
+      const rawToken = crypto.randomBytes(32).toString('hex');
+      const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+      const id = crypto.randomUUID();
+      const now = new Date();
+      const expiresAt = new Date(now.getTime() + 60 * 60 * 1000).toISOString();
+
+      db.run(
+        `INSERT INTO password_resets (id, user_id, token_hash, expires_at, created_at)
+         VALUES (?, ?, ?, ?, ?)`,
+        [id, user.id, tokenHash, expiresAt, now.toISOString()]
+      );
+
+      const hostHeader = (req.headers['x-forwarded-host'] as string) || req.headers.host || 'localhost:3084';
+      const proto = (req.headers['x-forwarded-proto'] as string) || (req.secure ? 'https' : 'http');
+      const origin = req.headers.origin || `${proto}://${hostHeader}`;
+      const resetLink = `${origin}/reset-password?token=${rawToken}`;
+
+      const smtpConfigured = EmailService.isConfigured();
+      let emailSent = false;
+      let emailError: string | null = null;
+
+      if (smtpConfigured) {
+        const mailRes = await EmailService.sendPasswordResetEmail(user.email, resetLink);
+        emailSent = mailRes.success;
+        if (!mailRes.success) {
+          emailError = mailRes.message;
+        }
+      }
+
+      res.json({
+        success: true,
+        message: smtpConfigured && emailSent
+          ? 'Er is een e-mail met een herstellink verzonden naar uw e-mailadres.'
+          : 'Wachtwoordherstel geïnitieerd.',
+        smtpConfigured,
+        emailSent,
+        resetLink: (!smtpConfigured || !emailSent || process.env.NODE_ENV === 'test') ? resetLink : undefined,
+        errorDetails: emailError,
+      });
+    } catch (err: any) {
+      console.error('Forgot password error:', err);
+      res.status(500).json({ error: 'Fout bij verwerken van wachtwoordherstel' });
+    }
+  }
+
+  public static async verifyResetToken(req: Request, res: Response): Promise<void> {
+    try {
+      const rawToken = typeof req.query?.token === 'string' ? req.query.token.trim() : '';
+      if (!rawToken) {
+        res.status(400).json({ error: 'Geen herstel-token opgegeven' });
+        return;
+      }
+
+      const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+      const now = new Date().toISOString();
+
+      const record = db.get<any>(
+        `SELECT pr.id, pr.expires_at, pr.used_at, u.email
+         FROM password_resets pr
+         JOIN users u ON pr.user_id = u.id
+         WHERE pr.token_hash = ?`,
+        [tokenHash]
+      );
+
+      if (!record || record.used_at || record.expires_at < now) {
+        res.status(400).json({
+          valid: false,
+          error: !record
+            ? 'Ongeldige herstellink'
+            : record.used_at
+            ? 'Deze herstellink is al eerder gebruikt.'
+            : 'Deze herstellink is verlopen (geldig voor 1 uur). Vraag opnieuw een herstellink aan.',
+        });
+        return;
+      }
+
+      res.json({ valid: true, email: record.email });
+    } catch (err: any) {
+      console.error('Verify reset token error:', err);
+      res.status(500).json({ error: 'Fout bij verifiëren van herstellink' });
+    }
+  }
+
+  public static async resetPassword(req: Request, res: Response): Promise<void> {
+    try {
+      const { token, newPassword } = req.body || {};
+      if (!token || typeof token !== 'string') {
+        res.status(400).json({ error: 'Geen geldig herstel-token meegegeven' });
+        return;
+      }
+
+      if (!newPassword || typeof newPassword !== 'string' || newPassword.length < 6) {
+        res.status(400).json({ error: 'Het nieuwe wachtwoord moet minimaal 6 tekens lang zijn' });
+        return;
+      }
+
+      const tokenHash = crypto.createHash('sha256').update(token.trim()).digest('hex');
+      const now = new Date().toISOString();
+
+      const record = db.get<any>(
+        `SELECT pr.id, pr.user_id, pr.expires_at, pr.used_at, u.email
+         FROM password_resets pr
+         JOIN users u ON pr.user_id = u.id
+         WHERE pr.token_hash = ?`,
+        [tokenHash]
+      );
+
+      if (!record || record.used_at || record.expires_at < now) {
+        res.status(400).json({
+          error: !record
+            ? 'Ongeldige herstellink.'
+            : record.used_at
+            ? 'Deze herstellink is al gebruikt.'
+            : 'Deze herstellink is inmiddels verlopen. Vraag een nieuwe aan.',
+        });
+        return;
+      }
+
+      const hashedPassword = await hashPassword(newPassword);
+
+      db.run('UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?', [hashedPassword, now, record.user_id]);
+      db.run('UPDATE password_resets SET used_at = ? WHERE id = ?', [now, record.id]);
+      db.run('DELETE FROM refresh_tokens WHERE user_id = ?', [record.user_id]);
+
+      res.json({
+        success: true,
+        message: 'Uw wachtwoord is succesvol gewijzigd! U kunt nu inloggen met uw nieuwe wachtwoord.',
+      });
+    } catch (err: any) {
+      console.error('Reset password error:', err);
+      res.status(500).json({ error: 'Wachtwoord wijzigen mislukt' });
+    }
+  }
+
+  public static async generateUserResetLink(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const sendEmail = req.body?.sendEmail === true;
+
+      const user = db.get<any>('SELECT id, email FROM users WHERE id = ?', [id]);
+      if (!user) {
+        res.status(404).json({ error: 'Gebruiker niet gevonden' });
+        return;
+      }
+
+      const rawToken = crypto.randomBytes(32).toString('hex');
+      const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+      const resetId = crypto.randomUUID();
+      const now = new Date();
+      const expiresAt = new Date(now.getTime() + 60 * 60 * 1000).toISOString();
+
+      db.run(
+        `INSERT INTO password_resets (id, user_id, token_hash, expires_at, created_at)
+         VALUES (?, ?, ?, ?, ?)`,
+        [resetId, user.id, tokenHash, expiresAt, now.toISOString()]
+      );
+
+      const hostHeader = (req.headers['x-forwarded-host'] as string) || req.headers.host || 'localhost:3084';
+      const proto = (req.headers['x-forwarded-proto'] as string) || (req.secure ? 'https' : 'http');
+      const origin = req.headers.origin || `${proto}://${hostHeader}`;
+      const resetLink = `${origin}/reset-password?token=${rawToken}`;
+
+      let emailSent = false;
+      let emailMessage = '';
+      if (sendEmail) {
+        if (EmailService.isConfigured()) {
+          const mailRes = await EmailService.sendPasswordResetEmail(user.email, resetLink);
+          emailSent = mailRes.success;
+          emailMessage = mailRes.message;
+        } else {
+          emailMessage = 'SMTP is niet geconfigureerd; e-mail kon niet worden verzonden.';
+        }
+      }
+
+      res.json({
+        success: true,
+        resetLink,
+        expiresAt,
+        emailSent,
+        emailMessage,
+      });
+    } catch (err: any) {
+      console.error('Generate reset link error:', err);
+      res.status(500).json({ error: 'Herstellink genereren mislukt' });
     }
   }
 }
