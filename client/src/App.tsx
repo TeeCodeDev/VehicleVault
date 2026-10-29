@@ -18,6 +18,7 @@ import { Tires } from './pages/Tires.js';
 import { Settings } from './pages/Settings.js';
 import { Login } from './pages/Login.js';
 import { Register } from './pages/Register.js';
+import { PublicShowcase } from './pages/PublicShowcase.js';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, loading } = useAuth();
@@ -47,6 +48,8 @@ export const App: React.FC = () => {
               <Routes>
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
+                <Route path="/showcase/:slug" element={<PublicShowcase />} />
+                <Route path="/auto/:slug" element={<PublicShowcase />} />
 
                 <Route
                   path="/"

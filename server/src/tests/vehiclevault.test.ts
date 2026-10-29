@@ -39,6 +39,8 @@ import { BackupService } from '../services/backupService.js';
 import { TripExportService } from '../services/tripExportService.js';
 import { FuelExportService } from '../services/fuelExportService.js';
 import { getVehicleAccess } from '../utils/vehicleAccess.js';
+import { ShowcaseService } from '../services/showcaseService.js';
+import { ShowcaseZipService } from '../services/showcaseZipService.js';
 
 describe('VehicleVault Comprehensive Test Suite', () => {
   let testUserId: string;
@@ -1186,6 +1188,87 @@ Date,Odometer,Fuel_amount,Price,Total_cost,Notes
       const expiresDate = new Date(refresh.expiresAt);
       const daysAhead = Math.round((expiresDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
       assert.ok(daysAhead >= 88 && daysAhead <= 91);
+    });
+  });
+
+  describe('Showcase & Digital Sales Dossier Engine (auto.romanas.nl standard)', () => {
+    it('should auto-populate a comprehensive showcase dossier with RDW specs and stats', async () => {
+      const showcase = ShowcaseService.getOrInitShowcase(testVehicleId);
+      assert.ok(showcase);
+      assert.ok(showcase.public_slug);
+      assert.equal(showcase.is_active, true);
+      assert.ok(showcase.stats);
+      assert.ok(showcase.specs);
+      assert.ok(showcase.specs.basis.length > 0);
+      assert.ok(showcase.highlights.length > 0);
+      assert.ok(showcase.options_list.length > 0);
+      assert.ok(showcase.transparency_notes);
+    });
+
+    it('should support updating showcase pricing, contacts, highlights, and custom slug', () => {
+      const updated = ShowcaseService.updateShowcase(testVehicleId, {
+        asking_price: 12500,
+        price_label: 'Vaste meeneemprijs',
+        contact_whatsapp: '+31612345678',
+        contact_location: 'Groningen',
+        public_slug: 'golf-gti-special-edition',
+      });
+
+      assert.ok(updated);
+      assert.equal(updated.asking_price, 12500);
+      assert.equal(updated.price_label, 'Vaste meeneemprijs');
+      assert.equal(updated.contact_whatsapp, '+31612345678');
+      assert.equal(updated.contact_location, 'Groningen');
+      assert.equal(updated.public_slug, 'golf-gti-special-edition');
+
+      // Verify public retrieval by custom slug
+      const publicShowcase = ShowcaseService.getPublicShowcase('golf-gti-special-edition');
+      assert.ok(publicShowcase);
+      assert.equal(publicShowcase.asking_price, 12500);
+    });
+
+    it('should generate a standalone static website ZIP archive containing index.html, styles.css, app.js and images', async () => {
+      const showcase = ShowcaseService.getOrInitShowcase(testVehicleId);
+      assert.ok(showcase);
+
+      const zipBuffer = await ShowcaseZipService.generateZip(showcase);
+      assert.ok(zipBuffer);
+      assert.ok(zipBuffer.length > 500);
+
+      // Verify ZIP magic header PK\x03\x04
+      assert.equal(zipBuffer[0], 0x50);
+      assert.equal(zipBuffer[1], 0x4b);
+      assert.equal(zipBuffer[2], 0x03);
+      assert.equal(zipBuffer[3], 0x04);
+    });
+
+    it('should handle multi-photo gallery categorizing and primary photo synchronization', () => {
+      const photoId1 = crypto.randomUUID();
+      const photoId2 = crypto.randomUUID();
+      const now = new Date().toISOString();
+
+      // Insert exterior photo
+      db.run(
+        `INSERT INTO vehicle_photos (id, vehicle_id, file_path, category, title, sort_order, is_primary, created_at)
+         VALUES (?, ?, ?, 'exterieur', 'Voorkant', 1, 1, ?)`,
+        [photoId1, testVehicleId, 'ext-front.jpg', now]
+      );
+
+      // Insert damage / transparency photo
+      db.run(
+        `INSERT INTO vehicle_photos (id, vehicle_id, file_path, category, title, sort_order, is_primary, created_at)
+         VALUES (?, ?, ?, 'gebruikssporen', 'Krasje achterbumper', 2, 0, ?)`,
+        [photoId2, testVehicleId, 'damage-rear.jpg', now]
+      );
+
+      const showcase = ShowcaseService.getOrInitShowcase(testVehicleId);
+      assert.ok(showcase);
+      assert.ok(showcase.photos.length >= 2);
+      const ext = showcase.photos.find(p => p.id === photoId1);
+      const sch = showcase.photos.find(p => p.id === photoId2);
+      assert.equal(ext?.category, 'exterieur');
+      assert.equal(sch?.category, 'gebruikssporen');
+      assert.equal(ext?.is_primary, 1);
     });
   });
 });

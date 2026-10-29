@@ -328,6 +328,68 @@ export function initializeDatabase(): void {
     );
   `);
 
+  // 14. Vehicle multi-photo gallery
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS vehicle_photos (
+      id TEXT PRIMARY KEY,
+      vehicle_id TEXT NOT NULL,
+      file_path TEXT NOT NULL,
+      category TEXT NOT NULL DEFAULT 'exterieur',
+      title TEXT,
+      description TEXT,
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      is_primary INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (vehicle_id) REFERENCES vehicles(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_vehicle_photos_vehicle_id ON vehicle_photos (vehicle_id);
+  `);
+
+  // 15. Vehicle showcase / sales dossier
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS vehicle_showcases (
+      id TEXT PRIMARY KEY,
+      vehicle_id TEXT NOT NULL UNIQUE,
+      public_slug TEXT NOT NULL UNIQUE,
+      is_active INTEGER NOT NULL DEFAULT 1,
+      asking_price REAL,
+      price_label TEXT NOT NULL DEFAULT 'Vraagprijs',
+      title TEXT,
+      subtitle TEXT,
+      highlights TEXT,
+      options_list TEXT,
+      transparency_notes TEXT,
+      contact_whatsapp TEXT,
+      contact_phone TEXT,
+      contact_email TEXT,
+      contact_location TEXT,
+      show_maintenance_history INTEGER NOT NULL DEFAULT 1,
+      show_tire_status INTEGER NOT NULL DEFAULT 1,
+      show_rdw_specs INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (vehicle_id) REFERENCES vehicles(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_vehicle_showcases_slug ON vehicle_showcases (public_slug);
+  `);
+
+  // Auto-migrate legacy single vehicle image into vehicle_photos if missing
+  try {
+    const vehiclesWithImage = db.query<any>("SELECT id, image_path, created_at FROM vehicles WHERE image_path IS NOT NULL AND image_path != ''");
+    for (const v of vehiclesWithImage) {
+      const existing = db.get<any>('SELECT id FROM vehicle_photos WHERE vehicle_id = ? AND file_path = ?', [v.id, v.image_path]);
+      if (!existing) {
+        db.run(
+          `INSERT INTO vehicle_photos (id, vehicle_id, file_path, category, title, sort_order, is_primary, created_at)
+           VALUES (?, ?, ?, 'exterieur', 'Hoofdfoto', 0, 1, ?)`,
+          [crypto.randomUUID(), v.id, v.image_path, v.created_at || new Date().toISOString()]
+        );
+      }
+    }
+  } catch {
+    // Non-fatal migration check
+  }
+
   // Seed default presets
   seedPresets();
 }

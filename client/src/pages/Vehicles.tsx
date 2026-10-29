@@ -22,6 +22,7 @@ import { DatePicker } from '../components/DatePicker.js';
 import { useLanguage } from '../context/LanguageContext.js';
 import { formatDisplayDate } from '../utils/format.js';
 import { compressImage } from '../utils/imageCompressor.js';
+import { ShowcaseManagerModal } from '../components/ShowcaseManagerModal.js';
 
 interface ContextType {
   vehicles: Vehicle[];
@@ -65,6 +66,10 @@ export const Vehicles: React.FC = () => {
   const [rdwLoading, setRdwLoading] = useState(false);
   const [rdwSuccess, setRdwSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Showcase state
+  const [showcaseVehicle, setShowcaseVehicle] = useState<Vehicle | null>(null);
+  const [isShowcaseModalOpen, setIsShowcaseModalOpen] = useState(false);
 
   const resetForm = () => {
     setName('');
@@ -458,6 +463,18 @@ export const Vehicles: React.FC = () => {
                   >
                     <Edit2 className="w-4 h-4" />
                   </button>
+                  {v.is_owner !== false && (
+                    <button
+                      onClick={() => {
+                        setShowcaseVehicle(v);
+                        setIsShowcaseModalOpen(true);
+                      }}
+                      className="p-1.5 text-slate-500 hover:text-amber-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition"
+                      title="Verkooppagina & Showcase Dossier (auto.romanas.nl)"
+                    >
+                      <Sparkles className="w-4 h-4 text-amber-500" />
+                    </button>
+                  )}
                   {v.is_owner !== false && (
                     <button
                       onClick={() => openShareModal(v)}
@@ -949,6 +966,20 @@ export const Vehicles: React.FC = () => {
             </form>
           </div>
         </div>
+      )}
+
+      {/* SHOWCASE & DIGITAL SALES DOSSIER MODAL */}
+      {isShowcaseModalOpen && showcaseVehicle && (
+        <ShowcaseManagerModal
+          vehicleId={showcaseVehicle.id}
+          vehicleName={showcaseVehicle.name}
+          isOpen={isShowcaseModalOpen}
+          onClose={() => {
+            setIsShowcaseModalOpen(false);
+            setShowcaseVehicle(null);
+          }}
+          onVehicleUpdated={refreshVehicles}
+        />
       )}
     </div>
   );

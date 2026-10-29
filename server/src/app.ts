@@ -24,6 +24,7 @@ import backupRoutes from './routes/backupRoutes.js';
 import expenseRoutes from './routes/expenseRoutes.js';
 import tripRoutes from './routes/tripRoutes.js';
 import tireRoutes from './routes/tireRoutes.js';
+import { ShowcaseController } from './controllers/showcaseController.js';
 
 export function createApp(): express.Application {
   const app = express();
@@ -67,7 +68,7 @@ export function createApp(): express.Application {
         database: dbCheck?.healthy === 1 ? 'connected' : 'unhealthy',
         uptime: process.uptime(),
         timestamp: new Date().toISOString(),
-        version: '1.0.20',
+        version: '2.0.0',
       });
     } catch (err: any) {
       res.status(503).json({
@@ -96,6 +97,9 @@ export function createApp(): express.Application {
   app.use('/api/expenses', expenseRoutes);
   app.use('/api/trips', tripRoutes);
   app.use('/api/tires', tireRoutes);
+
+  // Public Unauthenticated Showcase Endpoint
+  app.get('/api/public/showcase/:slug', ShowcaseController.getPublic);
 
   // Serve static client PWA in production or unified container
   const possiblePaths = [

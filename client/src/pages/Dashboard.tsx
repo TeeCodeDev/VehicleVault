@@ -12,12 +12,14 @@ import {
   FileDown,
   ArrowRight,
   Car,
+  Sparkles,
 } from 'lucide-react';
 import { Vehicle, MaintenanceInterval, FuelEntry } from '../types/index.js';
 import { apiFetch } from '../api/client.js';
 import { StatusBadge } from '../components/StatusBadge.js';
 import { IntervalProgressBar } from '../components/IntervalProgressBar.js';
 import { PdfExportModal } from '../components/PdfExportModal.js';
+import { ShowcaseManagerModal } from '../components/ShowcaseManagerModal.js';
 import { useLanguage } from '../context/LanguageContext.js';
 import { formatDisplayDate } from '../utils/format.js';
 import { useAuth } from '../context/AuthContext.js';
@@ -37,6 +39,7 @@ export const Dashboard: React.FC = () => {
   const [fleetAlerts, setFleetAlerts] = useState<any[]>([]);
   const [syncingApk, setSyncingApk] = useState(false);
   const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
+  const [isShowcaseModalOpen, setIsShowcaseModalOpen] = useState(false);
 
   const vehicleFuelType = (selectedVehicle?.fuel_type || '').toLowerCase();
   const isPhev = vehicleFuelType.includes('plug-in') || vehicleFuelType.includes('phev');
@@ -289,6 +292,15 @@ export const Dashboard: React.FC = () => {
                 <FileDown className="w-3.5 h-3.5 text-sky-500" />
                 <span>PDF Dossier</span>
               </button>
+
+              <button
+                onClick={() => setIsShowcaseModalOpen(true)}
+                className="px-3.5 py-2 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:hover:bg-amber-900/60 text-amber-800 dark:text-amber-300 rounded-xl text-xs font-bold inline-flex items-center space-x-1.5 transition border border-amber-200 dark:border-amber-800/60 shadow-2xs hover:scale-[1.02]"
+                title="Verkooppagina & Digitaal Voertuigpaspoort (zoals auto.romanas.nl)"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                <span>Verkooppagina & Showcase</span>
+              </button>
             </div>
           </div>
 
@@ -526,6 +538,17 @@ export const Dashboard: React.FC = () => {
           onClose={() => setIsPdfModalOpen(false)}
           vehicleId={selectedVehicle.id}
           vehicleName={selectedVehicle.name}
+        />
+      )}
+
+      {/* Showcase & Sales Dossier Modal */}
+      {selectedVehicle && (
+        <ShowcaseManagerModal
+          isOpen={isShowcaseModalOpen}
+          onClose={() => setIsShowcaseModalOpen(false)}
+          vehicleId={selectedVehicle.id}
+          vehicleName={selectedVehicle.name}
+          onVehicleUpdated={() => refreshVehicles()}
         />
       )}
     </div>
