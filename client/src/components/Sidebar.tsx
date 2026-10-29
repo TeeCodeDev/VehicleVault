@@ -70,8 +70,8 @@ export const Sidebar: React.FC = () => {
         </nav>
       </div>
 
-      {/* Bottom Section: Always Visible & Pinned */}
-      <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800 shrink-0 mt-2">
+      {/* Bottom Section: Always Visible & Pinned to the Bottom */}
+      <div className="space-y-2 pt-3 border-t border-slate-200 dark:border-slate-800 shrink-0 mt-auto">
         {!isDriver && (
           <NavLink
             to="/settings"
@@ -95,7 +95,7 @@ export const Sidebar: React.FC = () => {
               <span>VehicleVault</span>
             </div>
             <span className="text-emerald-600 dark:text-emerald-400 text-[10px] px-1.5 py-0.2 rounded bg-emerald-100 dark:bg-emerald-950/60 font-mono">
-              v1.0.23
+              v1.0.24
             </span>
           </div>
           <p className="text-[10px] text-slate-500 leading-tight">Self-Hosted PWA &amp; Model Context Protocol</p>

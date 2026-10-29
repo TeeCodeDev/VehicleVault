@@ -51,7 +51,7 @@ export const Layout: React.FC = () => {
   const selectedVehicle = vehicles.find((v) => v.id === selectedVehicleId) || null;
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors">
+    <div className="h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors overflow-hidden">
       <Navbar
         vehicles={vehicles}
         selectedVehicleId={selectedVehicleId}
@@ -59,7 +59,7 @@ export const Layout: React.FC = () => {
       />
       <OfflineBanner />
 
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden min-h-0">
         <Sidebar />
         <main className="flex-1 overflow-y-auto p-4 md:p-6 pb-20 md:pb-6">
           <Outlet context={{ vehicles, selectedVehicle, selectedVehicleId, refreshVehicles: fetchVehicles }} />
