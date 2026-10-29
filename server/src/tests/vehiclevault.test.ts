@@ -186,6 +186,23 @@ describe('VehicleVault Comprehensive Test Suite', () => {
       assert.equal(RdwService.normalizePlate('  k-123-xx  '), 'K123XX');
     });
 
+    it('should format Dutch license plates with hyphens across official sidecodes', () => {
+      // Sidecode 11 (e.g. Kia Niro): 3 letters, 2 digits, 1 letter
+      assert.equal(RdwService.formatPlate('NBL41K'), 'NBL-41-K');
+      assert.equal(RdwService.formatPlate('nbl-41-k'), 'NBL-41-K');
+      // Sidecode 9 (e.g. Mercedes-Benz): 2 letters, 3 digits, 1 letter
+      assert.equal(RdwService.formatPlate('NK956Z'), 'NK-956-Z');
+      assert.equal(RdwService.formatPlate('NK-956-Z'), 'NK-956-Z');
+      // Sidecode 10: 1 letter, 3 digits, 2 letters
+      assert.equal(RdwService.formatPlate('G001BB'), 'G-001-BB');
+      // Sidecode 7: 2 digits, 3 letters, 1 digit
+      assert.equal(RdwService.formatPlate('12TBB3'), '12-TBB-3');
+      // Sidecode 8: 1 digit, 3 letters, 2 digits
+      assert.equal(RdwService.formatPlate('1TBB12'), '1-TBB-12');
+      // Sidecode 1 / 3: 2-2-2 patterns
+      assert.equal(RdwService.formatPlate('12AB34'), '12-AB-34');
+    });
+
     it('should evaluate APK dates within 30 days as due soon, and past dates as overdue', () => {
       const futureDate = new Date();
       futureDate.setDate(futureDate.getDate() + 15);

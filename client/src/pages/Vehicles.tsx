@@ -23,6 +23,7 @@ import { useLanguage } from '../context/LanguageContext.js';
 import { formatDisplayDate } from '../utils/format.js';
 import { compressImage } from '../utils/imageCompressor.js';
 import { ShowcaseManagerModal } from '../components/ShowcaseManagerModal.js';
+import { LicensePlateBadge } from '../components/LicensePlateBadge.js';
 
 interface ContextType {
   vehicles: Vehicle[];
@@ -400,10 +401,7 @@ export const Vehicles: React.FC = () => {
                 <div className="flex items-start justify-between gap-2 mb-1">
                   <h3 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">{v.name}</h3>
                   {v.license_plate && (
-                    <div className="bg-amber-400 text-slate-950 font-mono font-black text-[11px] px-2 py-0.5 rounded border border-amber-500 shadow-sm shrink-0">
-                      <span className="text-[9px] bg-blue-700 text-white px-1 py-0.2 rounded-l mr-1 font-bold">NL</span>
-                      {v.license_plate}
-                    </div>
+                    <LicensePlateBadge plate={v.license_plate} size="xs" className="shrink-0" />
                   )}
                 </div>
 

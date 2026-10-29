@@ -2,6 +2,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import AdmZip from 'adm-zip';
 import { CompiledShowcase, ShowcaseService } from './showcaseService.js';
+import { RdwService } from './rdwService.js';
 import { DATA_PATHS } from '../config/env.js';
 
 export class ShowcaseZipService {
@@ -91,7 +92,7 @@ export class ShowcaseZipService {
             <div class="eu-flag">
               <span>NL</span>
             </div>
-            <span class="plate-code">${this.escapeHtml(v.license_plate)}</span>
+            <span class="plate-code">${this.escapeHtml(RdwService.formatPlate(v.license_plate))}</span>
           </div>
           <button id="btn-copy-kenteken" class="badge badge-info" title="Klik om kenteken te kopiëren" style="cursor:pointer; border:none;">
             📋 Kopieer kenteken
@@ -331,7 +332,7 @@ export class ShowcaseZipService {
 
         <div class="contact-actions">
           ${showcase.contact_whatsapp ? `
-          <a href="https://wa.me/${showcase.contact_whatsapp.replace(/[^0-9]/g, '')}?text=Hallo,%20ik%20heb%20interesse%20in%20de%20${encodeURIComponent(showcase.title)}%20(${encodeURIComponent(v.license_plate || '')})" target="_blank" rel="noopener" class="btn-cta btn-whatsapp">
+          <a href="https://wa.me/${showcase.contact_whatsapp.replace(/[^0-9]/g, '')}?text=Hallo,%20ik%20heb%20interesse%20in%20de%20${encodeURIComponent(showcase.title)}%20(${encodeURIComponent(RdwService.formatPlate(v.license_plate) || '')})" target="_blank" rel="noopener" class="btn-cta btn-whatsapp">
             💬 WhatsApp Bericht Sturen
           </a>
           ` : ''}
@@ -343,7 +344,7 @@ export class ShowcaseZipService {
           ` : ''}
 
           ${showcase.contact_email ? `
-          <a href="mailto:${showcase.contact_email}?subject=Interesse%20in%20${encodeURIComponent(showcase.title)}%20(${encodeURIComponent(v.license_plate || '')})" class="btn-cta btn-email">
+          <a href="mailto:${showcase.contact_email}?subject=Interesse%20in%20${encodeURIComponent(showcase.title)}%20(${encodeURIComponent(RdwService.formatPlate(v.license_plate) || '')})" class="btn-cta btn-email">
             ✉️ E-mail Sturen
           </a>
           ` : ''}
@@ -374,7 +375,7 @@ export class ShowcaseZipService {
 
   <footer class="site-footer">
     <div class="container footer-content">
-      <p><strong>${this.escapeHtml(showcase.title)}</strong> ${v.license_plate ? `(${this.escapeHtml(v.license_plate)})` : ''}</p>
+      <p><strong>${this.escapeHtml(showcase.title)}</strong> ${v.license_plate ? `(${this.escapeHtml(RdwService.formatPlate(v.license_plate))})` : ''}</p>
       <p>Aangemaakt via VehicleVault 2.0 &bull; Alle gegevens zijn met zorg samengesteld en geverifieerd via het RDW-register.</p>
     </div>
   </footer>
@@ -548,7 +549,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const copyBtn = document.getElementById('btn-copy-kenteken');
   if (copyBtn) {
     copyBtn.addEventListener('click', () => {
-      const plate = "${showcase.vehicle.license_plate || ''}";
+      const plate = "${RdwService.formatPlate(showcase.vehicle.license_plate)}";
       if (plate) {
         navigator.clipboard.writeText(plate).then(() => {
           const original = copyBtn.innerText;

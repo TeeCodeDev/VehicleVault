@@ -22,6 +22,32 @@ export class RdwService {
   }
 
   /**
+   * Formats a license plate into official Dutch sidecode format with hyphens (e.g. "NBL-41-K", "NK-956-Z").
+   * Supports all 14 official RDW sidecodes.
+   */
+  public static formatPlate(plate?: string | null): string {
+    if (!plate) return '';
+    const clean = plate.toUpperCase().trim().replace(/[^A-Z0-9]/g, '');
+    if (clean.length !== 6) return plate.trim().toUpperCase();
+
+    if (/^[A-Z]{2}[0-9]{2}[0-9]{2}$/.test(clean)) return `${clean.slice(0, 2)}-${clean.slice(2, 4)}-${clean.slice(4, 6)}`;
+    if (/^[0-9]{2}[0-9]{2}[A-Z]{2}$/.test(clean)) return `${clean.slice(0, 2)}-${clean.slice(2, 4)}-${clean.slice(4, 6)}`;
+    if (/^[0-9]{2}[A-Z]{2}[0-9]{2}$/.test(clean)) return `${clean.slice(0, 2)}-${clean.slice(2, 4)}-${clean.slice(4, 6)}`;
+    if (/^[A-Z]{2}[0-9]{2}[A-Z]{2}$/.test(clean)) return `${clean.slice(0, 2)}-${clean.slice(2, 4)}-${clean.slice(4, 6)}`;
+    if (/^[A-Z]{2}[A-Z]{2}[0-9]{2}$/.test(clean)) return `${clean.slice(0, 2)}-${clean.slice(2, 4)}-${clean.slice(4, 6)}`;
+    if (/^[0-9]{2}[A-Z]{2}[A-Z]{2}$/.test(clean)) return `${clean.slice(0, 2)}-${clean.slice(2, 4)}-${clean.slice(4, 6)}`;
+    if (/^[0-9]{2}[A-Z]{3}[0-9]{1}$/.test(clean)) return `${clean.slice(0, 2)}-${clean.slice(2, 5)}-${clean.slice(5, 6)}`;
+    if (/^[0-9]{1}[A-Z]{3}[0-9]{2}$/.test(clean)) return `${clean.slice(0, 1)}-${clean.slice(1, 4)}-${clean.slice(4, 6)}`;
+    if (/^[A-Z]{2}[0-9]{3}[A-Z]{1}$/.test(clean)) return `${clean.slice(0, 2)}-${clean.slice(2, 5)}-${clean.slice(5, 6)}`;
+    if (/^[A-Z]{1}[0-9]{3}[A-Z]{2}$/.test(clean)) return `${clean.slice(0, 1)}-${clean.slice(1, 4)}-${clean.slice(4, 6)}`;
+    if (/^[A-Z]{3}[0-9]{2}[A-Z]{1}$/.test(clean)) return `${clean.slice(0, 3)}-${clean.slice(3, 5)}-${clean.slice(5, 6)}`;
+    if (/^[A-Z]{1}[0-9]{2}[A-Z]{3}$/.test(clean)) return `${clean.slice(0, 1)}-${clean.slice(1, 3)}-${clean.slice(3, 6)}`;
+    if (/^[0-9]{1}[A-Z]{2}[0-9]{3}$/.test(clean)) return `${clean.slice(0, 1)}-${clean.slice(1, 3)}-${clean.slice(3, 6)}`;
+    if (/^[0-9]{3}[A-Z]{2}[0-9]{1}$/.test(clean)) return `${clean.slice(0, 3)}-${clean.slice(3, 5)}-${clean.slice(5, 6)}`;
+    return `${clean.slice(0, 2)}-${clean.slice(2, 4)}-${clean.slice(4, 6)}`;
+  }
+
+  /**
    * Fetches official Netherlands vehicle data from RDW Open Data.
    */
   public static async fetchVehicleByPlate(plate: string): Promise<RdwVehicleData | null> {

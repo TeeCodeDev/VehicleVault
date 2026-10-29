@@ -14,32 +14,12 @@ import { useAuth } from '../context/AuthContext.js';
 import { useTheme } from '../context/ThemeContext.js';
 import { useLanguage } from '../context/LanguageContext.js';
 import { Vehicle } from '../types/index.js';
+import { LicensePlateBadge } from './LicensePlateBadge.js';
 
 interface NavbarProps {
   vehicles: Vehicle[];
   selectedVehicleId: string | null;
   onSelectVehicle: (id: string) => void;
-}
-
-function formatLicensePlateDisplay(plate?: string | null): string {
-  if (!plate) return '';
-  const clean = plate.toUpperCase().trim().replace(/[^A-Z0-9-]/g, '');
-  if (clean.includes('-')) return clean;
-
-  if (clean.length === 6) {
-    // 3-2-1 pattern, e.g. NBL41K -> NBL-41-K
-    const m1 = clean.match(/^([A-Z]{3})([0-9]{2})([A-Z0-9]{1})$/);
-    if (m1) return `${m1[1]}-${m1[2]}-${m1[3]}`;
-    // 1-3-2 pattern, e.g. G001XX -> G-001-XX
-    const m2 = clean.match(/^([A-Z0-9]{1})([0-9]{3})([A-Z]{2})$/);
-    if (m2) return `${m2[1]}-${m2[2]}-${m2[3]}`;
-    // 2-3-1 pattern, e.g. XX999X -> XX-999-X
-    const m3 = clean.match(/^([A-Z]{2})([0-9]{3})([A-Z0-9]{1})$/);
-    if (m3) return `${m3[1]}-${m3[2]}-${m3[3]}`;
-    // 2-2-2 pattern fallback, e.g. 01XX99 -> 01-XX-99, XX01XX -> XX-01-XX
-    return `${clean.slice(0, 2)}-${clean.slice(2, 4)}-${clean.slice(4, 6)}`;
-  }
-  return clean;
 }
 
 function getVehicleImageUrl(imagePath?: string | null): string | null {
@@ -150,12 +130,11 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </span>
 
                 {activeVehicle.license_plate && (
-                  <span className="hidden xs:inline-flex items-center space-x-1 px-1.5 py-0.5 rounded bg-[#f5c518] text-slate-950 font-black font-mono text-[10px] sm:text-[11px] tracking-wider shadow-2xs border border-amber-500/40 shrink-0">
-                    <span className="bg-[#003399] text-white font-sans text-[7px] font-bold px-0.5 rounded-[1px] leading-none">
-                      NL
-                    </span>
-                    <span>{formatLicensePlateDisplay(activeVehicle.license_plate)}</span>
-                  </span>
+                  <LicensePlateBadge
+                    plate={activeVehicle.license_plate}
+                    size="xs"
+                    className="hidden xs:inline-flex shrink-0"
+                  />
                 )}
               </div>
 
@@ -217,12 +196,11 @@ export const Navbar: React.FC<NavbarProps> = ({
                                 {v.name}
                               </span>
                               {v.license_plate && (
-                                <span className="inline-flex items-center space-x-0.5 px-1 py-0.2 rounded bg-[#f5c518] text-slate-950 font-black font-mono text-[9px] tracking-wider border border-amber-500/30 shrink-0">
-                                  <span className="bg-[#003399] text-white font-sans text-[6px] font-bold px-0.5 rounded-[1px] leading-none">
-                                    NL
-                                  </span>
-                                  <span>{formatLicensePlateDisplay(v.license_plate)}</span>
-                                </span>
+                                <LicensePlateBadge
+                                  plate={v.license_plate}
+                                  size="xs"
+                                  className="shrink-0"
+                                />
                               )}
                             </div>
                             <div className="text-[10px] text-slate-400 truncate mt-0.5">

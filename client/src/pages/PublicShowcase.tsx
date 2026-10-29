@@ -4,7 +4,6 @@ import {
   ShieldCheck,
   FileText,
   Cpu,
-  Copy,
   Check,
   ChevronLeft,
   ChevronRight,
@@ -19,6 +18,8 @@ import {
   AlertTriangle,
   Wrench,
 } from 'lucide-react';
+import { LicensePlateBadge } from '../components/LicensePlateBadge.js';
+import { formatLicensePlate } from '../utils/licensePlate.js';
 
 interface CompiledShowcase {
   id: string;
@@ -106,7 +107,6 @@ export const PublicShowcase: React.FC = () => {
   // Gallery filters & Lightbox
   const [activeCategory, setActiveCategory] = useState<'all' | 'exterieur' | 'interieur' | 'details' | 'gebruikssporen'>('all');
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
-  const [copiedPlate, setCopiedPlate] = useState(false);
 
   useEffect(() => {
     if (!slug) return;
@@ -144,14 +144,6 @@ export const PublicShowcase: React.FC = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [lightboxIndex, showcase]);
-
-  const handleCopyPlate = () => {
-    if (!showcase?.vehicle.license_plate) return;
-    navigator.clipboard.writeText(showcase.vehicle.license_plate).then(() => {
-      setCopiedPlate(true);
-      setTimeout(() => setCopiedPlate(false), 2000);
-    });
-  };
 
   if (loading) {
     return (
@@ -264,23 +256,7 @@ export const PublicShowcase: React.FC = () => {
           {/* Top Badges */}
           <div className="flex flex-wrap items-center gap-2.5 mb-5">
             {v.license_plate && (
-              <div className="inline-flex items-center shadow-xs">
-                <div className="inline-flex items-center bg-[#f5c518] text-slate-950 font-mono font-black text-sm sm:text-base px-2.5 py-1 rounded-l border border-r-0 border-amber-500">
-                  <span className="bg-[#003399] text-white font-sans text-[9px] font-bold px-1 py-0.5 rounded-l mr-2 leading-none">
-                    NL
-                  </span>
-                  {v.license_plate}
-                </div>
-                <button
-                  type="button"
-                  onClick={handleCopyPlate}
-                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-2.5 py-1 rounded-r border border-l-0 border-slate-300 flex items-center space-x-1 transition h-[33.5px] sm:h-[37px]"
-                  title="Kopieer kenteken"
-                >
-                  {copiedPlate ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                  <span className="hidden sm:inline">{copiedPlate ? 'Gekopieerd!' : 'Kopieer'}</span>
-                </button>
-              </div>
+              <LicensePlateBadge plate={v.license_plate} size="lg" showCopy={true} />
             )}
 
             {priceFormatted ? (
@@ -745,7 +721,7 @@ export const PublicShowcase: React.FC = () => {
             <div className="flex flex-wrap items-center justify-center gap-3">
               {showcase.contact_whatsapp && (
                 <a
-                  href={`https://wa.me/${showcase.contact_whatsapp.replace(/[^0-9]/g, '')}?text=Hallo,%20ik%20heb%20interesse%20in%20de%20${encodeURIComponent(showcase.title)}%20(${encodeURIComponent(v.license_plate || '')})`}
+                  href={`https://wa.me/${showcase.contact_whatsapp.replace(/[^0-9]/g, '')}?text=Hallo,%20ik%20heb%20interesse%20in%20de%20${encodeURIComponent(showcase.title)}%20(${encodeURIComponent(formatLicensePlate(v.license_plate) || '')})`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="px-5 py-3 rounded-xl bg-[#25d366] hover:bg-[#20ba5a] text-white font-bold text-xs sm:text-sm inline-flex items-center space-x-2 transition shadow-md hover:scale-105"
@@ -767,7 +743,7 @@ export const PublicShowcase: React.FC = () => {
 
               {showcase.contact_email && (
                 <a
-                  href={`mailto:${showcase.contact_email}?subject=Interesse%20in%20${encodeURIComponent(showcase.title)}%20(${encodeURIComponent(v.license_plate || '')})`}
+                  href={`mailto:${showcase.contact_email}?subject=Interesse%20in%20${encodeURIComponent(showcase.title)}%20(${encodeURIComponent(formatLicensePlate(v.license_plate) || '')})`}
                   className="px-5 py-3 rounded-xl bg-white/15 hover:bg-white/25 border border-white/30 text-white font-bold text-xs sm:text-sm inline-flex items-center space-x-2 transition hover:scale-105"
                 >
                   <Mail className="w-4 h-4" />
@@ -790,7 +766,7 @@ export const PublicShowcase: React.FC = () => {
       <footer className="bg-slate-900 text-slate-400 py-8 border-t border-slate-800 text-center text-xs">
         <div className="max-w-7xl mx-auto px-4 space-y-1">
           <p className="text-white font-bold">
-            {showcase.title} {v.license_plate ? `(${v.license_plate})` : ''}
+            {showcase.title} {v.license_plate ? `(${formatLicensePlate(v.license_plate)})` : ''}
           </p>
           <p className="text-[11px] text-slate-500">
             Aangemaakt via VehicleVault 2.0 &bull; Alle specificaties zijn met zorg samengesteld en geverifieerd via het RDW-register.

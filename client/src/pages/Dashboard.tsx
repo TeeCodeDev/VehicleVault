@@ -20,6 +20,7 @@ import { StatusBadge } from '../components/StatusBadge.js';
 import { IntervalProgressBar } from '../components/IntervalProgressBar.js';
 import { PdfExportModal } from '../components/PdfExportModal.js';
 import { ShowcaseManagerModal } from '../components/ShowcaseManagerModal.js';
+import { LicensePlateBadge } from '../components/LicensePlateBadge.js';
 import { useLanguage } from '../context/LanguageContext.js';
 import { formatDisplayDate } from '../utils/format.js';
 import { useAuth } from '../context/AuthContext.js';
@@ -128,10 +129,7 @@ export const Dashboard: React.FC = () => {
               🚗 Chauffeur Modus
             </span>
             {selectedVehicle?.license_plate && (
-              <div className="inline-flex items-center bg-amber-400 text-slate-950 font-mono font-black text-xs px-2.5 py-0.5 rounded border border-amber-500 shadow-sm">
-                <span className="text-[9px] bg-blue-700 text-white px-1 py-0.2 rounded-l mr-1.5 font-bold">NL</span>
-                {selectedVehicle.license_plate}
-              </div>
+              <LicensePlateBadge plate={selectedVehicle.license_plate} size="sm" />
             )}
           </div>
 
@@ -253,10 +251,7 @@ export const Dashboard: React.FC = () => {
 
                 {/* Dutch style license plate badge */}
                 {selectedVehicle?.license_plate && (
-                  <div className="inline-flex items-center bg-amber-400 text-slate-950 font-mono font-black text-xs px-2.5 py-0.5 rounded border border-amber-500 shadow-sm">
-                    <span className="text-[9px] bg-blue-700 text-white px-1 py-0.2 rounded-l mr-1.5 font-bold">NL</span>
-                    {selectedVehicle.license_plate}
-                  </div>
+                  <LicensePlateBadge plate={selectedVehicle.license_plate} size="md" />
                 )}
               </div>
 

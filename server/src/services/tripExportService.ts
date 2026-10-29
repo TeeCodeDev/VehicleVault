@@ -1,5 +1,6 @@
 import ExcelJS from 'exceljs';
 import PDFDocument from 'pdfkit';
+import { RdwService } from './rdwService.js';
 
 export interface TripExportVehicle {
   name: string;
@@ -85,7 +86,7 @@ export class TripExportService {
 
     sheet.mergeCells('A2:I2');
     const subCell = sheet.getCell('A2');
-    subCell.value = `Voertuig: ${vehicle.name} (${vehicle.license_plate || 'Geen kenteken'})  |  Periode: ${year || 'Alle jaren'}  |  Exportdatum: ${new Date().toLocaleDateString('nl-NL')}`;
+    subCell.value = `Voertuig: ${vehicle.name} (${RdwService.formatPlate(vehicle.license_plate) || 'Geen kenteken'})  |  Periode: ${year || 'Alle jaren'}  |  Exportdatum: ${new Date().toLocaleDateString('nl-NL')}`;
     subCell.font = { name: 'Calibri', size: 10, italic: true, color: { argb: 'FF475569' } };
     subCell.alignment = { vertical: 'middle', indent: 1 };
     sheet.getRow(2).height = 22;
@@ -303,7 +304,7 @@ export class TripExportService {
         doc.fontSize(8.5).font('Helvetica').fillColor('#94a3b8').text('Sluitende kilometeradministratie conform eisen Belastingdienst', leftMargin + 15, 52);
 
         doc.fillColor('#38bdf8').fontSize(10).font('Helvetica-Bold').text(
-          `${vehicle.name} (${vehicle.license_plate || 'Geen kenteken'})`,
+          `${vehicle.name} (${RdwService.formatPlate(vehicle.license_plate) || 'Geen kenteken'})`,
           leftMargin,
           34,
           { align: 'right', width: contentWidth - 15 }

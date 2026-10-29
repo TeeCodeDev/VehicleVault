@@ -28,6 +28,7 @@ import { apiFetch } from '../api/client.js';
 import { DatePicker } from '../components/DatePicker.js';
 import { useLanguage } from '../context/LanguageContext.js';
 import { formatDisplayDate } from '../utils/format.js';
+import { formatLicensePlate } from '../utils/licensePlate.js';
 
 interface ContextType {
   vehicles: Vehicle[];
@@ -408,7 +409,7 @@ export const FixedExpenses: React.FC = () => {
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             {lang === 'nl'
-              ? `${selectedVehicle.name} (${selectedVehicle.license_plate || 'Geen kenteken'}) • Beheer wegenbelasting (MRB), verzekering, abonnementen en lease.`
+              ? `${selectedVehicle.name} (${formatLicensePlate(selectedVehicle.license_plate) || 'Geen kenteken'}) • Beheer wegenbelasting (MRB), verzekering, abonnementen en lease.`
               : `${selectedVehicle.name} • Manage recurring vehicle taxes, insurance policies, and subscriptions.`}
           </p>
         </div>

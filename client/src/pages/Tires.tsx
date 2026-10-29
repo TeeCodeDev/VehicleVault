@@ -20,6 +20,7 @@ import {
 import { Vehicle, TireSet } from '../types/index.js';
 import { apiFetch } from '../api/client.js';
 import { DatePicker } from '../components/DatePicker.js';
+import { formatLicensePlate } from '../utils/licensePlate.js';
 
 interface ContextType {
   vehicles: Vehicle[];
@@ -306,7 +307,7 @@ export const Tires: React.FC = () => {
             <span>Bandenbeheer</span>
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Beheer zomer-, winter- en 4-seizoenssets, profieldieptes per wiel en seizoenswissels ({selectedVehicle.name} • {selectedVehicle.license_plate}).
+            Beheer zomer-, winter- en 4-seizoenssets, profieldieptes per wiel en seizoenswissels ({selectedVehicle.name} • {formatLicensePlate(selectedVehicle.license_plate)}).
           </p>
         </div>
 

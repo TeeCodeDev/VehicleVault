@@ -23,6 +23,7 @@ import { apiFetch } from '../api/client.js';
 import { useLanguage } from '../context/LanguageContext.js';
 import { DatePicker } from '../components/DatePicker.js';
 import { formatDisplayDate } from '../utils/format.js';
+import { formatLicensePlate } from '../utils/licensePlate.js';
 
 interface ContextType {
   vehicles: Vehicle[];
@@ -368,7 +369,7 @@ export const Trips: React.FC = () => {
             <span>Ritregistratie</span>
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Fiscaal sluitende kilometeradministratie voor de Belastingdienst ({selectedVehicle.name} • {selectedVehicle.license_plate}).
+            Fiscaal sluitende kilometeradministratie voor de Belastingdienst ({selectedVehicle.name} • {formatLicensePlate(selectedVehicle.license_plate)}).
           </p>
         </div>
 
