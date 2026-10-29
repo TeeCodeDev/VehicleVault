@@ -29,6 +29,7 @@ import { HaService } from '../services/haService.js';
 import { NotificationService } from '../services/notificationService.js';
 import { BackupService } from '../services/backupService.js';
 import { TripExportService } from '../services/tripExportService.js';
+import { FuelExportService } from '../services/fuelExportService.js';
 
 describe('VehicleVault Comprehensive Test Suite', () => {
   let testUserId: string;
@@ -942,6 +943,129 @@ Date,Odometer,Fuel_amount,Price,Total_cost,Notes
       assert.equal(updatedA.total_km, 13000);
       assert.equal(updatedB.status, 'mounted');
       assert.equal(updatedB.mounted_odometer, 18000);
+    });
+  });
+
+  describe('Fuel Fill-up Export & Module Toggle Configuration Engine', () => {
+    it('should generate a formatted Excel (.xlsx) workbook for fuel entries', async () => {
+      const vehicle = {
+        name: 'Test Wagen',
+        license_plate: 'AA-123-B',
+        make: 'Volkswagen',
+        model: 'Golf',
+        fuel_type: 'Benzine',
+        initial_odometer: 10000,
+      };
+
+      const entries = [
+        {
+          id: crypto.randomUUID(),
+          date: '2026-05-01',
+          odometer: 10500,
+          liters: 45.2,
+          price_per_liter: 1.959,
+          total_cost: 88.55,
+          is_full_tank: 1,
+          missed_previous: 0,
+          station_name: 'Shell Express',
+          station_address: 'Rijksweg 1, Utrecht',
+          energy_type: 'fuel',
+          notes: 'Fijne tankbeurt',
+        },
+        {
+          id: crypto.randomUUID(),
+          date: '2026-05-15',
+          odometer: 11100,
+          liters: 42.8,
+          price_per_liter: 1.929,
+          total_cost: 82.56,
+          is_full_tank: 1,
+          missed_previous: 0,
+          station_name: 'BP Station',
+          station_address: 'Dorpsstraat 10, Breukelen',
+          energy_type: 'fuel',
+        },
+      ];
+
+      const buffer = await FuelExportService.generateExcel(vehicle, entries);
+      assert.ok(Buffer.isBuffer(buffer));
+      assert.ok(buffer.length > 1000);
+      // Valid ZIP/Excel header PK\x03\x04
+      assert.equal(buffer[0], 0x50);
+      assert.equal(buffer[1], 0x4b);
+      assert.equal(buffer[2], 0x03);
+      assert.equal(buffer[3], 0x04);
+    });
+
+    it('should generate a UTF-8 BOM CSV with semicolon delimiter for fuel entries', () => {
+      const vehicle = {
+        name: 'Test Wagen',
+        license_plate: 'AA-123-B',
+        initial_odometer: 10000,
+      };
+
+      const entries = [
+        {
+          id: crypto.randomUUID(),
+          date: '2026-05-01',
+          odometer: 10500,
+          liters: 45.2,
+          price_per_liter: 1.959,
+          total_cost: 88.55,
+          is_full_tank: 1,
+          missed_previous: 0,
+          station_name: 'Shell Express',
+          station_address: 'Rijksweg 1',
+          energy_type: 'fuel',
+          notes: 'Bon bewaard',
+        },
+      ];
+
+      const buffer = FuelExportService.generateCsv(vehicle, entries);
+      assert.ok(Buffer.isBuffer(buffer));
+      const text = buffer.toString('utf-8');
+      assert.ok(text.startsWith('\uFEFFDatum;Kilometerstand;Afstand (km);Liters/kWh;Type;Prijs per Eenheid;Totaalbedrag;Volle Tank;Tankstation;Adres;Notities'));
+      assert.ok(text.includes('10500;500;45,20;Brandstof;1,959;88,55;Ja;"Shell Express";"Rijksweg 1";"Bon bewaard"'));
+    });
+
+    it('should persist and retrieve module toggle settings correctly', () => {
+      const defaultSetting = getSystemSetting('enabled_modules');
+      // If not yet set, should return null
+      // Now save customized configuration
+      const customConfig = {
+        fuel: true,
+        trips: false,
+        maintenance: true,
+        tires: false,
+        fixedExpenses: true,
+        documents: true,
+        analytics: true,
+      };
+      setSystemSetting('enabled_modules', JSON.stringify(customConfig));
+
+      const retrieved = JSON.parse(getSystemSetting('enabled_modules') || '{}');
+      assert.equal(retrieved.trips, false);
+      assert.equal(retrieved.tires, false);
+      assert.equal(retrieved.fuel, true);
+      assert.equal(retrieved.fixedExpenses, true);
+
+      // Clean up back to all enabled or original
+      if (defaultSetting) {
+        setSystemSetting('enabled_modules', defaultSetting);
+      } else {
+        setSystemSetting(
+          'enabled_modules',
+          JSON.stringify({
+            fuel: true,
+            trips: true,
+            maintenance: true,
+            tires: true,
+            fixedExpenses: true,
+            documents: true,
+            analytics: true,
+          })
+        );
+      }
     });
   });
 });

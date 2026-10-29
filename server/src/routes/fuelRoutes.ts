@@ -11,6 +11,9 @@ router.use(requireAuth);
 router.get('/stations/nearby', FuelController.getNearbyStations);
 router.get('/stations/search', FuelController.searchStations);
 
+router.get('/export/excel', FuelController.exportExcel);
+router.get('/export/csv', FuelController.exportCsv);
+
 router.get('/', FuelController.list);
 router.get('/:vehicleId', FuelController.list);
 router.post('/', FuelController.create);

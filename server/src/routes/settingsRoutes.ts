@@ -12,5 +12,8 @@ router.post('/ai/test', requireAuth, SettingsController.testAiConnection);
 router.get('/security', requireAuth, SettingsController.getSecuritySettings);
 router.put('/security', requireAuth, SettingsController.updateSecuritySettings);
 
+router.get('/modules', requireAuth, SettingsController.getModuleSettings);
+router.put('/modules', requireAuth, SettingsController.updateModuleSettings);
+
 export default router;
 

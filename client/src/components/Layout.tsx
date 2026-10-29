@@ -15,9 +15,11 @@ import {
 } from 'lucide-react';
 import { OfflineBanner } from './OfflineBanner.js';
 import { useAuth } from '../context/AuthContext.js';
+import { useModules } from '../context/ModuleContext.js';
 
 export const Layout: React.FC = () => {
   const { user } = useAuth();
+  const { isModuleEnabled } = useModules();
   const isDriver = user?.role === 'driver';
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
@@ -94,55 +96,63 @@ export const Layout: React.FC = () => {
           </NavLink>
         )}
 
-        <NavLink
-          to="/fuel"
-          className={({ isActive }) =>
-            `flex flex-col items-center justify-center text-[10px] px-1.5 py-1 ${
-              isActive ? 'text-accent-600 dark:text-accent-400 font-bold' : 'text-slate-500'
-            }`
-          }
-        >
-          <Fuel className="w-4 h-4 mb-0.5" />
-          <span>Tanken</span>
-        </NavLink>
+        {isModuleEnabled('fuel') && (
+          <NavLink
+            to="/fuel"
+            className={({ isActive }) =>
+              `flex flex-col items-center justify-center text-[10px] px-1.5 py-1 ${
+                isActive ? 'text-accent-600 dark:text-accent-400 font-bold' : 'text-slate-500'
+              }`
+            }
+          >
+            <Fuel className="w-4 h-4 mb-0.5" />
+            <span>Tanken</span>
+          </NavLink>
+        )}
 
-        <NavLink
-          to="/trips"
-          className={({ isActive }) =>
-            `flex flex-col items-center justify-center text-[10px] px-1.5 py-1 ${
-              isActive ? 'text-accent-600 dark:text-accent-400 font-bold' : 'text-slate-500'
-            }`
-          }
-        >
-          <Route className="w-4 h-4 mb-0.5" />
-          <span>Ritten</span>
-        </NavLink>
+        {isModuleEnabled('trips') && (
+          <NavLink
+            to="/trips"
+            className={({ isActive }) =>
+              `flex flex-col items-center justify-center text-[10px] px-1.5 py-1 ${
+                isActive ? 'text-accent-600 dark:text-accent-400 font-bold' : 'text-slate-500'
+              }`
+            }
+          >
+            <Route className="w-4 h-4 mb-0.5" />
+            <span>Ritten</span>
+          </NavLink>
+        )}
 
         {!isDriver && (
           <>
-            <NavLink
-              to="/fixed-expenses"
-              className={({ isActive }) =>
-                `flex flex-col items-center justify-center text-[10px] px-1.5 py-1 ${
-                  isActive ? 'text-accent-600 dark:text-accent-400 font-bold' : 'text-slate-500'
-                }`
-              }
-            >
-              <Landmark className="w-4 h-4 mb-0.5" />
-              <span>Lasten</span>
-            </NavLink>
+            {isModuleEnabled('fixedExpenses') && (
+              <NavLink
+                to="/fixed-expenses"
+                className={({ isActive }) =>
+                  `flex flex-col items-center justify-center text-[10px] px-1.5 py-1 ${
+                    isActive ? 'text-accent-600 dark:text-accent-400 font-bold' : 'text-slate-500'
+                  }`
+                }
+              >
+                <Landmark className="w-4 h-4 mb-0.5" />
+                <span>Lasten</span>
+              </NavLink>
+            )}
 
-            <NavLink
-              to="/analytics"
-              className={({ isActive }) =>
-                `flex flex-col items-center justify-center text-[10px] px-1.5 py-1 ${
-                  isActive ? 'text-accent-600 dark:text-accent-400 font-bold' : 'text-slate-500'
-                }`
-              }
-            >
-              <LineChart className="w-4 h-4 mb-0.5" />
-              <span>TCO</span>
-            </NavLink>
+            {isModuleEnabled('analytics') && (
+              <NavLink
+                to="/analytics"
+                className={({ isActive }) =>
+                  `flex flex-col items-center justify-center text-[10px] px-1.5 py-1 ${
+                    isActive ? 'text-accent-600 dark:text-accent-400 font-bold' : 'text-slate-500'
+                  }`
+                }
+              >
+                <LineChart className="w-4 h-4 mb-0.5" />
+                <span>TCO</span>
+              </NavLink>
+            )}
 
             <NavLink
               to="/settings"

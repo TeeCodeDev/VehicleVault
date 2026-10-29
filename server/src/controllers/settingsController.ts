@@ -178,4 +178,65 @@ export class SettingsController {
       res.status(500).json({ error: err?.message || 'Fout bij opslaan van beveiligingsinstellingen' });
     }
   }
+
+  public static async getModuleSettings(_req: Request, res: Response): Promise<void> {
+    try {
+      const defaultModules = {
+        fuel: true,
+        trips: true,
+        maintenance: true,
+        tires: true,
+        fixedExpenses: true,
+        documents: true,
+        analytics: true,
+      };
+
+      const raw = getSystemSetting('enabled_modules');
+      let modules = defaultModules;
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw);
+          modules = { ...defaultModules, ...parsed };
+        } catch {}
+      }
+
+      res.json({ modules });
+    } catch (err: any) {
+      res.status(500).json({ error: err?.message || 'Fout bij ophalen van module-instellingen' });
+    }
+  }
+
+  public static async updateModuleSettings(req: Request, res: Response): Promise<void> {
+    try {
+      const { modules } = req.body;
+      if (!modules || typeof modules !== 'object') {
+        res.status(400).json({ error: 'Modules object is verplicht' });
+        return;
+      }
+
+      const defaultModules = {
+        fuel: true,
+        trips: true,
+        maintenance: true,
+        tires: true,
+        fixedExpenses: true,
+        documents: true,
+        analytics: true,
+      };
+
+      const updated = {
+        ...defaultModules,
+        ...modules,
+      };
+
+      setSystemSetting('enabled_modules', JSON.stringify(updated));
+      res.json({
+        success: true,
+        modules: updated,
+        message: 'Module-instellingen succesvol opgeslagen',
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err?.message || 'Fout bij opslaan van module-instellingen' });
+    }
+  }
 }

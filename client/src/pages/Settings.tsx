@@ -35,6 +35,14 @@ import {
   Table,
   AlertTriangle,
   Palette,
+  Fuel,
+  Route,
+  Wrench,
+  Disc,
+  Landmark,
+  FolderLock,
+  LineChart,
+  Layers,
 } from 'lucide-react';
 import { ApiKeyItem, Vehicle } from '../types/index.js';
 import { useOutletContext, useSearchParams } from 'react-router-dom';
@@ -42,6 +50,7 @@ import { apiFetch } from '../api/client.js';
 import { useTheme, ACCENT_COLOR_OPTIONS } from '../context/ThemeContext.js';
 import { useLanguage } from '../context/LanguageContext.js';
 import { useAuth } from '../context/AuthContext.js';
+import { useModules } from '../context/ModuleContext.js';
 import { formatDisplayDate } from '../utils/format.js';
 
 export const Settings: React.FC = () => {
@@ -76,6 +85,7 @@ export const Settings: React.FC = () => {
   const [health, setHealth] = useState<any | null>(null);
   const [diagnosticsRefreshing, setDiagnosticsRefreshing] = useState(false);
   const { theme, setTheme, accentColor, setAccentColor } = useTheme();
+  const { modules, toggleModule } = useModules();
   const { lang, setLang, t } = useLanguage();
   const { refreshAuthStatus } = useAuth();
 
@@ -898,6 +908,120 @@ rest:
                   })}
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Actieve Modules & Functies */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
+            <div>
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center space-x-2">
+                <Layers className="w-4 h-4 text-accent-500" />
+                <span>{lang === 'nl' ? 'Actieve Modules & Functies' : 'Active Feature Modules'}</span>
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                {lang === 'nl'
+                  ? 'Schakel onderdelen die je niet gebruikt (zoals rittenregistratie of vaste lasten) eenvoudig uit voor een rustigere interface.'
+                  : 'Disable modules you do not use to keep your navigation and sidebar clean and focused.'}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+              {[
+                {
+                  key: 'fuel' as const,
+                  icon: Fuel,
+                  title: lang === 'nl' ? 'Tanken & Laden' : 'Fuel & EV Charging',
+                  desc: lang === 'nl' ? 'Brandstof- en laadbeurten loggen, verbruiksberekening en bonscanner.' : 'Log fill-ups and charging, consumption, and receipt scanner.',
+                },
+                {
+                  key: 'trips' as const,
+                  icon: Route,
+                  title: lang === 'nl' ? 'Ritregistratie' : 'Trip Logging',
+                  desc: lang === 'nl' ? 'Kilometeradministratie voor zakelijke en privé ritten met Belastingdienst export.' : 'Mileage logs for business & private trips with tax exports.',
+                },
+                {
+                  key: 'maintenance' as const,
+                  icon: Wrench,
+                  title: lang === 'nl' ? 'Onderhoud & APK' : 'Maintenance & Service',
+                  desc: lang === 'nl' ? 'Dual-trigger intervallen, facturen, DIY-besparingsmeter en digitaal onderhoudsboekje.' : 'Dual-trigger service intervals, invoices, DIY savings, and PDF booklet.',
+                },
+                {
+                  key: 'tires' as const,
+                  icon: Disc,
+                  title: lang === 'nl' ? 'Bandenbeheer' : 'Tire Management',
+                  desc: lang === 'nl' ? 'Zomer-, winter- en 4-seizoenssets, wissels, DOT-codes en profieldiepte.' : 'Summer, winter, and all-season sets, seasonal swaps, and tread depth.',
+                },
+                {
+                  key: 'fixedExpenses' as const,
+                  icon: Landmark,
+                  title: lang === 'nl' ? 'Vaste Lasten' : 'Fixed Expenses',
+                  desc: lang === 'nl' ? 'Wegenbelasting (MRB), autoverzekering, pechhulp en leasecontracten.' : 'Road tax, auto insurance, roadside assistance, and subscriptions.',
+                },
+                {
+                  key: 'documents' as const,
+                  icon: FolderLock,
+                  title: lang === 'nl' ? 'Documentenkluis' : 'Document Vault',
+                  desc: lang === 'nl' ? 'Kentekenbewijzen, groene kaarten, keuringsrapporten en handleidingen.' : 'Vehicle registrations, green cards, inspection forms, and manuals.',
+                },
+                {
+                  key: 'analytics' as const,
+                  icon: LineChart,
+                  title: lang === 'nl' ? 'Rapporten & TCO' : 'Reports & TCO',
+                  desc: lang === 'nl' ? 'Total Cost of Ownership, kilometerkostprijs, verbruiksgrafieken en analyses.' : 'Total Cost of Ownership, cost per km, consumption trends, and station stats.',
+                },
+              ].map((m) => {
+                const Icon = m.icon;
+                const isEnabled = modules[m.key] !== false;
+                return (
+                  <div
+                    key={m.key}
+                    onClick={() => toggleModule(m.key)}
+                    className={`p-3.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 shadow-2xs select-none ${
+                      isEnabled
+                        ? 'bg-slate-50/70 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700/80 hover:border-accent-400 dark:hover:border-accent-600'
+                        : 'bg-slate-100/40 dark:bg-slate-900/40 border-slate-200/60 dark:border-slate-800/60 opacity-60 hover:opacity-90'
+                    }`}
+                  >
+                    <div className="flex items-start space-x-3 min-w-0">
+                      <div
+                        className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5 transition-colors ${
+                          isEnabled
+                            ? 'bg-accent-50 dark:bg-accent-950/60 text-accent-600 dark:text-accent-400 border border-accent-200/60 dark:border-accent-700/40'
+                            : 'bg-slate-200 dark:bg-slate-800 text-slate-400 border border-slate-300/60 dark:border-slate-700/60'
+                        }`}
+                      >
+                        <Icon className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center space-x-2">
+                          <span>{m.title}</span>
+                          {!isEnabled && (
+                            <span className="text-[10px] font-normal px-1.5 py-0.2 rounded bg-slate-200 dark:bg-slate-800 text-slate-500">
+                              {lang === 'nl' ? 'Uitgeschakeld' : 'Disabled'}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-snug line-clamp-2">
+                          {m.desc}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* iOS style toggle switch */}
+                    <div
+                      className={`w-11 h-6 rounded-full transition-colors relative shrink-0 p-0.5 ${
+                        isEnabled ? 'bg-accent-600' : 'bg-slate-300 dark:bg-slate-700'
+                      }`}
+                    >
+                      <div
+                        className={`w-5 h-5 rounded-full bg-white shadow-md transition-transform ${
+                          isEnabled ? 'translate-x-5' : 'translate-x-0'
+                        }`}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
 

@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { db } from '../db/database.js';
 import { OcrService } from '../services/ocrService.js';
 import { StationService } from '../services/stationService.js';
+import { FuelExportService } from '../services/fuelExportService.js';
 
 const fuelSchema = z.object({
   vehicle_id: z.string().uuid(),
@@ -281,6 +282,78 @@ export class FuelController {
       res.json({ stations });
     } catch (err: any) {
       res.status(500).json({ error: err?.message || 'Fout bij zoeken naar tankstations.' });
+    }
+  }
+
+  public static async exportExcel(req: Request, res: Response): Promise<void> {
+    try {
+      const { vehicleId } = req.query;
+      if (!vehicleId || typeof vehicleId !== 'string') {
+        res.status(400).json({ error: 'vehicleId is required' });
+        return;
+      }
+
+      const isShared = req.user?.role === 'admin' || req.user?.role === 'driver';
+      const vehicle = db.get<any>(
+        `SELECT * FROM vehicles WHERE id = ? ${isShared ? '' : 'AND user_id = ?'}`,
+        isShared ? [vehicleId] : [vehicleId, req.user?.userId]
+      );
+      if (!vehicle) {
+        res.status(404).json({ error: 'Vehicle not found' });
+        return;
+      }
+
+      const entries = db.query<any>(
+        'SELECT * FROM fuel_entries WHERE vehicle_id = ? ORDER BY odometer ASC',
+        [vehicleId]
+      );
+
+      const buffer = await FuelExportService.generateExcel(vehicle, entries);
+      const safePlate = (vehicle.license_plate || 'tankbeurten').replace(/[^a-zA-Z0-9]/g, '_');
+      const filename = `Tankhistorie_${safePlate}.xlsx`;
+
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('Content-Length', buffer.length);
+      res.send(buffer);
+    } catch (err: any) {
+      res.status(500).json({ error: err?.message || 'Failed to export fuel excel' });
+    }
+  }
+
+  public static async exportCsv(req: Request, res: Response): Promise<void> {
+    try {
+      const { vehicleId } = req.query;
+      if (!vehicleId || typeof vehicleId !== 'string') {
+        res.status(400).json({ error: 'vehicleId is required' });
+        return;
+      }
+
+      const isShared = req.user?.role === 'admin' || req.user?.role === 'driver';
+      const vehicle = db.get<any>(
+        `SELECT * FROM vehicles WHERE id = ? ${isShared ? '' : 'AND user_id = ?'}`,
+        isShared ? [vehicleId] : [vehicleId, req.user?.userId]
+      );
+      if (!vehicle) {
+        res.status(404).json({ error: 'Vehicle not found' });
+        return;
+      }
+
+      const entries = db.query<any>(
+        'SELECT * FROM fuel_entries WHERE vehicle_id = ? ORDER BY odometer ASC',
+        [vehicleId]
+      );
+
+      const buffer = FuelExportService.generateCsv(vehicle, entries);
+      const safePlate = (vehicle.license_plate || 'tankbeurten').replace(/[^a-zA-Z0-9]/g, '_');
+      const filename = `Tankhistorie_${safePlate}.csv`;
+
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('Content-Length', buffer.length);
+      res.send(buffer);
+    } catch (err: any) {
+      res.status(500).json({ error: err?.message || 'Failed to export fuel csv' });
     }
   }
 }
