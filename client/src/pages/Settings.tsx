@@ -1388,37 +1388,78 @@ rest:
             </div>
           </div>
 
-          {/* Home Assistant REST Integration Guide */}
+          {/* Home Assistant Integration Guide (HACS & YAML) */}
           <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center space-x-2">
-                  <Terminal className="w-4 h-4 text-sky-500" />
-                  <span>Home Assistant REST Sensor Integratie</span>
-                </h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  Koppel VehicleVault direct in Home Assistant om kilometerstanden, APK status en verbruik in je dashboards weer te geven.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => {
-                  navigator.clipboard.writeText(haYamlConfig);
-                  setHaCopied(true);
-                  setTimeout(() => setHaCopied(false), 2000);
-                }}
-                className="px-3 py-1.5 bg-sky-500 hover:bg-sky-400 text-white rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow-sm"
-              >
-                {haCopied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                <span>{haCopied ? 'YAML Gekopieerd!' : 'Kopieer YAML'}</span>
-              </button>
+            <div>
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center space-x-2">
+                <Radio className="w-4 h-4 text-sky-500" />
+                <span>Home Assistant Integratie</span>
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Koppel VehicleVault in Home Assistant om kilometerstanden, APK status en verbruik in je dashboards weer te geven.
+              </p>
             </div>
 
-            <div className="relative">
-              <pre className="p-4 rounded-xl bg-slate-950 text-slate-200 font-mono text-[11px] overflow-x-auto leading-relaxed border border-slate-800">
-                {haYamlConfig}
-              </pre>
+            {/* Option 1: HACS UI Integration */}
+            <div className="p-4 rounded-xl bg-gradient-to-br from-sky-50 to-indigo-50/50 dark:from-sky-950/30 dark:to-indigo-950/20 border border-sky-200/80 dark:border-sky-800/60 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <span className="px-2 py-0.5 rounded-full bg-sky-500 text-white text-[10px] font-black uppercase tracking-wider">
+                    Aanbevolen
+                  </span>
+                  <h3 className="text-xs font-bold text-slate-900 dark:text-white">
+                    HACS Custom Integration (Configuratie via HA Interface)
+                  </h3>
+                </div>
+                <a
+                  href="https://github.com/TeeCodeDev/ha-vehiclevault"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs text-sky-600 dark:text-sky-400 font-bold hover:underline flex items-center space-x-1"
+                >
+                  <span>GitHub Repository</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              </div>
+
+              <p className="text-xs text-slate-600 dark:text-slate-300">
+                Geen handmatige YAML configuratie nodig! Installeer de integratie via HACS en voeg VehicleVault met 1 klik toe via <strong>Instellingen → Apparaten & Diensten</strong>. Elk voertuig krijgt automatisch een eigen Apparaat en sensoren in Home Assistant.
+              </p>
+
+              <ol className="list-decimal list-inside text-xs text-slate-600 dark:text-slate-300 space-y-1.5 pl-1">
+                <li>Voeg <code className="px-1.5 py-0.5 bg-white dark:bg-slate-900 rounded font-mono text-[11px] border border-sky-200 dark:border-sky-800">https://github.com/TeeCodeDev/ha-vehiclevault</code> toe als Custom Repository in HACS.</li>
+                <li>Download de integratie en herstart Home Assistant.</li>
+                <li>Ga in Home Assistant naar <strong>Instellingen → Apparaten &amp; Diensten → Integratie toevoegen</strong> en kies <strong>VehicleVault</strong>.</li>
+                <li>Vul je URL (<code className="px-1.5 py-0.5 bg-white dark:bg-slate-900 rounded font-mono text-[11px] border border-sky-200 dark:border-sky-800">{haHost}</code>) en optioneel je API-sleutel in.</li>
+              </ol>
+            </div>
+
+            {/* Option 2: Manual YAML Configuration */}
+            <div className="pt-2 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center space-x-1.5">
+                  <Terminal className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Optie 2: Handmatige REST Sensor YAML (configuration.yaml)</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(haYamlConfig);
+                    setHaCopied(true);
+                    setTimeout(() => setHaCopied(false), 2000);
+                  }}
+                  className="px-3 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-bold transition flex items-center space-x-1.5"
+                >
+                  {haCopied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{haCopied ? 'Gekopieerd!' : 'Kopieer YAML'}</span>
+                </button>
+              </div>
+
+              <div className="relative">
+                <pre className="p-4 rounded-xl bg-slate-950 text-slate-200 font-mono text-[11px] overflow-x-auto leading-relaxed border border-slate-800 max-h-60">
+                  {haYamlConfig}
+                </pre>
+              </div>
             </div>
           </div>
         </div>
