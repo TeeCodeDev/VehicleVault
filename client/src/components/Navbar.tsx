@@ -5,7 +5,6 @@ import {
   Moon,
   LogOut,
   Car,
-  Settings as SettingsIcon,
   ChevronDown,
   Check,
   Plus,
@@ -50,7 +49,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   const { user, logout, authDisabled } = useAuth();
   const { setTheme, isDark } = useTheme();
   const { lang, t } = useLanguage();
-  const isDriver = user?.role === 'driver';
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -244,23 +242,6 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Right controls */}
         <div className="flex items-center space-x-2">
-          {/* Settings button shortcut */}
-          {!isDriver && (
-            <NavLink
-              to="/settings"
-              className={({ isActive }) =>
-                `p-2 rounded-xl border transition shadow-2xs ${
-                  isActive
-                    ? 'bg-accent-600 text-white border-accent-600'
-                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800'
-                }`
-              }
-              title={t('settings')}
-            >
-              <SettingsIcon className="w-4 h-4" />
-            </NavLink>
-          )}
-
           {/* Theme toggle button */}
           <button
             onClick={() => setTheme(isDark ? 'light' : 'dark')}
