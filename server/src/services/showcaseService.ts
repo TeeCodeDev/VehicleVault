@@ -50,6 +50,7 @@ export interface CompiledShowcase {
   };
   stats: {
     bouwjaar: string;
+    herkomst?: string;
     kilometerstand: string;
     brandstof_transmissie: string;
     vermogen: string;
@@ -163,6 +164,18 @@ export class ShowcaseService {
       latestService?.max_odo || 0
     );
 
+    // Determine import & NAP assessment
+    const isImport = Boolean(
+      rdw.datum_eerste_toelating &&
+      rdw.datum_eerste_afgifte_nederland &&
+      rdw.datum_eerste_toelating !== rdw.datum_eerste_afgifte_nederland
+    );
+    const isNapLogisch = Boolean(
+      rdw.tellerstandoordeel &&
+      rdw.tellerstandoordeel.toLowerCase().includes('logisch') &&
+      !rdw.tellerstandoordeel.toLowerCase().includes('onlogisch')
+    );
+
     // If no showcase exists yet, auto-populate everything!
     if (!showcase) {
       const showcaseId = crypto.randomUUID();
@@ -172,9 +185,13 @@ export class ShowcaseService {
       const title = `${vehicle.make || ''} ${vehicle.model || vehicle.name} ${vehicle.year ? `(${vehicle.year})` : ''}`.trim();
 
       // Auto-generate subtitle
-      const subtitle = `Origineel Nederlands geleverd voertuig met NAP Logisch oordeel. Zorgvuldig onderhouden, voorzien van ${
-        vehicle.fuel_type || 'benzine'
-      } aandrijving en geldige APK keuring.`;
+      const subtitle = isNapLogisch
+        ? `Origineel Nederlands geleverd voertuig met NAP Logisch oordeel. Zorgvuldig onderhouden, voorzien van ${
+            vehicle.fuel_type || 'benzine'
+          } aandrijving en geldige APK keuring.`
+        : `Zorgvuldig onderhouden voertuig voorzien van ${
+            vehicle.fuel_type || 'benzine'
+          } aandrijving, geldige APK keuring en transparante voertuighistorie.`;
 
       // Auto-generate highlights
       const serviceCount = db.get<any>('SELECT COUNT(*) as count FROM service_records WHERE vehicle_id = ?', [vehicleId])?.count || 0;
@@ -188,8 +205,10 @@ export class ShowcaseService {
         {
           id: 'hl-nap',
           icon: 'CheckCircle',
-          title: 'Origineel NL & NAP Logisch',
-          description: 'Nederlands kenteken met een betrouwbare, sluitende kilometerstandgeschiedenis (NAP).',
+          title: isNapLogisch ? 'Origineel NL & NAP Logisch' : 'Transparante Historie',
+          description: isNapLogisch
+            ? 'Nederlands kenteken met een betrouwbare, sluitende kilometerstandgeschiedenis (NAP).'
+            : 'Kilometerstand gecontroleerd en geverifieerd aan de hand van onderhouds- en keuringsdocumentatie.',
         },
         {
           id: 'hl-hist',
@@ -321,6 +340,18 @@ Om verrassingen achteraf te voorkomen zijn we volledig transparant over de optis
    */
   private static buildCompiledShowcase(vehicle: any, showcase: any, rdw: any, currentOdometer: number): CompiledShowcase {
     const vehicleId = vehicle.id;
+
+    // Determine import & NAP status
+    const isImport = Boolean(
+      rdw.datum_eerste_toelating &&
+      rdw.datum_eerste_afgifte_nederland &&
+      rdw.datum_eerste_toelating !== rdw.datum_eerste_afgifte_nederland
+    );
+    const isNapLogisch = Boolean(
+      rdw.tellerstandoordeel &&
+      rdw.tellerstandoordeel.toLowerCase().includes('logisch') &&
+      !rdw.tellerstandoordeel.toLowerCase().includes('onlogisch')
+    );
 
     // Photos
     const photos = db.query<VehiclePhoto>(
@@ -484,13 +515,14 @@ Om verrassingen achteraf te voorkomen zijn we volledig transparant over de optis
       },
       stats: {
         bouwjaar: vehicle.year ? String(vehicle.year) : (rdw.datum_eerste_toelating ? rdw.datum_eerste_toelating.substring(0, 4) : '—'),
+        herkomst: isImport ? 'Import (in NL geregistreerd)' : 'Origineel Nederlands',
         kilometerstand: `${currentOdometer.toLocaleString('nl-NL')} km* (per ${todayDateDutch}, loopt licht op)`,
         brandstof_transmissie: `${vehicle.fuel_type || 'Benzine'} ${motorSpecs.find(m => m.label === 'Transmissie')?.value || ''}`,
         vermogen: motorPk ? `${motorPk} pk (${motorKw} kW)` : (vehicle.fuel_type || '—'),
         apk_vervaldatum: this.formatDutchDate(vehicle.apk_expiration_date || rdw.vervaldatum_apk),
         apk_status: apkEval.isOverdue ? 'Verlopen' : apkEval.isDueSoon ? `Vervalt binnen ${apkEval.daysRemaining} dagen` : `Geldig (${apkEval.daysRemaining} dagen)`,
         energielabel: rdw.zuinigheidslabel || 'A',
-        nap_oordeel: rdw.tellerstandoordeel || 'NAP Logisch',
+        nap_oordeel: isNapLogisch ? 'NAP Logisch' : (rdw.tellerstandoordeel || 'Geregistreerd'),
       },
       photos,
       specs: {

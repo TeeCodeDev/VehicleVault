@@ -43,9 +43,23 @@ export class ShowcaseZipService {
   private static buildHtml(showcase: CompiledShowcase): string {
     const v = showcase.vehicle;
     const stats = showcase.stats;
-    const priceText = showcase.asking_price
+    const showPriceBadge =
+      showcase.price_label !== 'Geen prijs tonen' &&
+      showcase.price_label !== 'Geen prijs' &&
+      Boolean(
+        (showcase.asking_price && showcase.asking_price > 0) ||
+        showcase.price_label === 'Prijs op aanvraag'
+      );
+
+    const priceText = showcase.asking_price && showcase.asking_price > 0
       ? `${showcase.price_label}: ${ShowcaseService.formatCurrency(showcase.asking_price)}`
-      : showcase.price_label || 'Vraagprijs op aanvraag';
+      : 'Prijs op aanvraag';
+
+    const isNapLogisch = Boolean(
+      stats.nap_oordeel &&
+      stats.nap_oordeel.toLowerCase().includes('logisch') &&
+      !stats.nap_oordeel.toLowerCase().includes('onlogisch')
+    );
 
     return `<!DOCTYPE html>
 <html lang="nl">
@@ -98,10 +112,16 @@ export class ShowcaseZipService {
             📋 Kopieer kenteken
           </button>
           ` : ''}
+          ${showPriceBadge ? `
           <span class="badge badge-premium">💰 ${this.escapeHtml(priceText)}</span>
+          ` : ''}
           <span class="badge badge-success">🛡️ APK t/m ${this.escapeHtml(stats.apk_vervaldatum)}</span>
+          ${isNapLogisch ? `
           <span class="badge badge-success">✓ ${this.escapeHtml(stats.nap_oordeel)}</span>
+          ` : ''}
+          ${stats.energielabel && stats.energielabel !== '—' ? `
           <span class="badge badge-info">⚡ Energielabel ${this.escapeHtml(stats.energielabel)}</span>
+          ` : ''}
         </div>
 
         <div class="hero-title-group">
@@ -115,7 +135,7 @@ export class ShowcaseZipService {
           <div class="stat-card">
             <div class="stat-label">Bouwjaar</div>
             <div class="stat-value">${this.escapeHtml(stats.bouwjaar)}</div>
-            <div class="stat-sub">Origineel Nederlands</div>
+            <div class="stat-sub">${this.escapeHtml(stats.herkomst || 'Origineel Nederlands')}</div>
           </div>
           <div class="stat-card">
             <div class="stat-label">Kilometerstand</div>

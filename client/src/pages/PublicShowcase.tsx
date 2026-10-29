@@ -56,6 +56,7 @@ interface CompiledShowcase {
   };
   stats: {
     bouwjaar: string;
+    herkomst?: string;
     kilometerstand: string;
     brandstof_transmissie: string;
     vermogen: string;
@@ -259,23 +260,31 @@ export const PublicShowcase: React.FC = () => {
               <LicensePlateBadge plate={v.license_plate} size="lg" showCopy={true} />
             )}
 
-            {priceFormatted ? (
-              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-black bg-amber-50 text-amber-900 border border-amber-200 shadow-2xs">
-                💰 {showcase.price_label}: {priceFormatted}
-              </span>
-            ) : (
-              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-black bg-amber-50 text-amber-900 border border-amber-200 shadow-2xs">
-                💰 {showcase.price_label || 'Vraagprijs op aanvraag'}
-              </span>
+            {/* Prijsbadge: alleen tonen als vraagprijs ingevuld is of expliciet 'Prijs op aanvraag' gekozen is */}
+            {showcase.price_label !== 'Geen prijs tonen' && showcase.price_label !== 'Geen prijs' && (
+              priceFormatted ? (
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-black bg-amber-50 text-amber-900 border border-amber-200 shadow-2xs">
+                  💰 {showcase.price_label}: {priceFormatted}
+                </span>
+              ) : showcase.price_label === 'Prijs op aanvraag' ? (
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-black bg-amber-50 text-amber-900 border border-amber-200 shadow-2xs">
+                  💰 Prijs op aanvraag
+                </span>
+              ) : null
             )}
 
             <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
               🛡️ APK t/m {showcase.stats.apk_vervaldatum}
             </span>
 
-            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-800 border border-blue-200">
-              ✓ {showcase.stats.nap_oordeel}
-            </span>
+            {/* NAP Tellerstand: alleen tonen als oordeel daadwerkelijk Logisch is (verbergen bij 'Geen oordeel' of onbekend) */}
+            {showcase.stats.nap_oordeel &&
+              showcase.stats.nap_oordeel.toLowerCase().includes('logisch') &&
+              !showcase.stats.nap_oordeel.toLowerCase().includes('onlogisch') && (
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-800 border border-blue-200">
+                  ✓ {showcase.stats.nap_oordeel === 'Logisch' ? 'NAP Logisch' : showcase.stats.nap_oordeel}
+                </span>
+            )}
 
             <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-purple-50 text-purple-800 border border-purple-200">
               ⚡ Energielabel {showcase.stats.energielabel}
@@ -297,7 +306,9 @@ export const PublicShowcase: React.FC = () => {
             <div className="bg-slate-50 border border-slate-200/90 rounded-2xl p-4">
               <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Bouwjaar</span>
               <span className="text-lg sm:text-xl font-black text-slate-900 mt-0.5 block">{showcase.stats.bouwjaar}</span>
-              <span className="text-[11px] text-slate-500 font-medium">Origineel Nederlands</span>
+              <span className="text-[11px] text-slate-500 font-medium">
+                {showcase.stats.herkomst || 'Origineel Nederlands'}
+              </span>
             </div>
 
             <div className="bg-slate-50 border border-slate-200/90 rounded-2xl p-4">
@@ -305,7 +316,13 @@ export const PublicShowcase: React.FC = () => {
               <span className="text-lg sm:text-xl font-black text-slate-900 mt-0.5 block font-mono">
                 {v.current_odometer.toLocaleString('nl-NL')} km*
               </span>
-              <span className="text-[11px] text-slate-500 font-medium">NAP Logisch</span>
+              <span className="text-[11px] text-slate-500 font-medium">
+                {showcase.stats.nap_oordeel &&
+                showcase.stats.nap_oordeel.toLowerCase().includes('logisch') &&
+                !showcase.stats.nap_oordeel.toLowerCase().includes('onlogisch')
+                  ? 'NAP Logisch'
+                  : 'Geregistreerd'}
+              </span>
             </div>
 
             <div className="bg-slate-50 border border-slate-200/90 rounded-2xl p-4">

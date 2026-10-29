@@ -1280,6 +1280,15 @@ Date,Odometer,Fuel_amount,Price,Total_cost,Notes
       const publicShowcase = ShowcaseService.getPublicShowcase('golf-gti-special-edition');
       assert.ok(publicShowcase);
       assert.equal(publicShowcase.asking_price, 12500);
+
+      // Support 'Geen prijs tonen' to omit price badge (ideal for dealer appraisal/trade-in)
+      const noPriceShowcase = ShowcaseService.updateShowcase(testVehicleId, {
+        asking_price: null,
+        price_label: 'Geen prijs tonen',
+      });
+      assert.ok(noPriceShowcase);
+      assert.equal(noPriceShowcase.price_label, 'Geen prijs tonen');
+      assert.equal(noPriceShowcase.asking_price, null);
     });
 
     it('should generate a standalone static website ZIP archive containing index.html, styles.css, app.js and images', async () => {

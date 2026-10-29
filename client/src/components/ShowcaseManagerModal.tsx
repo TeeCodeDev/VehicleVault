@@ -464,6 +464,7 @@ export const ShowcaseManagerModal: React.FC<ShowcaseManagerModalProps> = ({
                     <option value="Vaste meeneemprijs">Vaste meeneemprijs</option>
                     <option value="Inruilprijs">Inruilprijs</option>
                     <option value="Prijs op aanvraag">Prijs op aanvraag</option>
+                    <option value="Geen prijs tonen">Geen prijs tonen (verbergen)</option>
                   </select>
                 </div>
 
@@ -473,11 +474,23 @@ export const ShowcaseManagerModal: React.FC<ShowcaseManagerModalProps> = ({
                   </label>
                   <input
                     type="number"
-                    value={askingPrice}
+                    value={priceLabel === 'Geen prijs tonen' ? '' : askingPrice}
                     onChange={(e) => setAskingPrice(e.target.value)}
-                    placeholder="bijv. 8950 (leeg laten voor op aanvraag)"
-                    className="w-full h-10 bg-slate-50 dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:ring-2 focus:ring-accent-500/20 focus:border-accent-500 transition"
+                    disabled={priceLabel === 'Geen prijs tonen' || priceLabel === 'Prijs op aanvraag'}
+                    placeholder={
+                      priceLabel === 'Geen prijs tonen'
+                        ? 'Geen prijs zichtbaar op pagina'
+                        : priceLabel === 'Prijs op aanvraag'
+                        ? 'Prijs op aanvraag'
+                        : 'bijv. 8950 (leeg laten = geen prijs tonen)'
+                    }
+                    className="w-full h-10 bg-slate-50 dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:ring-2 focus:ring-accent-500/20 focus:border-accent-500 transition disabled:opacity-50"
                   />
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                    {priceLabel === 'Geen prijs tonen'
+                      ? 'Er wordt geen vraagprijs of prijskaartje getoond (ideaal voor garage-inruil/taxatie).'
+                      : 'Laat leeg of kies \'Geen prijs tonen\' om geen bedrag te tonen.'}
+                  </p>
                 </div>
 
                 <div>
