@@ -6,6 +6,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   authDisabled: boolean;
+  hasUsers: boolean;
   login: (email: string, pass: string, rememberMe?: boolean) => Promise<void>;
   register: (email: string, pass: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -18,12 +19,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [authDisabled, setAuthDisabled] = useState(false);
+  const [hasUsers, setHasUsers] = useState(true);
 
   const checkAuth = useCallback(async () => {
     try {
       const statusRes = await fetch('/api/auth/status')
         .then((r) => r.json())
         .catch(() => null);
+
+      if (typeof statusRes?.hasUsers === 'boolean') {
+        setHasUsers(statusRes.hasUsers);
+      }
 
       if (statusRes?.isProxyAuth && statusRes.user) {
         setUser(statusRes.user);
@@ -119,6 +125,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user,
         loading,
         authDisabled,
+        hasUsers,
         login,
         register,
         logout,

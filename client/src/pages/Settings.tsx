@@ -1475,10 +1475,10 @@ rest:
               <div>
                 <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center space-x-2">
                   <ShieldCheck className="w-4 h-4 text-sky-500" />
-                  <span>Pangolin / Beveiligingsmodus</span>
+                  <span>Authenticatie &amp; Beveiligingsmodus</span>
                 </h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  Configureer of inloggen vereist is of dat VehicleVault achter een reverse proxy (Pangolin / Authelia) draait.
+                  Configureer of inloggen vereist is of dat VehicleVault achter een reverse proxy (Authelia, Authentik, Pangolin, Cloudflare) draait.
                 </p>
               </div>
 
@@ -1568,7 +1568,7 @@ rest:
                 <table className="w-full text-xs text-left">
                   <thead className="bg-slate-50 dark:bg-slate-950 text-slate-500 font-bold border-b border-slate-200 dark:border-slate-800 text-[10px] uppercase">
                     <tr>
-                      <th className="py-2.5 px-3">E-mailadres / Pangolin Gebruiker</th>
+                      <th className="py-2.5 px-3">E-mailadres / Gebruikersnaam</th>
                       <th className="py-2.5 px-3">Rol &amp; Toegang</th>
                       <th className="py-2.5 px-3">Laatste Activiteit &amp; Inlog</th>
                       <th className="py-2.5 px-3">Geregistreerd</th>
@@ -2702,7 +2702,7 @@ rest:
             <form onSubmit={handleCreateUser} className="space-y-4 text-xs">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  E-mailadres / Pangolin Gebruiker *
+                  E-mailadres / Gebruikersnaam *
                 </label>
                 <input
                   type="email"
@@ -2713,7 +2713,7 @@ rest:
                   className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-sky-500"
                 />
                 <p className="text-[10px] text-slate-400 mt-1">
-                  Moet overeenkomen met het e-mailadres waarmee in Pangolin wordt ingelogd.
+                  Bij gebruik van een reverse proxy (Pangolin, Authelia, Authentik) moet dit overeenkomen met het SSO e-mailadres.
                 </p>
               </div>
 

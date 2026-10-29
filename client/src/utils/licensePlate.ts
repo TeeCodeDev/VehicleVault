@@ -3,7 +3,7 @@
  */
 
 /**
- * Formats a raw license plate (e.g. "NBL41K" or "12AB34") into official Dutch sidecode format with hyphens (e.g. "NBL-41-K", "12-AB-34").
+ * Formats a raw license plate (e.g. "GBB01B" or "12AB34") into official Dutch sidecode format with hyphens (e.g. "GBB-01-B", "12-AB-34").
  * Supports all 14 official RDW sidecode patterns.
  */
 export function formatLicensePlate(plate?: string | null): string {
@@ -55,7 +55,7 @@ export function formatLicensePlate(plate?: string | null): string {
   if (/^[A-Z]{1}[0-9]{3}[A-Z]{2}$/.test(clean)) {
     return `${clean.slice(0, 1)}-${clean.slice(1, 4)}-${clean.slice(4, 6)}`;
   }
-  // Sidecode 11: XXX-99-X (3 letters, 2 digits, 1 letter, e.g. NBL-41-K)
+  // Sidecode 11: XXX-99-X (3 letters, 2 digits, 1 letter, e.g. GBB-01-B)
   if (/^[A-Z]{3}[0-9]{2}[A-Z]{1}$/.test(clean)) {
     return `${clean.slice(0, 3)}-${clean.slice(3, 5)}-${clean.slice(5, 6)}`;
   }

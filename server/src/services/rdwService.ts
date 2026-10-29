@@ -22,7 +22,7 @@ export class RdwService {
   }
 
   /**
-   * Formats a license plate into official Dutch sidecode format with hyphens (e.g. "NBL-41-K", "NK-956-Z").
+   * Formats a license plate into official Dutch sidecode format with hyphens (e.g. "GBB-01-B", "NK-956-Z").
    * Supports all 14 official RDW sidecodes.
    */
   public static formatPlate(plate?: string | null): string {

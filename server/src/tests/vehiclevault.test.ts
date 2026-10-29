@@ -191,9 +191,9 @@ describe('VehicleVault Comprehensive Test Suite', () => {
     });
 
     it('should format Dutch license plates with hyphens across official sidecodes', () => {
-      // Sidecode 11 (e.g. Kia Niro): 3 letters, 2 digits, 1 letter
-      assert.equal(RdwService.formatPlate('NBL41K'), 'NBL-41-K');
-      assert.equal(RdwService.formatPlate('nbl-41-k'), 'NBL-41-K');
+      // Sidecode 11: 3 letters, 2 digits, 1 letter
+      assert.equal(RdwService.formatPlate('GBB01B'), 'GBB-01-B');
+      assert.equal(RdwService.formatPlate('gbb-01-b'), 'GBB-01-B');
       // Sidecode 9 (e.g. Mercedes-Benz): 2 letters, 3 digits, 1 letter
       assert.equal(RdwService.formatPlate('NK956Z'), 'NK-956-Z');
       assert.equal(RdwService.formatPlate('NK-956-Z'), 'NK-956-Z');
@@ -1417,11 +1417,11 @@ Date,Odometer,Fuel_amount,Price,Total_cost,Notes
       const sonCarId = crypto.randomUUID();
       const fatherCarId = crypto.randomUUID();
 
-      // Son owns Kia Niro
+      // Son owns Hatchback
       db.run(
         `INSERT INTO vehicles (id, user_id, name, type, license_plate, created_at, updated_at)
-         VALUES (?, ?, ?, 'car', 'NBL-41-K', ?, ?)`,
-        [sonCarId, userSon, 'Kia Niro', now, now]
+         VALUES (?, ?, ?, 'car', 'GBB-01-B', ?, ?)`,
+        [sonCarId, userSon, 'Volkswagen Golf', now, now]
       );
 
       // Father owns Mercedes B180

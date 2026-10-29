@@ -67,7 +67,25 @@ export function getDefaultUser(): AuthenticatedUser {
   }
 }
 
+export function isProxyAuthEnabled(): boolean {
+  if (process.env.ENABLE_PROXY_AUTH === 'false' || process.env.TRUST_PROXY_HEADERS === 'false') {
+    return false;
+  }
+  if (process.env.ENABLE_PROXY_AUTH === 'true' || process.env.TRUST_PROXY_HEADERS === 'true' || process.env.PROXY_AUTH === 'true') {
+    return true;
+  }
+  try {
+    const row = db.get<{ value: string }>('SELECT value FROM system_settings WHERE key = ?', ['enable_proxy_auth']);
+    if (row) return row.value === 'true';
+  } catch {}
+  return true;
+}
+
 export function getProxyUser(req: Request): AuthenticatedUser | null {
+  if (!isProxyAuthEnabled()) {
+    return null;
+  }
+
   // Check for reverse proxy authentication headers (Pangolin, Authelia, Authentik, Traefik, Cloudflare Access)
   const proxyUserHeader = (
     req.headers['remote-email'] ||

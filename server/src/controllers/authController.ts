@@ -202,11 +202,15 @@ export class AuthController {
         return;
       }
 
+      const userCount = db.get<{ count: number }>('SELECT count(*) as count FROM users')?.count || 0;
+      const hasUsers = userCount > 0;
+
       const disabled = isAuthDisabled();
       const user = disabled ? getDefaultUser() : null;
       res.json({
         authDisabled: disabled,
         isProxyAuth: false,
+        hasUsers,
         user,
       });
     } catch (err: any) {

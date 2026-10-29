@@ -9,7 +9,7 @@ export const Login: React.FC = () => {
   const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const { login, user, authDisabled } = useAuth();
+  const { login, user, authDisabled, hasUsers } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -43,6 +43,25 @@ export const Login: React.FC = () => {
             Log in op uw self-hosted wagenparkdashboard
           </p>
         </div>
+
+        {!hasUsers && (
+          <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 p-3.5 rounded-xl mb-4 text-xs text-emerald-800 dark:text-emerald-300 space-y-1.5 shadow-xs">
+            <div className="font-bold flex items-center space-x-1.5">
+              <span>👋 Eerste Installatie</span>
+            </div>
+            <p className="text-[11px] leading-relaxed text-emerald-700 dark:text-emerald-300/90">
+              Er is nog geen account aangemaakt. Maak direct je eerste account aan (krijgt automatisch beheerdersrechten).
+            </p>
+            <div className="pt-1">
+              <Link
+                to="/register"
+                className="w-full inline-flex items-center justify-center px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg transition shadow-sm"
+              >
+                Beheerder Account Aanmaken →
+              </Link>
+            </div>
+          </div>
+        )}
 
         {error && (
           <div className="flex items-center space-x-2 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/50 text-rose-700 dark:text-rose-300 text-xs p-3 rounded-xl mb-4 font-medium">

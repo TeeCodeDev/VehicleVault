@@ -293,7 +293,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             {authDisabled ? (
               <span
                 className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800"
-                title="Inloggen is uitgeschakeld (Pangolin / No-Auth modus)"
+                title="Inloggen is uitgeschakeld (No-Auth / SSO modus)"
               >
                 No-Auth
               </span>
