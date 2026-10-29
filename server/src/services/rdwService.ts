@@ -56,6 +56,51 @@ export class RdwService {
 
       const apkFormatted = formatRdwDate(item.vervaldatum_apk);
 
+      // Fetch fuel and hybrid classification from RDW dataset 8ys7-d773
+      let detectedFuel = 'Benzine';
+      try {
+        const fuelUrl = `https://opendata.rdw.nl/resource/8ys7-d773.json?kenteken=${cleanPlate}`;
+        const fuelRes = await fetch(fuelUrl, {
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'VehicleVault-Tracker/1.0',
+          },
+        });
+        if (fuelRes.ok) {
+          const fuelItems = (await fuelRes.json()) as any[];
+          if (Array.isArray(fuelItems) && fuelItems.length > 0) {
+            const isOvc = fuelItems.some((f) => String(f.klasse_hybride_elektrisch_voertuig || '').toUpperCase().includes('OVC-HEV'));
+            const isNovc = fuelItems.some((f) => String(f.klasse_hybride_elektrisch_voertuig || '').toUpperCase().includes('NOVC-HEV'));
+            const hasElectric = fuelItems.some((f) => String(f.brandstof_omschrijving || '').toLowerCase().includes('elektr'));
+            const hasDiesel = fuelItems.some((f) => String(f.brandstof_omschrijving || '').toLowerCase().includes('diesel'));
+            const hasLpg = fuelItems.some((f) => String(f.brandstof_omschrijving || '').toLowerCase().includes('lpg'));
+            const hasCng = fuelItems.some((f) => String(f.brandstof_omschrijving || '').toLowerCase().includes('cng'));
+            const hasWaterstof = fuelItems.some((f) => String(f.brandstof_omschrijving || '').toLowerCase().includes('waterstof'));
+
+            if (isOvc) {
+              detectedFuel = hasDiesel ? 'Plug-in Hybride (Diesel)' : 'Plug-in Hybride (Benzine)';
+            } else if (isNovc || (hasElectric && fuelItems.length > 1)) {
+              detectedFuel = hasDiesel ? 'Hybride (Diesel)' : 'Hybride (Benzine)';
+            } else if (hasElectric && fuelItems.length === 1) {
+              detectedFuel = 'Elektrisch';
+            } else if (hasDiesel) {
+              detectedFuel = 'Diesel';
+            } else if (hasLpg) {
+              detectedFuel = 'LPG';
+            } else if (hasCng) {
+              detectedFuel = 'CNG';
+            } else if (hasWaterstof) {
+              detectedFuel = 'Waterstof';
+            } else {
+              const primary = fuelItems[0]?.brandstof_omschrijving;
+              detectedFuel = primary ? primary.charAt(0).toUpperCase() + primary.slice(1).toLowerCase() : 'Benzine';
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Could not fetch RDW fuel dataset for plate:', cleanPlate, err);
+      }
+
       return {
         kenteken: cleanPlate,
         voertuigsoort: item.voertuigsoort,
@@ -65,6 +110,7 @@ export class RdwService {
         massa_rijklaar: item.massa_rijklaar,
         datum_eerste_toelating: formatRdwDate(item.datum_eerste_toelating),
         vervaldatum_apk: apkFormatted,
+        brandstof_omschrijving: detectedFuel,
         raw: item,
       };
     } catch (err) {

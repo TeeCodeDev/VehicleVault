@@ -8,3 +8,4 @@ const router = Router();
 router.get('/sensors', requireAuth, HaController.getSensors);
 
 export default router;
+

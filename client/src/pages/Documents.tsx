@@ -14,6 +14,7 @@ import {
 import { Vehicle, VehicleDocument } from '../types/index.js';
 import { apiFetch } from '../api/client.js';
 import { useLanguage } from '../context/LanguageContext.js';
+import { compressImage } from '../utils/imageCompressor.js';
 
 interface ContextType {
   vehicles: Vehicle[];
@@ -37,6 +38,8 @@ export const Documents: React.FC = () => {
   const [docCategory, setDocCategory] = useState<'registration' | 'insurance' | 'apk' | 'invoice' | 'manual' | 'other'>('registration');
   const [docNotes, setDocNotes] = useState('');
   const [isUploading, setIsUploading] = useState(false);
+  const [compressing, setCompressing] = useState(false);
+  const [compressionRatio, setCompressionRatio] = useState<string | null>(null);
 
   useEffect(() => {
     if (selectedVehicle) {
@@ -56,14 +59,30 @@ export const Documents: React.FC = () => {
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      setDocFile(file);
+      setCompressionRatio(null);
       if (!docName) {
-        // Remove extension for default document title
         const cleanName = file.name.replace(/\.[^/.]+$/, '');
         setDocName(cleanName);
+      }
+      if (file.type.startsWith('image/') || /\.(jpe?g|png|webp|heic)$/i.test(file.name)) {
+        setCompressing(true);
+        try {
+          const origKb = (file.size / 1024).toFixed(0);
+          const compressed = await compressImage(file, 1600, 2200, 0.82);
+          const compKb = (compressed.size / 1024).toFixed(0);
+          setDocFile(compressed);
+          setCompressionRatio(`${origKb} KB → ${compKb} KB`);
+        } catch (err) {
+          console.warn('Compression error, using raw file', err);
+          setDocFile(file);
+        } finally {
+          setCompressing(false);
+        }
+      } else {
+        setDocFile(file);
       }
     }
   };
@@ -75,6 +94,7 @@ export const Documents: React.FC = () => {
     setIsUploading(true);
     try {
       const formData = new FormData();
+      formData.append('file', docFile);
       formData.append('document', docFile);
       formData.append('name', docName || docFile.name);
       formData.append('category', docCategory);
@@ -89,10 +109,11 @@ export const Documents: React.FC = () => {
       setDocFile(null);
       setDocName('');
       setDocNotes('');
+      setCompressionRatio(null);
       setDocCategory('registration');
       await loadDocuments(selectedVehicle.id);
-    } catch {
-      alert('Upload mislukt. Controleer bestandsformaat (PDF, JPG, PNG) en bestandsgrootte (max 30MB).');
+    } catch (err: any) {
+      alert(err?.message || 'Upload mislukt. Controleer bestandsformaat (PDF, JPG, PNG) en bestandsgrootte (max 30MB).');
     } finally {
       setIsUploading(false);
     }
@@ -361,6 +382,16 @@ export const Documents: React.FC = () => {
                   {docFile && (
                     <span className="text-[10px] text-slate-400 mt-0.5">
                       {formatFileSize(docFile.size)}
+                    </span>
+                  )}
+                  {compressing && (
+                    <span className="text-[10px] text-amber-500 font-medium animate-pulse mt-1">
+                      Foto comprimeren & optimaliseren...
+                    </span>
+                  )}
+                  {compressionRatio && !compressing && (
+                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold mt-1">
+                      ✓ Gecomprimeerd: {compressionRatio}
                     </span>
                   )}
                   <input

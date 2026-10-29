@@ -116,6 +116,7 @@ export class VehicleController {
           apkDate = apkDate || rdw.vervaldatum_apk;
           if (!data.make && rdw.merk) data.make = rdw.merk;
           if (!data.model && rdw.handelsbenaming) data.model = rdw.handelsbenaming;
+          if (!data.fuel_type && rdw.brandstof_omschrijving) data.fuel_type = rdw.brandstof_omschrijving;
         }
       }
 
@@ -187,7 +188,11 @@ export class VehicleController {
         return;
       }
 
-      const existing = db.get<any>('SELECT * FROM vehicles WHERE id = ? AND user_id = ?', [id, req.user?.userId]);
+      const isSharedRole = req.user?.role === 'admin' || req.user?.role === 'driver';
+      const existing = db.get<any>(
+        `SELECT * FROM vehicles WHERE id = ? ${isSharedRole ? '' : 'AND user_id = ?'}`,
+        isSharedRole ? [id] : [id, req.user?.userId]
+      );
       if (!existing) {
         res.status(404).json({ error: 'Vehicle not found' });
         return;

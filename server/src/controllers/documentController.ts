@@ -2,7 +2,6 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { Request, Response } from 'express';
-import { z } from 'zod';
 import { db } from '../db/database.js';
 import { DATA_PATHS } from '../config/env.js';
 
@@ -10,19 +9,20 @@ export class DocumentController {
   public static async list(req: Request, res: Response): Promise<void> {
     const { vehicleId } = req.params;
     const category = req.query.category as string;
+    const isSharedRole = req.user?.role === 'admin' || req.user?.role === 'driver';
 
-    const vehicle = db.get('SELECT id FROM vehicles WHERE id = ? AND user_id = ?', [
-      vehicleId,
-      req.user?.userId,
-    ]);
+    const vehicle = db.get(
+      `SELECT id FROM vehicles WHERE id = ? ${isSharedRole ? '' : 'AND user_id = ?'}`,
+      isSharedRole ? [vehicleId] : [vehicleId, req.user?.userId]
+    );
 
     if (!vehicle) {
       res.status(404).json({ error: 'Vehicle not found' });
       return;
     }
 
-    let sql = 'SELECT * FROM vehicle_documents WHERE vehicle_id = ? AND user_id = ?';
-    const params: any[] = [vehicleId, req.user?.userId];
+    let sql = `SELECT * FROM vehicle_documents WHERE vehicle_id = ? ${isSharedRole ? '' : 'AND user_id = ?'}`;
+    const params: any[] = isSharedRole ? [vehicleId] : [vehicleId, req.user?.userId];
 
     if (category && category !== 'all') {
       sql += ' AND category = ?';
@@ -42,10 +42,11 @@ export class DocumentController {
       return;
     }
 
-    const vehicle = db.get('SELECT id FROM vehicles WHERE id = ? AND user_id = ?', [
-      vehicleId,
-      req.user?.userId,
-    ]);
+    const isSharedRole = req.user?.role === 'admin' || req.user?.role === 'driver';
+    const vehicle = db.get(
+      `SELECT id FROM vehicles WHERE id = ? ${isSharedRole ? '' : 'AND user_id = ?'}`,
+      isSharedRole ? [vehicleId] : [vehicleId, req.user?.userId]
+    );
 
     if (!vehicle) {
       // Remove uploaded file if vehicle doesn't exist
@@ -89,9 +90,10 @@ export class DocumentController {
 
   public static async delete(req: Request, res: Response): Promise<void> {
     const { id } = req.params;
+    const isSharedRole = req.user?.role === 'admin' || req.user?.role === 'driver';
     const doc = db.get<any>(
-      'SELECT file_path FROM vehicle_documents WHERE id = ? AND user_id = ?',
-      [id, req.user?.userId]
+      `SELECT file_path FROM vehicle_documents WHERE id = ? ${isSharedRole ? '' : 'AND user_id = ?'}`,
+      isSharedRole ? [id] : [id, req.user?.userId]
     );
 
     if (!doc) {
@@ -109,9 +111,11 @@ export class DocumentController {
       }
     }
 
-    db.run('DELETE FROM vehicle_documents WHERE id = ? AND user_id = ?', [id, req.user?.userId]);
+    db.run(
+      `DELETE FROM vehicle_documents WHERE id = ? ${isSharedRole ? '' : 'AND user_id = ?'}`,
+      isSharedRole ? [id] : [id, req.user?.userId]
+    );
 
     res.json({ success: true, message: 'Document deleted' });
   }
 }
-

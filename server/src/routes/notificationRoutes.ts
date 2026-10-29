@@ -10,3 +10,4 @@ router.post('/test', requireAuth, requireAdmin, NotificationController.testNotif
 router.post('/check', requireAuth, NotificationController.checkAlerts);
 
 export default router;
+

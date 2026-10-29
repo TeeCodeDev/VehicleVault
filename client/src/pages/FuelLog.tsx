@@ -97,6 +97,19 @@ export const FuelLog: React.FC = () => {
   const [editReceiptFile, setEditReceiptFile] = useState<File | null>(null);
   const [savingEdit, setSavingEdit] = useState(false);
 
+  // Vehicle Energy Capability (Pure Combustion / Non-plug-in Hybrid / PHEV / Pure EV)
+  const vehicleFuelType = (selectedVehicle?.fuel_type || '').toLowerCase();
+  const isPhev = vehicleFuelType.includes('plug-in') || vehicleFuelType.includes('phev');
+  const isElectricOnly = (vehicleFuelType.includes('elektrisch') || vehicleFuelType === 'ev' || vehicleFuelType.includes('elektriciteit')) && !isPhev;
+
+  useEffect(() => {
+    if (isElectricOnly) {
+      setEnergyType('electric');
+    } else if (!isPhev) {
+      setEnergyType('fuel');
+    }
+  }, [isElectricOnly, isPhev, selectedVehicle?.id]);
+
   useEffect(() => {
     if (selectedVehicle) {
       loadEntries(selectedVehicle.id);
@@ -574,11 +587,21 @@ export const FuelLog: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200 dark:border-slate-800">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center space-x-2">
-            <Fuel className="w-5 h-5 text-amber-500" />
-            <span>{t('fuelTitle')}</span>
+            {energyType === 'electric' ? (
+              <Zap className="w-5 h-5 text-cyan-500" />
+            ) : (
+              <Fuel className="w-5 h-5 text-amber-500" />
+            )}
+            <span>
+              {energyType === 'electric'
+                ? (lang === 'nl' ? 'Laadsessies & Energiebeheer' : 'EV Charging Management')
+                : t('fuelTitle')}
+            </span>
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            {lang === 'nl' ? 'Tankbeurt invoeren voor' : 'Log fill-up for'}{' '}
+            {energyType === 'electric'
+              ? (lang === 'nl' ? 'Laadbeurt invoeren voor' : 'Log charging session for')
+              : (lang === 'nl' ? 'Tankbeurt invoeren voor' : 'Log fill-up for')}{' ' }
             <span className="font-semibold text-slate-900 dark:text-white">{selectedVehicle.name}</span>
           </p>
         </div>
@@ -594,33 +617,35 @@ export const FuelLog: React.FC = () => {
 
       {/* Quick Fuel Entry Form */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-sm transition-colors">
-        {/* Energy Type Switcher (Brandstof vs Laadbeurt) */}
-        <div className="flex items-center space-x-2 bg-slate-100 dark:bg-slate-950 p-1 rounded-xl w-fit mb-4 border border-slate-200/70 dark:border-slate-800">
-          <button
-            type="button"
-            onClick={() => setEnergyType('fuel')}
-            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-              energyType === 'fuel'
-                ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm'
-                : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'
-            }`}
-          >
-            <Fuel className="w-3.5 h-3.5 text-amber-500" />
-            <span>{lang === 'nl' ? 'Brandstof (Liters)' : 'Fuel (Liters)'}</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setEnergyType('electric')}
-            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-              energyType === 'electric'
-                ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm'
-                : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'
-            }`}
-          >
-            <Zap className="w-3.5 h-3.5 text-cyan-500" />
-            <span>{lang === 'nl' ? 'Laadbeurt (kWh)' : 'Charging (kWh)'}</span>
-          </button>
-        </div>
+        {/* Energy Type Switcher - Alleen tonen bij PHEV (zowel benzine tanken als stekker laden mogelijk) */}
+        {isPhev && (
+          <div className="flex items-center space-x-2 bg-slate-100 dark:bg-slate-950 p-1 rounded-xl w-fit mb-4 border border-slate-200/70 dark:border-slate-800">
+            <button
+              type="button"
+              onClick={() => setEnergyType('fuel')}
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                energyType === 'fuel'
+                  ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm'
+                  : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'
+              }`}
+            >
+              <Fuel className="w-3.5 h-3.5 text-amber-500" />
+              <span>{lang === 'nl' ? 'Brandstof (Liters)' : 'Fuel (Liters)'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setEnergyType('electric')}
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                energyType === 'electric'
+                  ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm'
+                  : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'
+              }`}
+            >
+              <Zap className="w-3.5 h-3.5 text-cyan-500" />
+              <span>{lang === 'nl' ? 'Laadbeurt (kWh)' : 'Charging (kWh)'}</span>
+            </button>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
           {warningMessage && (

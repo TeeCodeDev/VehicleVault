@@ -38,6 +38,10 @@ export const Dashboard: React.FC = () => {
   const [syncingApk, setSyncingApk] = useState(false);
   const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
 
+  const vehicleFuelType = (selectedVehicle?.fuel_type || '').toLowerCase();
+  const isPhev = vehicleFuelType.includes('plug-in') || vehicleFuelType.includes('phev');
+  const isElectricOnly = (vehicleFuelType.includes('elektrisch') || vehicleFuelType === 'ev' || vehicleFuelType.includes('elektriciteit')) && !isPhev;
+
   useEffect(() => {
     if (selectedVehicle) {
       loadVehicleData(selectedVehicle.id);
@@ -156,8 +160,22 @@ export const Dashboard: React.FC = () => {
           to="/fuel"
           className="w-full py-4 px-6 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-2xl flex items-center justify-center space-x-3 text-sm md:text-base shadow-lg transition active:scale-95"
         >
-          <Fuel className="w-6 h-6 shrink-0" />
-          <span>⛽ Tankbeurt of Laadbeurt Invoeren</span>
+          {isElectricOnly ? (
+            <>
+              <Zap className="w-6 h-6 shrink-0" />
+              <span>⚡ Laadbeurt Invoeren</span>
+            </>
+          ) : isPhev ? (
+            <>
+              <Fuel className="w-6 h-6 shrink-0" />
+              <span>⛽ Tank- of Laadbeurt Invoeren</span>
+            </>
+          ) : (
+            <>
+              <Fuel className="w-6 h-6 shrink-0" />
+              <span>⛽ Tankbeurt Invoeren</span>
+            </>
+          )}
         </Link>
 
         {/* Recent Fuelings List */}

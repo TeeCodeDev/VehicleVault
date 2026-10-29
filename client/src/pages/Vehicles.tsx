@@ -116,6 +116,9 @@ export const Vehicles: React.FC = () => {
           const y = data.rdw.datum_eerste_toelating.substring(0, 4);
           setYear(y);
         }
+        if (data.rdw.brandstof_omschrijving) {
+          setFuelType(data.rdw.brandstof_omschrijving);
+        }
         if (!name) {
           setName(`${data.rdw.merk} ${data.rdw.handelsbenaming}`);
         }
@@ -572,14 +575,33 @@ export const Vehicles: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">{t('fuelType')}</label>
-                  <input
-                    type="text"
+                  <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
+                    {t('fuelType')}
+                  </label>
+                  <select
                     value={fuelType}
                     onChange={(e) => setFuelType(e.target.value)}
-                    placeholder={lang === 'nl' ? 'Benzine, Diesel, Elektrisch' : 'Petrol, Diesel, Electric'}
-                    className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-sky-500 shadow-sm"
-                  />
+                    className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-sky-500 shadow-sm font-medium"
+                  >
+                    <option value="Benzine">{lang === 'nl' ? 'Benzine (Euro 95 / E10 / E5)' : 'Petrol / Gasoline'}</option>
+                    <option value="Diesel">{lang === 'nl' ? 'Diesel (B7 / B10)' : 'Diesel'}</option>
+                    <option value="Hybride (Benzine)">{lang === 'nl' ? 'Hybride (Benzine / HEV)' : 'Hybrid (Petrol / HEV)'}</option>
+                    <option value="Hybride (Diesel)">{lang === 'nl' ? 'Hybride (Diesel / HEV)' : 'Hybrid (Diesel / HEV)'}</option>
+                    <option value="Plug-in Hybride (Benzine)">{lang === 'nl' ? 'Plug-in Hybride (Benzine - PHEV)' : 'Plug-in Hybrid (Petrol - PHEV)'}</option>
+                    <option value="Plug-in Hybride (Diesel)">{lang === 'nl' ? 'Plug-in Hybride (Diesel - PHEV)' : 'Plug-in Hybrid (Diesel - PHEV)'}</option>
+                    <option value="Elektrisch">{lang === 'nl' ? 'Volledig Elektrisch (EV)' : 'Full Electric (EV)'}</option>
+                    <option value="LPG">LPG (Autogas)</option>
+                    <option value="CNG">{lang === 'nl' ? 'CNG (Aardgas)' : 'CNG (Natural Gas)'}</option>
+                    <option value="Waterstof">{lang === 'nl' ? 'Waterstof (FCEV)' : 'Hydrogen (FCEV)'}</option>
+                    <option value="Overig">{lang === 'nl' ? 'Overig' : 'Other'}</option>
+                    {fuelType && ![
+                      'Benzine', 'Diesel', 'Hybride (Benzine)', 'Hybride (Diesel)',
+                      'Plug-in Hybride (Benzine)', 'Plug-in Hybride (Diesel)', 'Elektrisch',
+                      'LPG', 'CNG', 'Waterstof', 'Overig'
+                    ].includes(fuelType) && (
+                      <option value={fuelType}>{fuelType}</option>
+                    )}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">{t('vin')}</label>
@@ -595,24 +617,35 @@ export const Vehicles: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">{lang === 'nl' ? 'Aankoopstand (km)' : t('initialOdometer')}</label>
-                  <p className="text-[10px] text-slate-400 mb-1">{lang === 'nl' ? 'Kilometerstand op het moment van aankoop' : 'Odometer when purchased'}</p>
+                  <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
+                    {lang === 'nl' ? 'Aankoopstand (km)' : t('initialOdometer')}
+                  </label>
                   <input
                     type="number"
                     value={initialOdometer}
                     onChange={(e) => setInitialOdometer(e.target.value)}
+                    placeholder="bijv. 67799"
                     className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-sky-500 shadow-sm font-mono"
                   />
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    {lang === 'nl' ? 'Kilometerstand op het moment van aankoop' : 'Odometer when purchased'}
+                  </p>
                 </div>
                 <div>
-                  <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">{t('purchasePrice')}</label>
+                  <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
+                    {t('purchasePrice')} (€)
+                  </label>
                   <input
                     type="number"
                     step="0.01"
                     value={purchasePrice}
                     onChange={(e) => setPurchasePrice(e.target.value)}
+                    placeholder="bijv. 19995"
                     className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-sky-500 shadow-sm font-mono"
                   />
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    {lang === 'nl' ? 'Aankoopbedrag van het voertuig' : 'Vehicle purchase price'}
+                  </p>
                 </div>
               </div>
 
