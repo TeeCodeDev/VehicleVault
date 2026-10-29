@@ -41,3 +41,4 @@ When deploying VehicleVault in production:
 
 4. **Database & Backup Security:**
    The SQLite database (`vehiclevault.db`) contains operational vehicle and account information. Ensure file permissions on `./data` restrict unauthorized host access.
+

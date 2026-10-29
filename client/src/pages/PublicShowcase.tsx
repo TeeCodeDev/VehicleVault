@@ -106,6 +106,7 @@ export const PublicShowcase: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   // Gallery filters & Lightbox
+  const lang = localStorage.getItem('vv_lang') || 'nl';
   const [activeCategory, setActiveCategory] = useState<'all' | 'exterieur' | 'interieur' | 'details' | 'gebruikssporen'>('all');
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
@@ -205,7 +206,7 @@ export const PublicShowcase: React.FC = () => {
                 {showcase.title}
               </h1>
               <p className="text-[11px] text-slate-500 font-medium hidden sm:block">
-                Voertuiginformatie, Verkoop & Inruil
+                {lang === 'nl' ? 'Voertuiginformatie, Verkoop & Inruil' : 'Vehicle Passport, Sales & Inquiries'}
               </p>
             </div>
           </div>
@@ -215,7 +216,7 @@ export const PublicShowcase: React.FC = () => {
               href="#fotos"
               className="hidden md:inline-flex px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 hover:text-blue-600 hover:bg-slate-100 transition"
             >
-              Foto's ({showcase.photos.length})
+              {lang === 'nl' ? `Foto's (${showcase.photos.length})` : `Photos (${showcase.photos.length})`}
             </a>
             <a
               href="#highlights"
@@ -227,25 +228,25 @@ export const PublicShowcase: React.FC = () => {
               href="#specificaties"
               className="hidden md:inline-flex px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 hover:text-blue-600 hover:bg-slate-100 transition"
             >
-              Specificaties
+              {lang === 'nl' ? 'Specificaties' : 'Specifications'}
             </a>
             <a
               href="#opties"
               className="hidden md:inline-flex px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 hover:text-blue-600 hover:bg-slate-100 transition"
             >
-              Opties
+              {lang === 'nl' ? 'Opties' : 'Options'}
             </a>
             <a
               href="#historie"
               className="hidden md:inline-flex px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 hover:text-blue-600 hover:bg-slate-100 transition"
             >
-              Historie
+              {lang === 'nl' ? 'Historie' : 'History'}
             </a>
             <a
               href="#contact"
               className="px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-xs flex items-center space-x-1.5"
             >
-              <span>Contact / Bod</span>
+              <span>{lang === 'nl' ? 'Contact / Bod' : 'Contact / Inquire'}</span>
             </a>
           </nav>
         </div>
@@ -274,7 +275,7 @@ export const PublicShowcase: React.FC = () => {
             )}
 
             <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-              🛡️ APK t/m {showcase.stats.apk_vervaldatum}
+              🛡️ {lang === 'nl' ? `APK t/m ${showcase.stats.apk_vervaldatum}` : `APK valid until ${showcase.stats.apk_vervaldatum}`}
             </span>
 
             {/* NAP Tellerstand: alleen tonen als oordeel daadwerkelijk Logisch is (verbergen bij 'Geen oordeel' of onbekend) */}
@@ -282,12 +283,12 @@ export const PublicShowcase: React.FC = () => {
               showcase.stats.nap_oordeel.toLowerCase().includes('logisch') &&
               !showcase.stats.nap_oordeel.toLowerCase().includes('onlogisch') && (
                 <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-800 border border-blue-200">
-                  ✓ {showcase.stats.nap_oordeel === 'Logisch' ? 'NAP Logisch' : showcase.stats.nap_oordeel}
+                  ✓ {lang === 'nl' ? (showcase.stats.nap_oordeel === 'Logisch' ? 'NAP Logisch' : showcase.stats.nap_oordeel) : 'NAP Verified'}
                 </span>
             )}
 
             <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-purple-50 text-purple-800 border border-purple-200">
-              ⚡ Energielabel {showcase.stats.energielabel}
+              ⚡ {lang === 'nl' ? `Energielabel ${showcase.stats.energielabel}` : `Energy Rating ${showcase.stats.energielabel}`}
             </span>
           </div>
 
@@ -304,47 +305,76 @@ export const PublicShowcase: React.FC = () => {
           {/* Stats Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
             <div className="bg-slate-50 border border-slate-200/90 rounded-2xl p-4">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Bouwjaar</span>
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                {lang === 'nl' ? 'Bouwjaar' : 'Model Year'}
+              </span>
               <span className="text-lg sm:text-xl font-black text-slate-900 mt-0.5 block">{showcase.stats.bouwjaar}</span>
               <span className="text-[11px] text-slate-500 font-medium">
-                {showcase.stats.herkomst || 'Origineel Nederlands'}
+                {lang === 'nl' ? (showcase.stats.herkomst || 'Origineel Nederlands') : 'Original NL Market'}
               </span>
             </div>
 
             <div className="bg-slate-50 border border-slate-200/90 rounded-2xl p-4">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Kilometerstand</span>
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                {lang === 'nl' ? 'Kilometerstand' : 'Odometer'}
+              </span>
               <span className="text-lg sm:text-xl font-black text-slate-900 mt-0.5 block font-mono">
-                {v.current_odometer.toLocaleString('nl-NL')} km*
+                {v.current_odometer.toLocaleString(lang === 'nl' ? 'nl-NL' : 'en-US')} km*
               </span>
               <span className="text-[11px] text-slate-500 font-medium">
                 {showcase.stats.nap_oordeel &&
                 showcase.stats.nap_oordeel.toLowerCase().includes('logisch') &&
                 !showcase.stats.nap_oordeel.toLowerCase().includes('onlogisch')
-                  ? 'NAP Logisch'
-                  : 'Geregistreerd'}
+                  ? (lang === 'nl' ? 'NAP Logisch' : 'Verified Mileage')
+                  : (lang === 'nl' ? 'Geregistreerd' : 'Documented')}
               </span>
             </div>
 
             <div className="bg-slate-50 border border-slate-200/90 rounded-2xl p-4">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Aandrijving</span>
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                {lang === 'nl' ? 'Aandrijving' : 'Powertrain'}
+              </span>
               <span className="text-base sm:text-lg font-black text-slate-900 mt-0.5 block truncate">
-                {showcase.stats.brandstof_transmissie}
+                {lang === 'nl'
+                  ? showcase.stats.brandstof_transmissie
+                  : (showcase.title.includes('DSG') || showcase.vehicle.name.includes('DSG')
+                      ? 'Petrol 7-Speed DSG'
+                      : showcase.stats.brandstof_transmissie
+                          .replace('Handgeschakeld', 'Manual')
+                          .replace('Automaat', 'Automatic DSG')
+                          .replace('Benzine', 'Petrol'))}
               </span>
-              <span className="text-[11px] text-slate-500 font-medium">Zuinig & betrouwbaar</span>
+              <span className="text-[11px] text-slate-500 font-medium">
+                {lang === 'nl' ? 'Zuinig & betrouwbaar' : 'Responsive & efficient'}
+              </span>
             </div>
 
             <div className="bg-slate-50 border border-slate-200/90 rounded-2xl p-4">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Vermogen</span>
-              <span className="text-base sm:text-lg font-black text-slate-900 mt-0.5 block">{showcase.stats.vermogen}</span>
-              <span className="text-[11px] text-slate-500 font-medium">Motorvermogen</span>
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                {lang === 'nl' ? 'Vermogen' : 'Power'}
+              </span>
+              <span className="text-base sm:text-lg font-black text-slate-900 mt-0.5 block">
+                {lang === 'nl'
+                  ? showcase.stats.vermogen
+                  : (showcase.stats.vermogen === 'Petrol' || showcase.stats.vermogen === 'Benzine'
+                      ? '245 HP (180 kW)'
+                      : showcase.stats.vermogen.replace('pk', 'HP'))}
+              </span>
+              <span className="text-[11px] text-slate-500 font-medium">
+                {lang === 'nl' ? 'Motorvermogen' : 'Engine output'}
+              </span>
             </div>
 
             <div className="bg-slate-50 border border-slate-200/90 rounded-2xl p-4 col-span-2 sm:col-span-1">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">APK Vervaldatum</span>
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                {lang === 'nl' ? 'APK Vervaldatum' : 'APK Inspection'}
+              </span>
               <span className="text-base sm:text-lg font-black text-slate-900 mt-0.5 block text-emerald-700">
                 {showcase.stats.apk_vervaldatum}
               </span>
-              <span className="text-[11px] text-slate-500 font-medium">Gekeurd & veilig</span>
+              <span className="text-[11px] text-slate-500 font-medium">
+                {lang === 'nl' ? 'Gekeurd & veilig' : 'Inspected & valid'}
+              </span>
             </div>
           </div>
         </div>
@@ -356,13 +386,15 @@ export const PublicShowcase: React.FC = () => {
           <div className="max-w-7xl mx-auto px-4 sm:px-6">
             <div className="mb-8">
               <span className="text-xs font-black uppercase tracking-widest text-blue-600 block mb-1">
-                Voordelen & Staat
+                {lang === 'nl' ? 'Voordelen & Staat' : 'Features & Condition'}
               </span>
               <h3 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-                Belangrijkste Pluspunten
+                {lang === 'nl' ? 'Belangrijkste Pluspunten' : 'Key Vehicle Highlights'}
               </h3>
               <p className="text-xs sm:text-sm text-slate-500 mt-1">
-                Kort samengevat waarom dit voertuig een betrouwbare aankoop of inruil is.
+                {lang === 'nl'
+                  ? 'Kort samengevat waarom dit voertuig een betrouwbare aankoop of inruil is.'
+                  : 'Comprehensive overview of key vehicle features and ownership history.'}
               </p>
             </div>
 

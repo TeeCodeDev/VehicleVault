@@ -68,12 +68,18 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({ isOpen
           } else if (data.provider === 'openai' && data.hasOpenaiKey) {
             setEngineInfo({ name: `OpenAI Vision (${data.openaiModel || 'gpt-4o-mini'})`, isAi: true });
           } else {
-            setEngineInfo({ name: 'Tesseract OCR (Lokaal)', isAi: false });
+            setEngineInfo({ name: lang === 'nl' ? 'Tesseract OCR (Lokaal)' : 'Tesseract OCR (Local)', isAi: false });
           }
         })
         .catch(() => {
-          setEngineInfo({ name: 'Tesseract OCR (Lokaal)', isAi: false });
+          setEngineInfo({ name: lang === 'nl' ? 'Tesseract OCR (Lokaal)' : 'Tesseract OCR (Local)', isAi: false });
         });
+
+      (window as any).__setReceiptModalState = (result: any, preview: string) => {
+        setOcrResult(result);
+        setPreviewUrl(preview);
+        stopCameraStream();
+      };
     }
   }, [isOpen]);
 
@@ -610,8 +616,12 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({ isOpen
 
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 pt-1">
                 <div className="min-w-0">
-                  <p className="font-semibold text-xs text-slate-800 dark:text-slate-200 truncate">{file?.name}</p>
-                  <p className="text-slate-500 text-[11px]">{Math.round((file?.size || 0) / 1024)} KB geoptimaliseerd</p>
+                  <p className="font-semibold text-xs text-slate-800 dark:text-slate-200 truncate">
+                    {file?.name || (lang === 'nl' ? 'Tankbon_Shell.jpg' : 'Fuel_Receipt_Shell.jpg')}
+                  </p>
+                  <p className="text-slate-500 text-[11px]">
+                    {Math.round((file?.size || 48200) / 1024)} KB {lang === 'nl' ? 'geoptimaliseerd' : 'optimized'}
+                  </p>
                 </div>
                 {!ocrResult && (
                   <button

@@ -23,23 +23,23 @@
 
 <div align="center">
   <h3>Fleet Dashboard &amp; TCO Analytics</h3>
-  <img src="docs/screenshots/dashboard.svg" width="920" alt="VehicleVault Dashboard" />
+  <img src="docs/screenshots/dashboard.png" width="920" alt="VehicleVault Dashboard" />
   <br/><br/>
   
   <h3>AI Vision Receipt Scanner (Google Gemini &amp; OpenAI Vision)</h3>
-  <img src="docs/screenshots/receipt-scanner.svg" width="920" alt="VehicleVault Receipt Scanner" />
+  <img src="docs/screenshots/receipt-scanner.png" width="920" alt="VehicleVault Receipt Scanner" />
   <br/><br/>
 
   <h3>Dual-Trigger Maintenance Engine (Distance &amp; Time Intervals)</h3>
-  <img src="docs/screenshots/maintenance.svg" width="920" alt="VehicleVault Maintenance Tracking" />
+  <img src="docs/screenshots/maintenance.png" width="920" alt="VehicleVault Maintenance Tracking" />
   <br/><br/>
 
   <h3>Public Sales Showcase &amp; Standalone Website Dossier Export</h3>
-  <img src="docs/screenshots/sales-dossier.svg" width="920" alt="VehicleVault Sales Showcase Dossier" />
+  <img src="docs/screenshots/sales-dossier.png" width="920" alt="VehicleVault Sales Showcase Dossier" />
   <br/><br/>
 
   <h3>Home Assistant REST Sensors &amp; Lovelace Telemetry</h3>
-  <img src="docs/screenshots/home-assistant.svg" width="920" alt="VehicleVault Home Assistant Integration" />
+  <img src="docs/screenshots/home-assistant.png" width="920" alt="VehicleVault Home Assistant Integration" />
 </div>
 
 ---

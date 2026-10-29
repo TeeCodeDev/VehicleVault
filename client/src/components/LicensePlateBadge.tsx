@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Check, Copy } from 'lucide-react';
 import { formatLicensePlate } from '../utils/licensePlate.js';
+import { useLanguage } from '../context/LanguageContext.js';
 
 interface LicensePlateBadgeProps {
   plate?: string | null;
@@ -16,6 +17,13 @@ export const LicensePlateBadge: React.FC<LicensePlateBadgeProps> = ({
   className = '',
 }) => {
   const [copied, setCopied] = useState(false);
+  let lang = 'nl';
+  try {
+    const langContext = useLanguage();
+    if (langContext?.lang) lang = langContext.lang;
+  } catch {
+    lang = localStorage.getItem('vv_lang') || 'nl';
+  }
 
   if (!plate) return null;
   const formatted = formatLicensePlate(plate);
@@ -84,17 +92,17 @@ export const LicensePlateBadge: React.FC<LicensePlateBadgeProps> = ({
           type="button"
           onClick={handleCopy}
           className={`inline-flex items-center space-x-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 font-bold border-l border-amber-500/40 transition select-none ${sizeStyles.btnPad}`}
-          title="Kopieer kenteken"
+          title={lang === 'nl' ? 'Kopieer kenteken' : 'Copy license plate'}
         >
           {copied ? (
             <>
               <Check className={`${sizeStyles.iconSize} text-emerald-600 dark:text-emerald-400`} />
-              <span>Gekopieerd!</span>
+              <span>{lang === 'nl' ? 'Gekopieerd!' : 'Copied!'}</span>
             </>
           ) : (
             <>
               <Copy className={sizeStyles.iconSize} />
-              <span>Kopieer</span>
+              <span>{lang === 'nl' ? 'Kopieer' : 'Copy'}</span>
             </>
           )}
         </button>

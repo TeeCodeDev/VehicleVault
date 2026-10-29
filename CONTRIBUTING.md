@@ -71,3 +71,4 @@ npm run build
 2. **Write clean, typed code**: VehicleVault is strictly typed in TypeScript with clean modular architecture.
 3. **Preserve Privacy**: Never include personal license plates, real receipts, passwords, or personal email addresses in test cases or screenshots.
 4. **Submit your PR** with a clear description of the feature or bug fix.
+

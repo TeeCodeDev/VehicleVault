@@ -320,7 +320,7 @@ export const Maintenance: React.FC = () => {
           <div className="text-lg font-bold text-slate-900 dark:text-white font-mono">
             € {totalParts.toFixed(2)}
           </div>
-          <span className="text-[10px] text-slate-400">Onderdelen & filters</span>
+          <span className="text-[10px] text-slate-400">{lang === 'nl' ? 'Onderdelen & filters' : 'Parts & consumables'}</span>
         </div>
 
         <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-xl p-4 shadow-sm">
@@ -331,7 +331,7 @@ export const Maintenance: React.FC = () => {
           <div className="text-lg font-bold text-slate-900 dark:text-white font-mono">
             € {totalLabor.toFixed(2)}
           </div>
-          <span className="text-[10px] text-slate-400">Garage & werkplaatstarieven</span>
+          <span className="text-[10px] text-slate-400">{lang === 'nl' ? 'Garage & werkplaatstarieven' : 'Garage & workshop labor'}</span>
         </div>
 
         <div className="bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-800/50 rounded-xl p-4 shadow-sm">
@@ -342,7 +342,9 @@ export const Maintenance: React.FC = () => {
           <div className="text-lg font-bold text-emerald-700 dark:text-emerald-400 font-mono">
             ~ € {totalDiySavings.toFixed(0)}
           </div>
-          <span className="text-[10px] text-emerald-600/80 dark:text-emerald-500/80">{diyRecords.length} beurten zelf gesleuteld</span>
+          <span className="text-[10px] text-emerald-600/80 dark:text-emerald-500/80">
+            {diyRecords.length} {lang === 'nl' ? 'beurten zelf gesleuteld' : (diyRecords.length === 1 ? 'service self-performed' : 'services self-performed')}
+          </span>
         </div>
       </div>
 

@@ -133,21 +133,25 @@ export const Dashboard: React.FC = () => {
             )}
           </div>
 
-          <h2 className="text-2xl font-black tracking-tight">{selectedVehicle?.name || 'Mijn Voertuig'}</h2>
+          <h2 className="text-2xl font-black tracking-tight">{selectedVehicle?.name || (lang === 'nl' ? 'Mijn Voertuig' : 'My Vehicle')}</h2>
           <p className="text-xs text-slate-400 mt-1 font-medium">
-            {selectedVehicle?.make} {selectedVehicle?.model} • {selectedVehicle?.fuel_type || 'Brandstof'}
+            {selectedVehicle?.make} {selectedVehicle?.model} • {selectedVehicle?.fuel_type || (lang === 'nl' ? 'Brandstof' : 'Fuel')}
           </p>
 
           <div className="mt-5 pt-4 border-t border-slate-800 flex items-center justify-between">
             <div>
-              <span className="text-[11px] text-slate-400 uppercase font-semibold">Huidige Stand</span>
+              <span className="text-[11px] text-slate-400 uppercase font-semibold">
+                {lang === 'nl' ? 'Huidige Stand' : 'Current Odometer'}
+              </span>
               <div className="text-xl font-mono font-black text-white mt-0.5">
                 {(selectedVehicle?.current_odometer || 0).toLocaleString()} km
               </div>
             </div>
             {recentFuels[0] && (
               <div className="text-right">
-                <span className="text-[11px] text-slate-400 uppercase font-semibold">Laatst Getankt</span>
+                <span className="text-[11px] text-slate-400 uppercase font-semibold">
+                  {lang === 'nl' ? 'Laatst Getankt' : 'Last Refuel'}
+                </span>
                 <div className="text-xs font-bold text-slate-200 mt-0.5">
                   {formatDisplayDate(recentFuels[0].date)}
                 </div>
@@ -164,17 +168,17 @@ export const Dashboard: React.FC = () => {
           {isElectricOnly ? (
             <>
               <Zap className="w-6 h-6 shrink-0" />
-              <span>⚡ Laadbeurt Invoeren</span>
+              <span>{lang === 'nl' ? '⚡ Laadbeurt Invoeren' : '⚡ Log EV Charge'}</span>
             </>
           ) : isPhev ? (
             <>
               <Fuel className="w-6 h-6 shrink-0" />
-              <span>⛽ Tank- of Laadbeurt Invoeren</span>
+              <span>{lang === 'nl' ? '⛽ Tank- of Laadbeurt Invoeren' : '⛽ Log Fuel or Charge'}</span>
             </>
           ) : (
             <>
               <Fuel className="w-6 h-6 shrink-0" />
-              <span>⛽ Tankbeurt Invoeren</span>
+              <span>{lang === 'nl' ? '⛽ Tankbeurt Invoeren' : '⛽ Log Fuel Fill-up'}</span>
             </>
           )}
         </Link>
@@ -182,7 +186,7 @@ export const Dashboard: React.FC = () => {
         {/* Recent Fuelings List */}
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 shadow-sm">
           <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">
-            Laatste 3 Registraties
+            {lang === 'nl' ? 'Laatste 3 Registraties' : 'Recent 3 Logs'}
           </h3>
           {recentFuels.length === 0 ? (
             <p className="text-xs text-slate-400 py-6 text-center">Nog geen tankbeurten geregistreerd.</p>
@@ -285,16 +289,16 @@ export const Dashboard: React.FC = () => {
                 title={t('exportPdf')}
               >
                 <FileDown className="w-3.5 h-3.5 text-sky-500" />
-                <span>PDF Dossier</span>
+                <span>{lang === 'nl' ? 'PDF Dossier' : 'Service Dossier'}</span>
               </button>
 
               <button
                 onClick={() => setIsShowcaseModalOpen(true)}
                 className="px-3.5 py-2 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:hover:bg-amber-900/60 text-amber-800 dark:text-amber-300 rounded-xl text-xs font-bold inline-flex items-center space-x-1.5 transition border border-amber-200 dark:border-amber-800/60 shadow-2xs hover:scale-[1.02]"
-                title="Verkooppagina & Digitaal Voertuigpaspoort"
+                title={lang === 'nl' ? 'Verkooppagina & Digitaal Voertuigpaspoort' : 'Sales Showcase & Digital Vehicle Passport'}
               >
                 <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                <span>Verkooppagina & Showcase</span>
+                <span>{lang === 'nl' ? 'Verkooppagina & Showcase' : 'Sales Showcase'}</span>
               </button>
             </div>
           </div>

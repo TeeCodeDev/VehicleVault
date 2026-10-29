@@ -17,6 +17,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { apiFetch } from '../api/client.js';
+import { useLanguage } from '../context/LanguageContext.js';
 
 interface ShowcaseManagerModalProps {
   vehicleId: string;
@@ -33,6 +34,7 @@ export const ShowcaseManagerModal: React.FC<ShowcaseManagerModalProps> = ({
   onClose,
   onVehicleUpdated,
 }) => {
+  const { lang } = useLanguage();
   const [activeTab, setActiveTab] = useState<'link' | 'photos' | 'content'>('link');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -239,14 +241,16 @@ export const ShowcaseManagerModal: React.FC<ShowcaseManagerModalProps> = ({
             <div>
               <div className="flex items-center space-x-2">
                 <h2 className="text-base font-black text-slate-900 dark:text-white leading-tight">
-                  Verkooppagina &amp; Showcase Dossier
+                  {lang === 'nl' ? 'Verkooppagina & Showcase Dossier' : 'Sales Showcase & Vehicle Dossier'}
                 </h2>
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-accent-50 text-accent-700 dark:bg-accent-950/60 dark:text-accent-300 border border-accent-200/70 dark:border-accent-800">
                   v2.0
                 </span>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                {vehicleName} &bull; Beheer openbare pagina, multi-foto galerij en standalone website export
+                {lang === 'nl'
+                  ? `${vehicleName} • Beheer openbare pagina, multi-foto galerij en standalone website export`
+                  : `${vehicleName} • Manage public page, photo gallery, and standalone website export`}
               </p>
             </div>
           </div>
@@ -254,7 +258,7 @@ export const ShowcaseManagerModal: React.FC<ShowcaseManagerModalProps> = ({
           <button
             onClick={onClose}
             className="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition shrink-0"
-            title="Sluiten"
+            title={lang === 'nl' ? 'Sluiten' : 'Close'}
           >
             <X className="w-5 h-5" />
           </button>
@@ -272,7 +276,7 @@ export const ShowcaseManagerModal: React.FC<ShowcaseManagerModalProps> = ({
             }`}
           >
             <LinkIcon className="w-3.5 h-3.5" />
-            <span>Publieke Link &amp; Verkoop</span>
+            <span>{lang === 'nl' ? 'Publieke Link & Verkoop' : 'Public Link & Status'}</span>
           </button>
 
           <button
@@ -285,7 +289,7 @@ export const ShowcaseManagerModal: React.FC<ShowcaseManagerModalProps> = ({
             }`}
           >
             <Camera className="w-3.5 h-3.5" />
-            <span>Fotogalerij ({photos.length})</span>
+            <span>{lang === 'nl' ? `Fotogalerij (${photos.length})` : `Photo Gallery (${photos.length})`}</span>
           </button>
 
           <button
@@ -298,7 +302,7 @@ export const ShowcaseManagerModal: React.FC<ShowcaseManagerModalProps> = ({
             }`}
           >
             <ShieldCheck className="w-3.5 h-3.5" />
-            <span>Teksten &amp; Transparantie</span>
+            <span>{lang === 'nl' ? 'Teksten & Transparantie' : 'Pricing & Transparency'}</span>
           </button>
         </div>
 
@@ -342,19 +346,23 @@ export const ShowcaseManagerModal: React.FC<ShowcaseManagerModalProps> = ({
                   <div>
                     <div className="flex items-center space-x-2">
                       <h4 className="text-sm font-black text-slate-900 dark:text-white">
-                        Status: {isActive ? 'Openbaar Online' : 'Uitgeschakeld (Privé)'}
+                        Status: {isActive ? (lang === 'nl' ? 'Openbaar Online' : 'Publicly Online') : (lang === 'nl' ? 'Uitgeschakeld (Privé)' : 'Disabled (Private)')}
                       </h4>
                       {isActive && (
                         <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300">
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                          <span>Zichtbaar</span>
+                          <span>{lang === 'nl' ? 'Zichtbaar' : 'Live'}</span>
                         </span>
                       )}
                     </div>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                       {isActive
-                        ? 'Iedereen met de unieke link kan dit verkoopdossier zonder inlogaccount bekijken.'
-                        : 'De pagina is momenteel niet toegankelijk voor bezoekers (geeft 404).'}
+                        ? (lang === 'nl'
+                            ? 'Iedereen met de unieke link kan dit verkoopdossier zonder inlogaccount bekijken.'
+                            : 'Anyone with this unique link can view this showcase dossier without logging in.')
+                        : (lang === 'nl'
+                            ? 'De pagina is momenteel niet toegankelijk voor bezoekers (geeft 404).'
+                            : 'This public page is currently disabled.')}
                     </p>
                   </div>
                 </div>
@@ -421,7 +429,7 @@ export const ShowcaseManagerModal: React.FC<ShowcaseManagerModalProps> = ({
                       className="h-10 px-4 bg-accent-600 hover:bg-accent-700 text-white rounded-xl text-xs font-bold inline-flex items-center space-x-1.5 transition shrink-0 shadow-xs"
                     >
                       <ExternalLink className="w-4 h-4" />
-                      <span>Bekijken</span>
+                      <span>{lang === 'nl' ? 'Bekijken' : 'View Public'}</span>
                     </a>
                   </div>
                 </div>
@@ -432,10 +440,12 @@ export const ShowcaseManagerModal: React.FC<ShowcaseManagerModalProps> = ({
                 <div>
                   <h4 className="text-sm font-bold text-blue-950 dark:text-blue-100 flex items-center space-x-2">
                     <Download className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                    <span>Standalone Website Exporteren (ZIP)</span>
+                    <span>{lang === 'nl' ? 'Standalone Website Exporteren (ZIP)' : 'Export Standalone Website (ZIP)'}</span>
                   </h4>
                   <p className="text-xs text-blue-800/80 dark:text-blue-300 mt-1 max-w-xl leading-relaxed">
-                    Download een kant-en-klaar HTML/CSS/JS pakket inclusief alle foto's. Direct geschikt om op een eigen domein, hosting of dealerportal te uploaden.
+                    {lang === 'nl'
+                      ? "Download een kant-en-klaar HTML/CSS/JS pakket inclusief alle foto's. Direct geschikt om op een eigen domein, hosting of dealerportal te uploaden."
+                      : "Download a static zero-dependency HTML/CSS/JS package including all photos. Ready to host on GitHub Pages or any web server."}
                   </p>
                 </div>
                 <button
@@ -444,7 +454,7 @@ export const ShowcaseManagerModal: React.FC<ShowcaseManagerModalProps> = ({
                   className="h-10 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold inline-flex items-center space-x-2 transition shrink-0 shadow-xs hover:scale-[1.02]"
                 >
                   <Download className="w-4 h-4" />
-                  <span>Download ZIP Pakket</span>
+                  <span>{lang === 'nl' ? 'Download ZIP Pakket' : 'Download Static Website (ZIP)'}</span>
                 </button>
               </div>
 
