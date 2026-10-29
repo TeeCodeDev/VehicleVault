@@ -12,12 +12,12 @@ export interface AccentColorOption {
 }
 
 export const ACCENT_COLOR_OPTIONS: AccentColorOption[] = [
-  { id: 'indigo', name: 'Indigo (Klassiek)', enName: 'Indigo (Classic)', previewBg: 'bg-indigo-600', dotColor: '#4f46e5' },
-  { id: 'sky', name: 'Blauw (Azure)', enName: 'Sky (Azure)', previewBg: 'bg-sky-500', dotColor: '#0ea5e9' },
-  { id: 'emerald', name: 'Groen (Emerald)', enName: 'Emerald (Green)', previewBg: 'bg-emerald-600', dotColor: '#059669' },
-  { id: 'amber', name: 'Oranje (Amber)', enName: 'Amber (Orange)', previewBg: 'bg-amber-500', dotColor: '#f59e0b' },
-  { id: 'rose', name: 'Rood (Rose)', enName: 'Rose (Red)', previewBg: 'bg-rose-600', dotColor: '#e11d48' },
-  { id: 'violet', name: 'Paars (Violet)', enName: 'Violet (Purple)', previewBg: 'bg-violet-600', dotColor: '#7c3aed' },
+  { id: 'indigo', name: 'Koningsblauw', enName: 'Royal Blue', previewBg: 'bg-blue-600', dotColor: '#2563eb' },
+  { id: 'sky', name: 'Hemelsblauw', enName: 'Sky Blue', previewBg: 'bg-sky-500', dotColor: '#0ea5e9' },
+  { id: 'emerald', name: 'Smaragdgroen', enName: 'Emerald Green', previewBg: 'bg-emerald-600', dotColor: '#059669' },
+  { id: 'amber', name: 'Warm Oranje', enName: 'Warm Orange', previewBg: 'bg-orange-500', dotColor: '#ea580c' },
+  { id: 'rose', name: 'Robijnrood', enName: 'Ruby Red', previewBg: 'bg-rose-600', dotColor: '#e11d48' },
+  { id: 'violet', name: 'Dieppaars', enName: 'Deep Purple', previewBg: 'bg-purple-600', dotColor: '#9333ea' },
 ];
 
 interface ThemeContextType {

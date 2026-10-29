@@ -16,28 +16,30 @@
     --text-primary: #0f172a;
     --text-secondary: #64748b;
 
-    /* Default Accent Color: Indigo */
-    --accent-50: #eef2ff;
-    --accent-100: #e0e7ff;
-    --accent-200: #c7d2fe;
-    --accent-500: #6366f1;
-    --accent-600: #4f46e5;
-    --accent-700: #4338ca;
-    --accent-ring: rgba(79, 70, 229, 0.2);
+    /* Default Accent Color: Koningsblauw (Royal Blue) */
+    --accent-50: #eff6ff;
+    --accent-100: #dbeafe;
+    --accent-200: #bfdbfe;
+    --accent-500: #3b82f6;
+    --accent-600: #2563eb;
+    --accent-700: #1d4ed8;
+    --accent-ring: rgba(37, 99, 235, 0.2);
   }
 
   /* Accent Color Variants */
   [data-accent="indigo"] {
-    --accent-50: #eef2ff;
-    --accent-100: #e0e7ff;
-    --accent-200: #c7d2fe;
-    --accent-500: #6366f1;
-    --accent-600: #4f46e5;
-    --accent-700: #4338ca;
-    --accent-ring: rgba(79, 70, 229, 0.2);
+    /* Koningsblauw (Royal Blue) */
+    --accent-50: #eff6ff;
+    --accent-100: #dbeafe;
+    --accent-200: #bfdbfe;
+    --accent-500: #3b82f6;
+    --accent-600: #2563eb;
+    --accent-700: #1d4ed8;
+    --accent-ring: rgba(37, 99, 235, 0.2);
   }
 
   [data-accent="sky"] {
+    /* Hemelsblauw (Sky / Azure) */
     --accent-50: #f0f9ff;
     --accent-100: #e0f2fe;
     --accent-200: #bae6fd;
@@ -48,6 +50,7 @@
   }
 
   [data-accent="emerald"] {
+    /* Smaragdgroen (Emerald Green) */
     --accent-50: #ecfdf5;
     --accent-100: #d1fae5;
     --accent-200: #a7f3d0;
@@ -58,16 +61,18 @@
   }
 
   [data-accent="amber"] {
-    --accent-50: #fffbeb;
-    --accent-100: #fef3c7;
-    --accent-200: #fde68a;
-    --accent-500: #f59e0b;
-    --accent-600: #d97706;
-    --accent-700: #b45309;
-    --accent-ring: rgba(217, 119, 6, 0.2);
+    /* Warm Oranje (Warm / Racing Orange) */
+    --accent-50: #fff7ed;
+    --accent-100: #ffedd5;
+    --accent-200: #fed7aa;
+    --accent-500: #f97316;
+    --accent-600: #ea580c;
+    --accent-700: #c2410c;
+    --accent-ring: rgba(234, 88, 12, 0.2);
   }
 
   [data-accent="rose"] {
+    /* Robijnrood (Ruby / Sport Red) */
     --accent-50: #fff1f2;
     --accent-100: #ffe4e6;
     --accent-200: #fecdd3;
@@ -78,13 +83,14 @@
   }
 
   [data-accent="violet"] {
-    --accent-50: #f5f3ff;
-    --accent-100: #ede9fe;
-    --accent-200: #ddd6fe;
-    --accent-500: #8b5cf6;
-    --accent-600: #7c3aed;
-    --accent-700: #6d28d9;
-    --accent-ring: rgba(124, 58, 237, 0.2);
+    /* Dieppaars (True Vibrant Purple) */
+    --accent-50: #faf5ff;
+    --accent-100: #f3e8ff;
+    --accent-200: #e9d5ff;
+    --accent-500: #a855f7;
+    --accent-600: #9333ea;
+    --accent-700: #7e22ce;
+    --accent-ring: rgba(147, 51, 234, 0.2);
   }
 
   .dark {
