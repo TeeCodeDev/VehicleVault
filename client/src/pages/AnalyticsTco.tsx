@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useOutletContext, Link } from 'react-router-dom';
+import { useOutletContext } from 'react-router-dom';
 import {
   LineChart as LineChartIcon,
   Coins,
@@ -430,37 +430,6 @@ export const AnalyticsTco: React.FC = () => {
           )}
         </div>
       </div>
-
-      {/* Vaste Lasten Link & Status Banner */}
-      {tco && (tco.monthlyFixedCost ?? 0) > 0 && (
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center space-x-3">
-            <div className="w-9 h-9 rounded-xl bg-accent-50 dark:bg-accent-100/10 text-accent-600 dark:text-accent-400 flex items-center justify-center shrink-0">
-              <Landmark className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center space-x-2">
-                <span>{lang === 'nl' ? 'Vaste Lasten & Periodieke Kosten' : 'Fixed Recurring Expenses'}</span>
-                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                  € {(tco.monthlyFixedCost ?? 0).toFixed(2)} / mnd
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                {includeFixedExpenses
-                  ? (lang === 'nl' ? 'Actieve vaste lasten zijn meegenomen in de totale kilometerkostprijs en het maandbudget.' : 'Active fixed expenses are included in total cost and cost/km.')
-                  : (lang === 'nl' ? 'Vaste lasten zijn momenteel uitgesloten van de berekening via de bovenstaande knop.' : 'Fixed expenses are currently excluded via the filter toggle above.')}
-              </p>
-            </div>
-          </div>
-          <Link
-            to="/fixed-expenses"
-            className="text-xs font-bold text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300 inline-flex items-center space-x-1 shrink-0 px-3 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-accent-300 transition"
-          >
-            <span>{lang === 'nl' ? 'Vaste lasten beheren' : 'Manage fixed expenses'}</span>
-            <span>&rarr;</span>
-          </Link>
-        </div>
-      )}
 
       {/* Visualisaties (Recharts) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

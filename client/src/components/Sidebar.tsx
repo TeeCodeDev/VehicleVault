@@ -23,11 +23,11 @@ export const Sidebar: React.FC = () => {
   const fullNavItems = [
     { label: t('dashboard'), path: '/', icon: LayoutDashboard },
     { label: t('myGarage'), path: '/vehicles', icon: Car },
-    { label: t('fixedExpenses') || 'Vaste Lasten', path: '/fixed-expenses', icon: Landmark },
     { label: t('fuel'), path: '/fuel', icon: Fuel },
     { label: t('trips') || 'Ritregistratie', path: '/trips', icon: Route },
     { label: t('maintenance'), path: '/maintenance', icon: Wrench },
     { label: t('tires') || 'Bandenbeheer', path: '/tires', icon: Disc },
+    { label: t('fixedExpenses') || 'Vaste Lasten', path: '/fixed-expenses', icon: Landmark },
     { label: t('documents'), path: '/documents', icon: FolderLock },
     { label: t('analytics'), path: '/analytics', icon: LineChart },
   ];
@@ -95,7 +95,7 @@ export const Sidebar: React.FC = () => {
               <span>VehicleVault</span>
             </div>
             <span className="text-emerald-600 dark:text-emerald-400 text-[10px] px-1.5 py-0.2 rounded bg-emerald-100 dark:bg-emerald-950/60 font-mono">
-              v1.0.22
+              v1.0.23
             </span>
           </div>
           <p className="text-[10px] text-slate-500 leading-tight">Self-Hosted PWA &amp; Model Context Protocol</p>
