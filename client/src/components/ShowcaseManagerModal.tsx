@@ -231,19 +231,21 @@ export const ShowcaseManagerModal: React.FC<ShowcaseManagerModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs">
       <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden">
         {/* Modal Header */}
-        <div className="px-6 py-4.5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between shrink-0 bg-slate-50/50 dark:bg-slate-950/40">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-accent-100 dark:bg-accent-950 text-accent-600 dark:text-accent-400 flex items-center justify-center">
+        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between shrink-0 bg-slate-50/70 dark:bg-slate-950/40">
+          <div className="flex items-center space-x-3.5">
+            <div className="w-10 h-10 rounded-2xl bg-accent-100 dark:bg-accent-950/70 text-accent-600 dark:text-accent-400 flex items-center justify-center shrink-0 border border-accent-200/80 dark:border-accent-800 shadow-2xs">
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-black text-slate-900 dark:text-white flex items-center space-x-2">
-                <span>Verkooppagina & Showcase Dossier</span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
+              <div className="flex items-center space-x-2">
+                <h2 className="text-base font-black text-slate-900 dark:text-white leading-tight">
+                  Verkooppagina &amp; Showcase Dossier
+                </h2>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-accent-50 text-accent-700 dark:bg-accent-950/60 dark:text-accent-300 border border-accent-200/70 dark:border-accent-800">
                   v2.0
                 </span>
-              </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                 {vehicleName} &bull; Beheer openbare pagina, multi-foto galerij en standalone website export
               </p>
             </div>
@@ -251,48 +253,52 @@ export const ShowcaseManagerModal: React.FC<ShowcaseManagerModalProps> = ({
 
           <button
             onClick={onClose}
-            className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+            className="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition shrink-0"
+            title="Sluiten"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Segmented Tabs */}
-        <div className="px-6 pt-3 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex space-x-2 shrink-0">
+        {/* Segmented Navigation Tabs */}
+        <div className="px-6 py-2.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/40 flex items-center space-x-2 shrink-0">
           <button
+            type="button"
             onClick={() => setActiveTab('link')}
-            className={`pb-3 px-3 text-xs font-bold border-b-2 transition flex items-center space-x-2 ${
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold inline-flex items-center space-x-2 transition ${
               activeTab === 'link'
-                ? 'border-accent-600 text-accent-600 dark:text-accent-400 dark:border-accent-400'
-                : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                ? 'bg-accent-600 text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-800'
             }`}
           >
-            <LinkIcon className="w-4 h-4" />
-            <span>Publieke Link & Verkoop</span>
+            <LinkIcon className="w-3.5 h-3.5" />
+            <span>Publieke Link &amp; Verkoop</span>
           </button>
 
           <button
+            type="button"
             onClick={() => setActiveTab('photos')}
-            className={`pb-3 px-3 text-xs font-bold border-b-2 transition flex items-center space-x-2 ${
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold inline-flex items-center space-x-2 transition ${
               activeTab === 'photos'
-                ? 'border-accent-600 text-accent-600 dark:text-accent-400 dark:border-accent-400'
-                : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                ? 'bg-accent-600 text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-800'
             }`}
           >
-            <Camera className="w-4 h-4" />
+            <Camera className="w-3.5 h-3.5" />
             <span>Fotogalerij ({photos.length})</span>
           </button>
 
           <button
+            type="button"
             onClick={() => setActiveTab('content')}
-            className={`pb-3 px-3 text-xs font-bold border-b-2 transition flex items-center space-x-2 ${
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold inline-flex items-center space-x-2 transition ${
               activeTab === 'content'
-                ? 'border-accent-600 text-accent-600 dark:text-accent-400 dark:border-accent-400'
-                : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                ? 'bg-accent-600 text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-800'
             }`}
           >
-            <ShieldCheck className="w-4 h-4" />
-            <span>Teksten & Transparantie</span>
+            <ShieldCheck className="w-3.5 h-3.5" />
+            <span>Teksten &amp; Transparantie</span>
           </button>
         </div>
 
