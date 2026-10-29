@@ -311,7 +311,7 @@ export class ShowcaseZipService {
         ${showcase.show_tire_status && showcase.tires ? `
         <div class="tires-card" style="margin-top: 2rem;">
           <h4>🛞 Gemonteerde Bandenset</h4>
-          <p><strong>${this.escapeHtml(showcase.tires.name)}</strong> (${this.escapeHtml(showcase.tires.season)} ${showcase.tires.brand_model ? `• ${this.escapeHtml(showcase.tires.brand_model)}` : ''} ${showcase.tires.tire_size ? `• ${this.escapeHtml(showcase.tires.tire_size)}` : ''})</p>
+          <p><strong>${this.escapeHtml(showcase.tires.name)}</strong> (${this.escapeHtml(showcase.tires.season)} ${showcase.tires.brand_model ? `• ${this.escapeHtml(showcase.tires.brand_model)}` : ''} ${showcase.tires.tire_size ? `• ${this.escapeHtml(showcase.tires.tire_size)}` : ''} ${showcase.tires.rim_size ? `• ${this.escapeHtml(showcase.tires.rim_size)} velgen` : ''} ${showcase.tires.speed_index ? `• Index ${this.escapeHtml(showcase.tires.speed_index)}` : ''})</p>
           <div class="tread-depths-grid">
             <div class="depth-item"><span>Linksvoor:</span> <strong>${showcase.tires.tread_depth_fl ? `${showcase.tires.tread_depth_fl} mm` : '—'}</strong></div>
             <div class="depth-item"><span>Rechtsvoor:</span> <strong>${showcase.tires.tread_depth_fr ? `${showcase.tires.tread_depth_fr} mm` : '—'}</strong></div>

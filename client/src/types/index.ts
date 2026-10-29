@@ -292,7 +292,11 @@ export interface TireSet {
   name: string;
   season: 'summer' | 'winter' | 'all_season';
   brand_model: string | null;
+  brand?: string | null;
+  model?: string | null;
   tire_size: string | null;
+  rim_size?: string | null;
+  speed_index?: string | null;
   dot_code: string | null;
   storage_location: string | null;
   status: 'mounted' | 'stored' | 'disposed';

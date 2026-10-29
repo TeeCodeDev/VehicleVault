@@ -310,7 +310,11 @@ export function initializeDatabase(): void {
       name TEXT NOT NULL,
       season TEXT NOT NULL DEFAULT 'summer',
       brand_model TEXT,
+      brand TEXT,
+      model TEXT,
       tire_size TEXT,
+      rim_size TEXT,
+      speed_index TEXT,
       dot_code TEXT,
       storage_location TEXT,
       status TEXT NOT NULL DEFAULT 'mounted',
@@ -327,6 +331,25 @@ export function initializeDatabase(): void {
       FOREIGN KEY (vehicle_id) REFERENCES vehicles(id) ON DELETE CASCADE
     );
   `);
+
+  // Safe migration for tire_sets new columns
+  try {
+    const tireCols = db.query<any>("PRAGMA table_info(tire_sets)").map((c) => c.name);
+    if (!tireCols.includes('brand')) {
+      db.run("ALTER TABLE tire_sets ADD COLUMN brand TEXT");
+    }
+    if (!tireCols.includes('model')) {
+      db.run("ALTER TABLE tire_sets ADD COLUMN model TEXT");
+    }
+    if (!tireCols.includes('rim_size')) {
+      db.run("ALTER TABLE tire_sets ADD COLUMN rim_size TEXT");
+    }
+    if (!tireCols.includes('speed_index')) {
+      db.run("ALTER TABLE tire_sets ADD COLUMN speed_index TEXT");
+    }
+  } catch {
+    // Non-fatal migration check
+  }
 
   // 14. Vehicle multi-photo gallery
   db.exec(`

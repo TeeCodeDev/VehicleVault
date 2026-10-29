@@ -56,7 +56,11 @@ export class TireController {
         name,
         season = 'summer',
         brandModel = '',
+        brand = '',
+        model = '',
         tireSize = '',
+        rimSize = '',
+        speedIndex = '',
         dotCode = '',
         storageLocation = '',
         status = 'stored',
@@ -84,20 +88,31 @@ export class TireController {
       const id = crypto.randomUUID();
       const now = new Date().toISOString();
 
+      const trimmedBrand = brand ? brand.trim() : null;
+      const trimmedModel = model ? model.trim() : null;
+      const computedBrandModel = trimmedBrand
+        ? `${trimmedBrand}${trimmedModel ? ` ${trimmedModel}` : ''}`
+        : (brandModel?.trim() || null);
+
       db.run(
         `INSERT INTO tire_sets (
-          id, vehicle_id, name, season, brand_model, tire_size, dot_code, storage_location,
+          id, vehicle_id, name, season, brand_model, brand, model, tire_size, rim_size, speed_index,
+          dot_code, storage_location,
           status, mounted_odometer, mounted_date, total_km,
           tread_depth_fl, tread_depth_fr, tread_depth_rl, tread_depth_rr,
           last_measured_date, notes, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           id,
           vehicleId,
           name.trim(),
           season,
-          brandModel?.trim() || null,
+          computedBrandModel,
+          trimmedBrand,
+          trimmedModel,
           tireSize?.trim() || null,
+          rimSize?.trim() || null,
+          speedIndex?.trim() || null,
           dotCode?.trim() || null,
           storageLocation?.trim() || null,
           status,
@@ -128,7 +143,11 @@ export class TireController {
         name,
         season,
         brandModel,
+        brand,
+        model,
         tireSize,
+        rimSize,
+        speedIndex,
         dotCode,
         storageLocation,
         status,
@@ -143,7 +162,7 @@ export class TireController {
         notes,
       } = req.body;
 
-      const existing = db.get('SELECT * FROM tire_sets WHERE id = ?', [id]);
+      const existing = db.get<any>('SELECT * FROM tire_sets WHERE id = ?', [id]);
       if (!existing) {
         res.status(404).json({ error: 'Tire set not found' });
         return;
@@ -153,12 +172,25 @@ export class TireController {
         db.run("UPDATE tire_sets SET status = 'stored' WHERE vehicle_id = ? AND status = 'mounted'", [existing.vehicle_id]);
       }
 
+      const updatedBrand = brand !== undefined ? (brand?.trim() || null) : existing.brand;
+      const updatedModel = model !== undefined ? (model?.trim() || null) : existing.model;
+      let updatedBrandModel = existing.brand_model;
+      if (brand !== undefined || model !== undefined) {
+        updatedBrandModel = updatedBrand ? `${updatedBrand}${updatedModel ? ` ${updatedModel}` : ''}` : null;
+      } else if (brandModel !== undefined) {
+        updatedBrandModel = brandModel?.trim() || null;
+      }
+
       db.run(
         `UPDATE tire_sets SET
           name = COALESCE(?, name),
           season = COALESCE(?, season),
-          brand_model = COALESCE(?, brand_model),
+          brand_model = ?,
+          brand = ?,
+          model = ?,
           tire_size = COALESCE(?, tire_size),
+          rim_size = COALESCE(?, rim_size),
+          speed_index = COALESCE(?, speed_index),
           dot_code = COALESCE(?, dot_code),
           storage_location = COALESCE(?, storage_location),
           status = COALESCE(?, status),
@@ -175,8 +207,12 @@ export class TireController {
         [
           name !== undefined ? name.trim() : null,
           season ?? null,
-          brandModel !== undefined ? brandModel.trim() : null,
+          updatedBrandModel,
+          updatedBrand,
+          updatedModel,
           tireSize !== undefined ? tireSize.trim() : null,
+          rimSize !== undefined ? rimSize.trim() : null,
+          speedIndex !== undefined ? speedIndex.trim() : null,
           dotCode !== undefined ? dotCode.trim() : null,
           storageLocation !== undefined ? storageLocation.trim() : null,
           status ?? null,

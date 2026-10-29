@@ -74,8 +74,12 @@ export interface CompiledShowcase {
   tires: {
     name: string;
     brand_model?: string;
+    brand?: string;
+    model?: string;
     season: string;
     tire_size?: string;
+    rim_size?: string;
+    speed_index?: string;
     tread_depth_fl?: number;
     tread_depth_fr?: number;
     tread_depth_rl?: number;
@@ -366,11 +370,18 @@ Om verrassingen achteraf te voorkomen zijn we volledig transparant over de optis
         [vehicleId]
       );
       if (tire) {
+        const fullBrandModel = tire.brand
+          ? `${tire.brand}${tire.model ? ` ${tire.model}` : ''}`
+          : (tire.brand_model || undefined);
         mountedTire = {
           name: tire.name,
-          brand_model: tire.brand_model || undefined,
+          brand_model: fullBrandModel,
+          brand: tire.brand || undefined,
+          model: tire.model || undefined,
           season: tire.season,
           tire_size: tire.tire_size || undefined,
+          rim_size: tire.rim_size || undefined,
+          speed_index: tire.speed_index || undefined,
           tread_depth_fl: tire.tread_depth_fl ?? undefined,
           tread_depth_fr: tire.tread_depth_fr ?? undefined,
           tread_depth_rl: tire.tread_depth_rl ?? undefined,

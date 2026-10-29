@@ -955,6 +955,26 @@ Date,Odometer,Fuel_amount,Price,Total_cost,Notes
       assert.equal(updatedB.status, 'mounted');
       assert.equal(updatedB.mounted_odometer, 18000);
     });
+
+    it('should support separate brand, model, rim size, and load/speed index (e.g. 92V)', () => {
+      const setId = crypto.randomUUID();
+      const now = new Date().toISOString();
+
+      db.run(
+        `INSERT INTO tire_sets (
+          id, vehicle_id, name, season, brand, model, brand_model, tire_size, rim_size, speed_index, status, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [setId, testVehicleId, 'Zomerset 17 inch', 'summer', 'Continental', 'PremiumContact 7', 'Continental PremiumContact 7', '225/45', '17"', '92V', 'mounted', now]
+      );
+
+      const record = db.get<any>('SELECT * FROM tire_sets WHERE id = ?', [setId]);
+      assert.ok(record);
+      assert.equal(record.brand, 'Continental');
+      assert.equal(record.model, 'PremiumContact 7');
+      assert.equal(record.rim_size, '17"');
+      assert.equal(record.speed_index, '92V');
+      assert.equal(record.brand_model, 'Continental PremiumContact 7');
+    });
   });
 
   describe('Fuel Fill-up Export & Module Toggle Configuration Engine', () => {

@@ -49,7 +49,11 @@ export const Tires: React.FC = () => {
   const [name, setName] = useState('');
   const [season, setSeason] = useState<'summer' | 'winter' | 'all_season'>('summer');
   const [brandModel, setBrandModel] = useState('');
+  const [brand, setBrand] = useState('');
+  const [model, setModel] = useState('');
   const [tireSize, setTireSize] = useState('');
+  const [rimSize, setRimSize] = useState('');
+  const [speedIndex, setSpeedIndex] = useState('');
   const [dotCode, setDotCode] = useState('');
   const [storageLocation, setStorageLocation] = useState('');
   const [status, setStatus] = useState<'mounted' | 'stored' | 'disposed'>('stored');
@@ -95,7 +99,11 @@ export const Tires: React.FC = () => {
     setName('');
     setSeason('summer');
     setBrandModel('');
+    setBrand('');
+    setModel('');
     setTireSize('');
+    setRimSize('');
+    setSpeedIndex('');
     setDotCode('');
     setStorageLocation('Bandenhotel');
     setStatus(tireSets.length === 0 ? 'mounted' : 'stored');
@@ -113,7 +121,11 @@ export const Tires: React.FC = () => {
     setName(set.name);
     setSeason(set.season);
     setBrandModel(set.brand_model || '');
+    setBrand(set.brand || (set.brand_model ? set.brand_model.split(' ')[0] : ''));
+    setModel(set.model || (set.brand_model && set.brand_model.includes(' ') ? set.brand_model.substring(set.brand_model.indexOf(' ') + 1) : ''));
     setTireSize(set.tire_size || '');
+    setRimSize(set.rim_size || '');
+    setSpeedIndex(set.speed_index || '');
     setDotCode(set.dot_code || '');
     setStorageLocation(set.storage_location || '');
     setStatus(set.status);
@@ -161,8 +173,12 @@ export const Tires: React.FC = () => {
       const payload = {
         name: name.trim(),
         season,
-        brandModel: brandModel.trim(),
+        brand: brand.trim(),
+        model: model.trim(),
+        brandModel: brand.trim() ? `${brand.trim()}${model.trim() ? ` ${model.trim()}` : ''}` : brandModel.trim(),
         tireSize: tireSize.trim(),
+        rimSize: rimSize.trim(),
+        speedIndex: speedIndex.trim(),
         dotCode: dotCode.trim(),
         storageLocation: storageLocation.trim(),
         status,
@@ -336,9 +352,33 @@ export const Tires: React.FC = () => {
 
               <div>
                 <h2 className="text-xl font-black tracking-tight">{activeMountedSet.name}</h2>
-                <p className="text-xs text-slate-300 font-medium mt-0.5">
-                  {activeMountedSet.brand_model || 'Merk onbekend'} {activeMountedSet.tire_size ? `• ${activeMountedSet.tire_size}` : ''} {activeMountedSet.dot_code ? `• DOT ${activeMountedSet.dot_code}` : ''}
-                </p>
+                <div className="flex flex-wrap items-center gap-2 mt-1">
+                  <span className="text-xs font-bold text-white">
+                    {activeMountedSet.brand 
+                      ? `${activeMountedSet.brand}${activeMountedSet.model ? ` ${activeMountedSet.model}` : ''}`
+                      : (activeMountedSet.brand_model || 'Merk onbekend')}
+                  </span>
+                  {activeMountedSet.tire_size && (
+                    <span className="px-2 py-0.5 rounded-md bg-white/10 text-slate-200 font-mono text-[11px] font-bold border border-white/10">
+                      {activeMountedSet.tire_size}
+                    </span>
+                  )}
+                  {activeMountedSet.rim_size && (
+                    <span className="px-2 py-0.5 rounded-md bg-amber-400/20 text-amber-300 font-mono text-[11px] font-bold border border-amber-400/30">
+                      {activeMountedSet.rim_size} velgen
+                    </span>
+                  )}
+                  {activeMountedSet.speed_index && (
+                    <span className="px-2 py-0.5 rounded-md bg-sky-400/20 text-sky-200 font-mono text-[11px] font-bold border border-sky-400/30" title="Draagkracht & snelheidsindex">
+                      Index: {activeMountedSet.speed_index}
+                    </span>
+                  )}
+                  {activeMountedSet.dot_code && (
+                    <span className="px-2 py-0.5 rounded-md bg-white/10 text-slate-300 font-mono text-[11px] border border-white/10">
+                      DOT {activeMountedSet.dot_code}
+                    </span>
+                  )}
+                </div>
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-1 text-xs">
@@ -524,9 +564,33 @@ export const Tires: React.FC = () => {
 
                   <div>
                     <h3 className="text-sm font-bold text-slate-900 dark:text-white">{set.name}</h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                      {set.brand_model || 'Geen merk opgegeven'} {set.tire_size ? `• ${set.tire_size}` : ''}
+                    <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 mt-0.5">
+                      {set.brand 
+                        ? `${set.brand}${set.model ? ` ${set.model}` : ''}`
+                        : (set.brand_model || 'Geen merk opgegeven')}
                     </p>
+                    <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                      {set.tire_size && (
+                        <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono text-[10px] font-bold border border-slate-200 dark:border-slate-700">
+                          {set.tire_size}
+                        </span>
+                      )}
+                      {set.rim_size && (
+                        <span className="px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400 font-mono text-[10px] font-bold border border-amber-200 dark:border-amber-800/60">
+                          {set.rim_size}
+                        </span>
+                      )}
+                      {set.speed_index && (
+                        <span className="px-1.5 py-0.5 rounded bg-sky-50 dark:bg-sky-950/50 text-sky-700 dark:text-sky-400 font-mono text-[10px] font-bold border border-sky-200 dark:border-sky-800/60" title="Draagkracht- & snelheidsindex">
+                          {set.speed_index}
+                        </span>
+                      )}
+                      {set.dot_code && (
+                        <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-mono text-[10px]">
+                          DOT {set.dot_code}
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-2 text-xs pt-1 border-t border-slate-100 dark:border-slate-800/80">
@@ -687,27 +751,136 @@ export const Tires: React.FC = () => {
                 </div>
               </div>
 
-              {/* Brand & Size */}
-              <div className="grid grid-cols-2 gap-3">
+              {/* Merk & Model apart */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Merk &amp; Model</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Bandenmerk
+                  </label>
                   <input
                     type="text"
-                    placeholder="bijv. Continental PremiumContact 7"
-                    value={brandModel}
-                    onChange={(e) => setBrandModel(e.target.value)}
-                    className="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    list="tire-brands-list"
+                    placeholder="bijv. Continental of Michelin"
+                    value={brand}
+                    onChange={(e) => setBrand(e.target.value)}
+                    className="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500 font-medium"
                   />
+                  <datalist id="tire-brands-list">
+                    <option value="Continental" />
+                    <option value="Michelin" />
+                    <option value="Bridgestone" />
+                    <option value="Goodyear" />
+                    <option value="Pirelli" />
+                    <option value="Hankook" />
+                    <option value="Vredestein" />
+                    <option value="Dunlop" />
+                    <option value="Falken" />
+                    <option value="Yokohama" />
+                    <option value="Nokian" />
+                    <option value="Toyo" />
+                    <option value="Kumho" />
+                    <option value="Uniroyal" />
+                    <option value="Kleber" />
+                    <option value="Nexen" />
+                  </datalist>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Bandenmaat</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Model / Type
+                  </label>
                   <input
                     type="text"
-                    placeholder="bijv. 225/45 R17 91W"
+                    placeholder="bijv. PremiumContact 7 of Primacy 4"
+                    value={model}
+                    onChange={(e) => setModel(e.target.value)}
+                    className="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500 font-medium"
+                  />
+                </div>
+              </div>
+
+              {/* Bandenmaat, Velgmaat & Snelheidsindex */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Bandenmaat
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="bijv. 225/45 of 205/55"
                     value={tireSize}
                     onChange={(e) => setTireSize(e.target.value)}
-                    className="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    className="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500 font-mono"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Velgmaat
+                  </label>
+                  <select
+                    value={rimSize}
+                    onChange={(e) => setRimSize(e.target.value)}
+                    className="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500 font-medium"
+                  >
+                    <option value="">Kies velgmaat...</option>
+                    <option value='13"'>13 inch (13")</option>
+                    <option value='14"'>14 inch (14")</option>
+                    <option value='15"'>15 inch (15")</option>
+                    <option value='16"'>16 inch (16")</option>
+                    <option value='17"'>17 inch (17")</option>
+                    <option value='18"'>18 inch (18")</option>
+                    <option value='19"'>19 inch (19")</option>
+                    <option value='20"'>20 inch (20")</option>
+                    <option value='21"'>21 inch (21")</option>
+                    <option value='22"'>22 inch (22")</option>
+                    <option value='23"'>23 inch (23")</option>
+                    <option value='24"'>24 inch (24")</option>
+                    {rimSize && ![
+                      '13"', '14"', '15"', '16"', '17"', '18"', '19"', '20"', '21"', '22"', '23"', '24"'
+                    ].includes(rimSize) && (
+                      <option value={rimSize}>{rimSize}</option>
+                    )}
+                  </select>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                      Snelheidsindex
+                    </label>
+                    <span className="text-[10px] text-slate-400 font-normal" title="92 = draagvermogen (630 kg), V = snelheid (tot 240 km/u)">
+                      (Load &amp; Speed)
+                    </span>
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="bijv. 92V of 91H"
+                    value={speedIndex}
+                    onChange={(e) => setSpeedIndex(e.target.value.toUpperCase())}
+                    className="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500 font-mono font-bold uppercase"
+                  />
+                </div>
+              </div>
+
+              {/* Informative helper for Snelheidsindex / Draagkracht */}
+              <div className="bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200/70 dark:border-amber-800/40 rounded-xl p-2.5 text-[11px] text-slate-600 dark:text-slate-300 flex items-start space-x-2">
+                <Info className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                <div className="leading-tight">
+                  <span className="font-bold text-slate-800 dark:text-slate-200">Tip over '92V': </span>
+                  <strong>92</strong> is het draagvermogen (max. 630 kg per band) en <strong>V</strong> is de snelheidsindex (geschikt tot 240 km/u).
+                  <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                    <span className="text-[10px] text-slate-400 font-medium">Veelvoorkomend:</span>
+                    {['91H', '91V', '92V', '94W', '98Y'].map((idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setSpeedIndex(idx)}
+                        className="px-1.5 py-0.5 text-[10px] font-mono font-bold bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-md hover:border-amber-500 hover:text-amber-600 transition"
+                      >
+                        {idx}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
