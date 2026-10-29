@@ -41,6 +41,30 @@ function formatLicensePlateDisplay(plate?: string | null): string {
   return clean;
 }
 
+function getVehicleImageUrl(imagePath?: string | null): string | null {
+  if (!imagePath) return null;
+  if (
+    imagePath.startsWith('http://') ||
+    imagePath.startsWith('https://') ||
+    imagePath.startsWith('data:')
+  ) {
+    return imagePath;
+  }
+  if (imagePath.startsWith('/uploads/vehicles/')) {
+    return imagePath;
+  }
+  if (imagePath.startsWith('/uploads/')) {
+    return imagePath.replace('/uploads/', '/uploads/vehicles/');
+  }
+  if (imagePath.startsWith('uploads/vehicles/')) {
+    return `/${imagePath}`;
+  }
+  if (imagePath.startsWith('uploads/')) {
+    return `/uploads/vehicles/${imagePath.replace('uploads/', '')}`;
+  }
+  return `/uploads/vehicles/${imagePath}`;
+}
+
 export const Navbar: React.FC<NavbarProps> = ({
   vehicles,
   selectedVehicleId,
@@ -51,7 +75,12 @@ export const Navbar: React.FC<NavbarProps> = ({
   const { lang, t } = useLanguage();
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const handleImageError = (key: string) => {
+    setFailedImages((prev) => ({ ...prev, [key]: true }));
+  };
 
   const activeVehicle =
     vehicles.find((v) => v.id === selectedVehicleId) || vehicles[0] || null;
@@ -108,10 +137,11 @@ export const Navbar: React.FC<NavbarProps> = ({
               title={lang === 'nl' ? 'Wissel van actief voertuig' : 'Switch active vehicle'}
             >
               {/* Vehicle Avatar / Icon */}
-              {activeVehicle.image_path ? (
+              {getVehicleImageUrl(activeVehicle.image_path) && !failedImages[`active-${activeVehicle.id}`] ? (
                 <img
-                  src={`/uploads/${activeVehicle.image_path}`}
+                  src={getVehicleImageUrl(activeVehicle.image_path)!}
                   alt={activeVehicle.name}
+                  onError={() => handleImageError(`active-${activeVehicle.id}`)}
                   className="w-7 h-7 rounded-lg object-cover border border-slate-200 dark:border-slate-700 shrink-0 shadow-2xs"
                 />
               ) : (
@@ -169,10 +199,11 @@ export const Navbar: React.FC<NavbarProps> = ({
                         }`}
                       >
                         <div className="flex items-center space-x-3 min-w-0">
-                          {v.image_path ? (
+                          {getVehicleImageUrl(v.image_path) && !failedImages[v.id] ? (
                             <img
-                              src={`/uploads/${v.image_path}`}
+                              src={getVehicleImageUrl(v.image_path)!}
                               alt={v.name}
+                              onError={() => handleImageError(v.id)}
                               className="w-9 h-9 rounded-xl object-cover border border-slate-200 dark:border-slate-700 shrink-0"
                             />
                           ) : (
