@@ -11,7 +11,6 @@ import { FuelLog } from './pages/FuelLog.js';
 import { Maintenance } from './pages/Maintenance.js';
 import { Documents } from './pages/Documents.js';
 import { AnalyticsTco } from './pages/AnalyticsTco.js';
-import { Importer } from './pages/Importer.js';
 import { Settings } from './pages/Settings.js';
 import { Login } from './pages/Login.js';
 import { Register } from './pages/Register.js';
@@ -58,7 +57,7 @@ export const App: React.FC = () => {
                 <Route path="maintenance" element={<Maintenance />} />
                 <Route path="documents" element={<Documents />} />
                 <Route path="analytics" element={<AnalyticsTco />} />
-                <Route path="import" element={<Importer />} />
+                <Route path="import" element={<Navigate to="/settings?tab=import" replace />} />
                 <Route path="settings" element={<Settings />} />
               </Route>
 
