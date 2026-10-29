@@ -82,7 +82,7 @@ export class TireController {
 
       // If status is 'mounted', ensure no other tire set is already mounted
       if (status === 'mounted') {
-        db.run('UPDATE tire_sets SET status = "stored" WHERE vehicle_id = ? AND status = "mounted"', [vehicleId]);
+        db.run("UPDATE tire_sets SET status = 'stored' WHERE vehicle_id = ? AND status = 'mounted'", [vehicleId]);
       }
 
       const id = crypto.randomUUID();
@@ -262,12 +262,12 @@ export class TireController {
       if (currentMounted && currentMounted.id !== targetSet.id) {
         const deltaKm = currentMounted.mounted_odometer ? Math.max(0, odo - currentMounted.mounted_odometer) : 0;
         const newTotal = (currentMounted.total_km || 0) + deltaKm;
-        db.run('UPDATE tire_sets SET status = "stored", total_km = ? WHERE id = ?', [newTotal, currentMounted.id]);
+        db.run("UPDATE tire_sets SET status = 'stored', total_km = ? WHERE id = ?", [newTotal, currentMounted.id]);
       }
 
       // Mark target set as mounted
       db.run(
-        'UPDATE tire_sets SET status = "mounted", mounted_odometer = ?, mounted_date = ? WHERE id = ?',
+        "UPDATE tire_sets SET status = 'mounted', mounted_odometer = ?, mounted_date = ? WHERE id = ?",
         [odo, date, id]
       );
 

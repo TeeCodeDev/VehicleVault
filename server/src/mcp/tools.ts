@@ -216,7 +216,7 @@ export async function executeMcpTool(name: string, args: any, userId?: string): 
             triggerReason: i.triggerReason,
           }));
       } else {
-        const vehicles = db.query<any>('SELECT id, name, license_plate FROM vehicles WHERE status = "active"');
+        const vehicles = db.query<any>("SELECT id, name, license_plate FROM vehicles WHERE status = 'active'");
         for (const v of vehicles) {
           const items = MaintenanceService.getVehicleMaintenanceStatus(v.id);
           for (const item of items) {

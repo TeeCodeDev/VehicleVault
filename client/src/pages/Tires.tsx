@@ -105,7 +105,7 @@ export const Tires: React.FC = () => {
     setRimSize('');
     setSpeedIndex('');
     setDotCode('');
-    setStorageLocation('Bandenhotel');
+    setStorageLocation('');
     setStatus(tireSets.length === 0 ? 'mounted' : 'stored');
     setTreadFl('7.5');
     setTreadFr('7.5');
@@ -601,9 +601,13 @@ export const Tires: React.FC = () => {
                       </span>
                     </div>
                     <div>
-                      <span className="text-[10px] text-slate-400 uppercase font-bold block">Opslagplek</span>
+                      <span className="text-[10px] text-slate-400 uppercase font-bold block">
+                        {set.status === 'mounted' ? 'Locatie' : 'Opslagplek'}
+                      </span>
                       <span className="font-semibold text-slate-700 dark:text-slate-300 truncate block">
-                        {set.storage_location || 'Niet gespecificeerd'}
+                        {set.status === 'mounted'
+                          ? 'Gemonteerd op voertuig'
+                          : (set.storage_location || 'Niet gespecificeerd')}
                       </span>
                     </div>
                   </div>
@@ -884,28 +888,53 @@ export const Tires: React.FC = () => {
                 </div>
               </div>
 
-              {/* DOT code & Storage location */}
-              <div className="grid grid-cols-2 gap-3">
+              {/* Status & DOT code */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">DOT Code (Productieweek)</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Status van de set
+                  </label>
+                  <select
+                    value={status}
+                    onChange={(e: any) => setStatus(e.target.value)}
+                    className="w-full text-xs font-bold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  >
+                    <option value="mounted">Momenteel gemonteerd op de auto</option>
+                    <option value="stored">Opgeslagen (in bandenhotel of schuur)</option>
+                    <option value="disposed">Afgedankt / Verkocht</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    DOT Code (Productieweek)
+                  </label>
                   <input
                     type="text"
-                    placeholder="bijv. 2422 (week 24, 2022)"
+                    placeholder="bijv. 2324 (week 23, 2024)"
                     value={dotCode}
                     onChange={(e) => setDotCode(e.target.value)}
                     className="w-full text-xs font-mono bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
                   />
                 </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Opslaglocatie</label>
-                  <input
-                    type="text"
-                    placeholder="bijv. Bandenhotel Euromaster / Schuur"
-                    value={storageLocation}
-                    onChange={(e) => setStorageLocation(e.target.value)}
-                    className="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
-                  />
-                </div>
+              </div>
+
+              {/* Opslaglocatie (alleen relevant bij opslag/wissel) */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  {status === 'mounted' ? 'Opslaglocatie (optioneel na wissel)' : 'Opslaglocatie'}
+                </label>
+                <input
+                  type="text"
+                  placeholder={
+                    status === 'mounted'
+                      ? 'Niet van toepassing (banden zijn nu gemonteerd)'
+                      : 'bijv. Bandenhotel Euromaster / Schuur / Garage'
+                  }
+                  value={storageLocation}
+                  onChange={(e) => setStorageLocation(e.target.value)}
+                  className="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                />
               </div>
 
               {/* Initial Tread Depths */}
@@ -957,20 +986,6 @@ export const Tires: React.FC = () => {
                     />
                   </div>
                 </div>
-              </div>
-
-              {/* Status */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Status van de set</label>
-                <select
-                  value={status}
-                  onChange={(e: any) => setStatus(e.target.value)}
-                  className="w-full text-xs font-bold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
-                >
-                  <option value="mounted">Momenteel gemonteerd op de auto</option>
-                  <option value="stored">Opgeslagen (droog in hotel/schuur)</option>
-                  <option value="disposed">Afgedankt / Verkocht</option>
-                </select>
               </div>
 
               {/* Notes */}

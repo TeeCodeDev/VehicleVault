@@ -975,6 +975,24 @@ Date,Odometer,Fuel_amount,Price,Total_cost,Notes
       assert.equal(record.speed_index, '92V');
       assert.equal(record.brand_model, 'Continental PremiumContact 7');
     });
+
+    it('should safely unmount previous mounted tire set when creating a new mounted set without SQL errors', () => {
+      // Simulate TireController.create logic when status = 'mounted'
+      db.run("UPDATE tire_sets SET status = 'stored' WHERE vehicle_id = ? AND status = 'mounted'", [testVehicleId]);
+      
+      const newMountedId = crypto.randomUUID();
+      const now = new Date().toISOString();
+      db.run(
+        `INSERT INTO tire_sets (
+          id, vehicle_id, name, season, status, created_at
+        ) VALUES (?, ?, ?, ?, 'mounted', ?)`,
+        [newMountedId, testVehicleId, 'Nieuwe Set', 'all_season', now]
+      );
+
+      const mounted = db.get<any>("SELECT * FROM tire_sets WHERE vehicle_id = ? AND status = 'mounted'", [testVehicleId]);
+      assert.ok(mounted);
+      assert.equal(mounted.id, newMountedId);
+    });
   });
 
   describe('Fuel Fill-up Export & Module Toggle Configuration Engine', () => {
