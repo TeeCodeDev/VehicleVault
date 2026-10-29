@@ -73,9 +73,19 @@ export const Settings: React.FC = () => {
   const [generatedKey, setGeneratedKey] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [health, setHealth] = useState<any | null>(null);
+  const [diagnosticsRefreshing, setDiagnosticsRefreshing] = useState(false);
   const { theme, setTheme } = useTheme();
   const { lang, setLang, t } = useLanguage();
   const { refreshAuthStatus } = useAuth();
+
+  const handleRefreshDiagnostics = async () => {
+    setDiagnosticsRefreshing(true);
+    try {
+      await Promise.all([loadHealth(), loadStorageStats()]);
+    } finally {
+      setTimeout(() => setDiagnosticsRefreshing(false), 500);
+    }
+  };
 
   // AI Vision Receipt Scanner State
   const [aiProvider, setAiProvider] = useState<'gemini' | 'openai' | 'none'>('gemini');
@@ -646,7 +656,7 @@ rest:
 `;
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto pb-10">
+    <div className="space-y-6 max-w-7xl mx-auto pb-10">
       {/* Page Header */}
       <div>
         <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center space-x-2">
@@ -737,32 +747,37 @@ rest:
 
       {/* TAB 1: ALGEMEEN */}
       {activeTab === 'general' && (
-        <div className="space-y-6">
-          {/* Appearance & Language */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
-            <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center space-x-2">
-              <Sun className="w-4 h-4 text-amber-500" />
-              <span>{lang === 'nl' ? 'Weergave & Taal' : 'Appearance & Language'}</span>
-            </h2>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+          {/* Weergave & Taal */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-5">
+            <div>
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center space-x-2">
+                <Sun className="w-4 h-4 text-amber-500" />
+                <span>{lang === 'nl' ? 'Weergave & Taal' : 'Appearance & Language'}</span>
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                {lang === 'nl'
+                  ? 'Pas de interface van VehicleVault aan naar jouw persoonlijke voorkeur.'
+                  : 'Customize the appearance and interface language to your preference.'}
+              </p>
+            </div>
 
-            <div className="space-y-3 pt-1">
-              {/* Theme Selector Row */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/50 border border-slate-200/70 dark:border-slate-800/80">
-                <div>
-                  <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center space-x-1.5">
-                    <Sun className="w-3.5 h-3.5 text-amber-500" />
-                    <span>{lang === 'nl' ? 'Kleurthema' : 'Theme'}</span>
-                  </div>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                    {lang === 'nl' ? 'Kies voor een lichte, donkere of automatische weergave.' : 'Choose between light, dark, or automatic system appearance.'}
-                  </p>
+            <div className="space-y-4 pt-1">
+              {/* Theme Selector */}
+              <div className="space-y-2.5 p-4 rounded-xl bg-slate-50 dark:bg-slate-950/50 border border-slate-200/70 dark:border-slate-800/80">
+                <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center space-x-1.5">
+                  <Sun className="w-3.5 h-3.5 text-amber-500" />
+                  <span>{lang === 'nl' ? 'Kleurthema' : 'Color Theme'}</span>
                 </div>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  {lang === 'nl' ? 'Kies voor een lichte, donkere of automatische weergave.' : 'Choose between light, dark, or automatic system appearance.'}
+                </p>
 
-                <div className="inline-flex p-1 bg-slate-200/70 dark:bg-slate-800/80 rounded-xl space-x-1 shrink-0 self-start sm:self-auto shadow-inner">
+                <div className="grid grid-cols-3 gap-1.5 p-1 bg-slate-200/70 dark:bg-slate-800/80 rounded-xl shadow-inner mt-2">
                   <button
                     type="button"
                     onClick={() => setTheme('light')}
-                    className={`inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                    className={`inline-flex items-center justify-center space-x-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition ${
                       theme === 'light'
                         ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
                         : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -775,7 +790,7 @@ rest:
                   <button
                     type="button"
                     onClick={() => setTheme('dark')}
-                    className={`inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                    className={`inline-flex items-center justify-center space-x-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition ${
                       theme === 'dark'
                         ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
                         : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -788,7 +803,7 @@ rest:
                   <button
                     type="button"
                     onClick={() => setTheme('system')}
-                    className={`inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                    className={`inline-flex items-center justify-center space-x-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition ${
                       theme === 'system'
                         ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
                         : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -800,23 +815,21 @@ rest:
                 </div>
               </div>
 
-              {/* Language Selector Row */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/50 border border-slate-200/70 dark:border-slate-800/80">
-                <div>
-                  <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center space-x-1.5">
-                    <Globe className="w-3.5 h-3.5 text-sky-500" />
-                    <span>{lang === 'nl' ? 'Interfacetaal' : 'Interface Language'}</span>
-                  </div>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                    {lang === 'nl' ? 'Stel de taal in voor alle menu’s, overzichten en labels.' : 'Set the interface language for all menus, overviews, and labels.'}
-                  </p>
+              {/* Language Selector */}
+              <div className="space-y-2.5 p-4 rounded-xl bg-slate-50 dark:bg-slate-950/50 border border-slate-200/70 dark:border-slate-800/80">
+                <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center space-x-1.5">
+                  <Globe className="w-3.5 h-3.5 text-sky-500" />
+                  <span>{lang === 'nl' ? 'Interfacetaal' : 'Interface Language'}</span>
                 </div>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  {lang === 'nl' ? 'Stel de taal in voor alle menu’s, overzichten en labels.' : 'Set the interface language for all menus, overviews, and labels.'}
+                </p>
 
-                <div className="inline-flex p-1 bg-slate-200/70 dark:bg-slate-800/80 rounded-xl space-x-1 shrink-0 self-start sm:self-auto shadow-inner">
+                <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-200/70 dark:bg-slate-800/80 rounded-xl shadow-inner mt-2">
                   <button
                     type="button"
                     onClick={() => setLang('nl')}
-                    className={`inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition ${
+                    className={`inline-flex items-center justify-center space-x-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold transition ${
                       lang === 'nl'
                         ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
                         : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -828,7 +841,7 @@ rest:
                   <button
                     type="button"
                     onClick={() => setLang('en')}
-                    className={`inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition ${
+                    className={`inline-flex items-center justify-center space-x-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold transition ${
                       lang === 'en'
                         ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
                         : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -841,38 +854,68 @@ rest:
             </div>
           </div>
 
-          {/* System Information & Health Card */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
-            <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center space-x-2">
-              <Activity className="w-4 h-4 text-emerald-500" />
-              <span>{lang === 'nl' ? 'Systeeminformatie & Status' : 'System Diagnostics'}</span>
-            </h2>
+          {/* Systeeminformatie & Status */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center space-x-2">
+                  <Activity className="w-4 h-4 text-emerald-500" />
+                  <span>{lang === 'nl' ? 'Systeeminformatie & Status' : 'System Diagnostics'}</span>
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  {lang === 'nl' ? 'Actuele status van database, dataopslag en container.' : 'Live status of database, data storage, and container.'}
+                </p>
+              </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-              <div className="p-3 bg-slate-50 dark:bg-slate-950/60 rounded-xl border border-slate-200/70 dark:border-slate-800/80">
+              <span className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60 shrink-0">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>Operationeel</span>
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div className="p-3.5 bg-slate-50 dark:bg-slate-950/60 rounded-xl border border-slate-200/70 dark:border-slate-800/80">
                 <span className="text-[10px] text-slate-400 uppercase font-bold block">{lang === 'nl' ? 'App Versie' : 'App Version'}</span>
                 <span className="font-mono font-bold text-slate-800 dark:text-slate-200 mt-1 block">
-                  {health?.version || 'v1.0.14'}
+                  {health?.version || 'v1.0.20'}
                 </span>
               </div>
-              <div className="p-3 bg-slate-50 dark:bg-slate-950/60 rounded-xl border border-slate-200/70 dark:border-slate-800/80">
+              <div className="p-3.5 bg-slate-50 dark:bg-slate-950/60 rounded-xl border border-slate-200/70 dark:border-slate-800/80">
                 <span className="text-[10px] text-slate-400 uppercase font-bold block">{lang === 'nl' ? 'Database Status' : 'Database Status'}</span>
                 <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 mt-1 block">
-                  {health?.database || 'Connected'}
+                  {health?.database || 'Connected'} (WAL)
                 </span>
               </div>
-              <div className="p-3 bg-slate-50 dark:bg-slate-950/60 rounded-xl border border-slate-200/70 dark:border-slate-800/80">
+              <div className="p-3.5 bg-slate-50 dark:bg-slate-950/60 rounded-xl border border-slate-200/70 dark:border-slate-800/80">
                 <span className="text-[10px] text-slate-400 uppercase font-bold block">{lang === 'nl' ? 'Uptime' : 'Uptime'}</span>
                 <span className="font-mono font-bold text-slate-800 dark:text-slate-200 mt-1 block">
-                  {health?.uptime ? `${Math.floor(health.uptime / 60)} min` : 'Active'}
+                  {health?.uptime ? `${Math.floor(health.uptime / 60)} min` : 'Actief'}
                 </span>
               </div>
-              <div className="p-3 bg-slate-50 dark:bg-slate-950/60 rounded-xl border border-slate-200/70 dark:border-slate-800/80">
-                <span className="text-[10px] text-slate-400 uppercase font-bold block">Opslaglocatie</span>
+              <div className="p-3.5 bg-slate-50 dark:bg-slate-950/60 rounded-xl border border-slate-200/70 dark:border-slate-800/80">
+                <span className="text-[10px] text-slate-400 uppercase font-bold block">Opslagpad (/data)</span>
                 <span className="font-mono font-bold text-slate-800 dark:text-slate-200 mt-1 block truncate" title={storageStats?.dataDir || '/data'}>
                   {storageStats?.dataDir || '/data'}
                 </span>
               </div>
+            </div>
+
+            <div className="p-4 rounded-xl bg-slate-50/80 dark:bg-slate-950/40 border border-slate-200/60 dark:border-slate-800/60 text-xs flex items-center justify-between gap-3">
+              <div>
+                <span className="font-bold text-slate-800 dark:text-slate-200 block">Systeemdiagnostiek</span>
+                <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-0.5">
+                  Vernieuw live status van database, cache en achtergrondtaken.
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={handleRefreshDiagnostics}
+                disabled={diagnosticsRefreshing}
+                className="px-3.5 py-2 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold inline-flex items-center space-x-1.5 border border-slate-200 dark:border-slate-700 shadow-sm transition shrink-0 disabled:opacity-50"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 text-sky-500 ${diagnosticsRefreshing ? 'animate-spin' : ''}`} />
+                <span>{diagnosticsRefreshing ? 'Verversen...' : 'Vernieuwen'}</span>
+              </button>
             </div>
           </div>
         </div>

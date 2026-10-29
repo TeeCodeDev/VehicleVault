@@ -12,3 +12,4 @@ router.put('/:id', ExpenseController.update);
 router.delete('/:id', ExpenseController.delete);
 
 export default router;
+

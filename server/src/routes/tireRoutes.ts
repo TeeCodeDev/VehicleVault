@@ -14,3 +14,4 @@ router.put('/:id', TireController.update);
 router.delete('/:id', TireController.delete);
 
 export default router;
+
