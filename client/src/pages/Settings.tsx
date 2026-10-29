@@ -29,6 +29,8 @@ import {
   Sliders,
   Terminal,
   RefreshCw,
+  X,
+  UserPlus,
 } from 'lucide-react';
 import { ApiKeyItem } from '../types/index.js';
 import { apiFetch } from '../api/client.js';
@@ -78,6 +80,11 @@ export const Settings: React.FC = () => {
   // Users Management State
   const [usersList, setUsersList] = useState<any[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
+  const [isCreateUserModalOpen, setIsCreateUserModalOpen] = useState(false);
+  const [newUserEmail, setNewUserEmail] = useState('');
+  const [newUserRole, setNewUserRole] = useState<'admin' | 'driver' | 'user'>('driver');
+  const [newUserPassword, setNewUserPassword] = useState('');
+  const [creatingUser, setCreatingUser] = useState(false);
 
   // Notifications State
   const [notifProvider, setNotifProvider] = useState<'none' | 'ntfy' | 'gotify' | 'webhook'>('none');
@@ -159,6 +166,31 @@ export const Settings: React.FC = () => {
       await loadUsers();
     } catch (err: any) {
       alert(err?.message || 'Fout bij bijwerken van rol');
+    }
+  };
+
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newUserEmail) return;
+    setCreatingUser(true);
+    try {
+      await apiFetch('/api/auth/users', {
+        method: 'POST',
+        body: JSON.stringify({
+          email: newUserEmail,
+          role: newUserRole,
+          password: newUserPassword || undefined,
+        }),
+      });
+      setIsCreateUserModalOpen(false);
+      setNewUserEmail('');
+      setNewUserPassword('');
+      setNewUserRole('driver');
+      await loadUsers();
+    } catch (err: any) {
+      alert(err?.message || 'Fout bij toevoegen van gebruiker');
+    } finally {
+      setCreatingUser(false);
     }
   };
 
@@ -1054,14 +1086,24 @@ rest:
                   Wijs rollen toe aan gebruikers. Chauffeurs krijgen een vereenvoudigde interface om snel te tanken.
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={loadUsers}
-                className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500 transition"
-                title="Vernieuwen"
-              >
-                <RefreshCw className="w-4 h-4" />
-              </button>
+              <div className="flex items-center space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setIsCreateUserModalOpen(true)}
+                  className="px-3 py-1.5 bg-slate-900 hover:bg-black dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white text-white rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow-sm"
+                >
+                  <UserPlus className="w-3.5 h-3.5" />
+                  <span>Gebruiker Toevoegen</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={loadUsers}
+                  className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500 transition"
+                  title="Vernieuwen"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
             {usersLoading ? (
@@ -1565,6 +1607,91 @@ rest:
                 </label>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create User Modal */}
+      {isCreateUserModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-md shadow-2xl p-6 relative">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 mb-4">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center space-x-2">
+                <UserPlus className="w-4 h-4 text-emerald-500" />
+                <span>Nieuwe Gebruiker Toevoegen</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsCreateUserModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateUser} className="space-y-4 text-xs">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  E-mailadres / Pangolin Gebruiker *
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={newUserEmail}
+                  onChange={(e) => setNewUserEmail(e.target.value)}
+                  placeholder="bijv. test@romanas.nl of naam@domein.nl"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-sky-500"
+                />
+                <p className="text-[10px] text-slate-400 mt-1">
+                  Moet overeenkomen met het e-mailadres waarmee in Pangolin wordt ingelogd.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Toegangsrol *
+                </label>
+                <select
+                  value={newUserRole}
+                  onChange={(e) => setNewUserRole(e.target.value as any)}
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-sky-500 font-semibold"
+                >
+                  <option value="driver">🚗 Chauffeur (Aanbevolen: vereenvoudigde weergave, alleen tanken)</option>
+                  <option value="admin">👑 Beheerder (Volledige toegang tot alles)</option>
+                  <option value="user">👤 Standaard Gebruiker</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Wachtwoord (Optioneel)
+                </label>
+                <input
+                  type="password"
+                  value={newUserPassword}
+                  onChange={(e) => setNewUserPassword(e.target.value)}
+                  placeholder="Minimaal 6 tekens (alleen nodig bij inloggen zonder Pangolin)"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-sky-500"
+                />
+              </div>
+
+              <div className="flex justify-end space-x-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setIsCreateUserModalOpen(false)}
+                  className="px-3.5 py-1.5 text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition font-medium"
+                >
+                  Annuleren
+                </button>
+                <button
+                  type="submit"
+                  disabled={creatingUser || !newUserEmail}
+                  className="px-4 py-1.5 bg-slate-900 hover:bg-black dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white text-white rounded-xl text-xs font-bold transition shadow-sm disabled:opacity-50"
+                >
+                  {creatingUser ? 'Bezig...' : 'Gebruiker Toevoegen'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

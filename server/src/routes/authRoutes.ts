@@ -18,6 +18,7 @@ router.delete('/api-keys/:id', requireAuth, AuthController.deleteApiKey);
 
 // User Management (Admin only)
 router.get('/users', requireAuth, requireAdmin, AuthController.listUsers);
+router.post('/users', requireAuth, requireAdmin, AuthController.createUser);
 router.patch('/users/:id/role', requireAuth, requireAdmin, AuthController.updateUserRole);
 router.delete('/users/:id', requireAuth, requireAdmin, AuthController.deleteUser);
 

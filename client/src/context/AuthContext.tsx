@@ -25,6 +25,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .then((r) => r.json())
         .catch(() => null);
 
+      if (statusRes?.isProxyAuth && statusRes.user) {
+        setUser(statusRes.user);
+        setAuthDisabled(false);
+        setLoading(false);
+        return;
+      }
+
       if (statusRes?.authDisabled) {
         setAuthDisabled(true);
         if (statusRes.user) {

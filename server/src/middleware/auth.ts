@@ -67,51 +67,64 @@ export function getDefaultUser(): AuthenticatedUser {
   }
 }
 
-export function requireAuth(req: Request, res: Response, next: NextFunction): void {
-  // 1. If authentication is disabled (via env DISABLE_AUTH=true or UI setting disable_auth=true)
-  if (isAuthDisabled()) {
-    req.user = getDefaultUser();
-    return next();
-  }
-
-  // 2. Check for reverse proxy authentication headers (Pangolin, Authelia, Authentik, Traefik, Cloudflare Access)
+export function getProxyUser(req: Request): AuthenticatedUser | null {
+  // Check for reverse proxy authentication headers (Pangolin, Authelia, Authentik, Traefik, Cloudflare Access)
   const proxyUserHeader = (
-    req.headers['remote-user'] ||
     req.headers['remote-email'] ||
-    req.headers['x-forwarded-user'] ||
+    req.headers['remote-user'] ||
     req.headers['x-forwarded-email'] ||
+    req.headers['x-forwarded-user'] ||
     req.headers['x-pangolin-user']
   ) as string | undefined;
 
-  if (proxyUserHeader && typeof proxyUserHeader === 'string' && proxyUserHeader.trim().length > 0) {
-    const email = proxyUserHeader.trim().toLowerCase();
-    let user = db.get<{ id: string; email: string; role: string }>(
-      'SELECT id, email, role FROM users WHERE email = ?',
-      [email]
+  if (!proxyUserHeader || typeof proxyUserHeader !== 'string' || proxyUserHeader.trim().length === 0) {
+    return null;
+  }
+
+  const email = proxyUserHeader.trim().toLowerCase();
+  let user = db.get<{ id: string; email: string; role: string }>(
+    'SELECT id, email, role FROM users WHERE email = ?',
+    [email]
+  );
+
+  if (!user) {
+    // Auto-provision user from reverse proxy
+    const userCount = db.get<{ count: number }>('SELECT count(*) as count FROM users')?.count || 0;
+    const groupsHeader = (
+      (req.headers['remote-groups'] || req.headers['x-forwarded-groups'] || req.headers['remote-role']) as string || ''
+    ).toLowerCase();
+    const isAdmin = userCount === 0 || groupsHeader.includes('admin');
+    const role = isAdmin ? 'admin' : 'driver';
+    const newUserId = crypto.randomUUID();
+    const now = new Date().toISOString();
+
+    db.run(
+      'INSERT INTO users (id, email, password_hash, role, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
+      [newUserId, email, 'proxy_auth_placeholder', role, now, now]
     );
+    user = { id: newUserId, email, role };
+  }
 
-    if (!user) {
-      // Auto-provision user from reverse proxy
-      const userCount = db.get<{ count: number }>('SELECT count(*) as count FROM users')?.count || 0;
-      const groupsHeader = ((req.headers['remote-groups'] || req.headers['x-forwarded-groups']) as string || '').toLowerCase();
-      const isAdmin = userCount === 0 || groupsHeader.includes('admin');
-      const role = isAdmin ? 'admin' : 'driver';
-      const newUserId = crypto.randomUUID();
-      const now = new Date().toISOString();
+  return {
+    userId: user.id,
+    email: user.email,
+    role: user.role,
+    isApiKey: false,
+  };
+}
 
-      db.run(
-        'INSERT INTO users (id, email, password_hash, role, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
-        [newUserId, email, 'proxy_auth_placeholder', role, now, now]
-      );
-      user = { id: newUserId, email, role };
-    }
+export function requireAuth(req: Request, res: Response, next: NextFunction): void {
+  // 1. Check for reverse proxy authentication headers (Pangolin, Authelia, Authentik, etc.)
+  // Proxy headers ALWAYS take precedence because the proxy specifies the exact identity of the caller!
+  const proxyUser = getProxyUser(req);
+  if (proxyUser) {
+    req.user = proxyUser;
+    return next();
+  }
 
-    req.user = {
-      userId: user.id,
-      email: user.email,
-      role: user.role,
-      isApiKey: false,
-    };
+  // 2. If authentication is disabled (via env DISABLE_AUTH=true or UI setting disable_auth=true)
+  if (isAuthDisabled()) {
+    req.user = getDefaultUser();
     return next();
   }
 

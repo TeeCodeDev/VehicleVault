@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import { Request, Response } from 'express';
 import { z } from 'zod';
 import { db } from '../db/database.js';
-import { isAuthDisabled, getDefaultUser } from '../middleware/auth.js';
+import { isAuthDisabled, getDefaultUser, getProxyUser } from '../middleware/auth.js';
 import {
   hashPassword,
   comparePassword,
@@ -181,12 +181,23 @@ export class AuthController {
     }
   }
 
-  public static async status(_req: Request, res: Response): Promise<void> {
+  public static async status(req: Request, res: Response): Promise<void> {
     try {
+      const proxyUser = getProxyUser(req);
+      if (proxyUser) {
+        res.json({
+          authDisabled: false,
+          isProxyAuth: true,
+          user: proxyUser,
+        });
+        return;
+      }
+
       const disabled = isAuthDisabled();
       const user = disabled ? getDefaultUser() : null;
       res.json({
         authDisabled: disabled,
+        isProxyAuth: false,
         user,
       });
     } catch (err: any) {
@@ -264,6 +275,48 @@ export class AuthController {
     } catch (err: any) {
       console.error('Delete API key error:', err);
       res.status(500).json({ error: 'API key verwijderen mislukt' });
+    }
+  }
+
+  public static async createUser(req: Request, res: Response): Promise<void> {
+    try {
+      const schema = z.object({
+        email: z.string().email(),
+        role: z.enum(['admin', 'driver', 'user']).default('driver'),
+        password: z.string().min(6).optional(),
+      });
+
+      const parse = schema.safeParse(req.body);
+      if (!parse.success) {
+        res.status(400).json({ error: parse.error.issues[0].message });
+        return;
+      }
+
+      const { email, role, password } = parse.data;
+      const cleanEmail = email.trim().toLowerCase();
+
+      const existing = db.get('SELECT id FROM users WHERE email = ?', [cleanEmail]);
+      if (existing) {
+        res.status(409).json({ error: 'Er bestaat al een gebruiker met dit e-mailadres' });
+        return;
+      }
+
+      const userId = crypto.randomUUID();
+      const passwordHash = password ? await hashPassword(password) : 'proxy_auth_placeholder';
+      const now = new Date().toISOString();
+
+      db.run(
+        'INSERT INTO users (id, email, password_hash, role, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
+        [userId, cleanEmail, passwordHash, role, now, now]
+      );
+
+      res.status(201).json({
+        success: true,
+        user: { id: userId, email: cleanEmail, role, created_at: now },
+      });
+    } catch (err: any) {
+      console.error('Create user error:', err);
+      res.status(500).json({ error: err?.message || 'Gebruiker aanmaken mislukt' });
     }
   }
 
