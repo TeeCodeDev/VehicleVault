@@ -34,11 +34,12 @@ import {
   FileSpreadsheet,
   Table,
   AlertTriangle,
+  Palette,
 } from 'lucide-react';
 import { ApiKeyItem, Vehicle } from '../types/index.js';
 import { useOutletContext, useSearchParams } from 'react-router-dom';
 import { apiFetch } from '../api/client.js';
-import { useTheme } from '../context/ThemeContext.js';
+import { useTheme, ACCENT_COLOR_OPTIONS } from '../context/ThemeContext.js';
 import { useLanguage } from '../context/LanguageContext.js';
 import { useAuth } from '../context/AuthContext.js';
 import { formatDisplayDate } from '../utils/format.js';
@@ -74,7 +75,7 @@ export const Settings: React.FC = () => {
   const [copied, setCopied] = useState(false);
   const [health, setHealth] = useState<any | null>(null);
   const [diagnosticsRefreshing, setDiagnosticsRefreshing] = useState(false);
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, accentColor, setAccentColor } = useTheme();
   const { lang, setLang, t } = useLanguage();
   const { refreshAuthStatus } = useAuth();
 
@@ -676,11 +677,11 @@ rest:
           onClick={() => handleTabClick('general')}
           className={`px-3.5 py-2 rounded-xl text-xs font-bold inline-flex items-center space-x-2 transition shrink-0 ${
             activeTab === 'general'
-              ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-sm'
+              ? 'bg-accent-600 text-white shadow-sm'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60'
           }`}
         >
-          <Sliders className="w-4 h-4 text-sky-400" />
+          <Sliders className="w-4 h-4" />
           <span>Algemeen</span>
         </button>
 
@@ -688,11 +689,11 @@ rest:
           onClick={() => handleTabClick('ai')}
           className={`px-3.5 py-2 rounded-xl text-xs font-bold inline-flex items-center space-x-2 transition shrink-0 ${
             activeTab === 'ai'
-              ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-sm'
+              ? 'bg-accent-600 text-white shadow-sm'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60'
           }`}
         >
-          <Sparkles className="w-4 h-4 text-amber-400" />
+          <Sparkles className="w-4 h-4" />
           <span>AI Bonherkenning</span>
         </button>
 
@@ -700,11 +701,11 @@ rest:
           onClick={() => handleTabClick('users')}
           className={`px-3.5 py-2 rounded-xl text-xs font-bold inline-flex items-center space-x-2 transition shrink-0 ${
             activeTab === 'users'
-              ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-sm'
+              ? 'bg-accent-600 text-white shadow-sm'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60'
           }`}
         >
-          <Users className="w-4 h-4 text-emerald-400" />
+          <Users className="w-4 h-4" />
           <span>Gebruikers &amp; Toegang</span>
         </button>
 
@@ -712,11 +713,11 @@ rest:
           onClick={() => handleTabClick('notifications')}
           className={`px-3.5 py-2 rounded-xl text-xs font-bold inline-flex items-center space-x-2 transition shrink-0 ${
             activeTab === 'notifications'
-              ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-sm'
+              ? 'bg-accent-600 text-white shadow-sm'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60'
           }`}
         >
-          <Bell className="w-4 h-4 text-purple-400" />
+          <Bell className="w-4 h-4" />
           <span>Notificaties &amp; Home Assistant</span>
         </button>
 
@@ -724,11 +725,11 @@ rest:
           onClick={() => handleTabClick('backup')}
           className={`px-3.5 py-2 rounded-xl text-xs font-bold inline-flex items-center space-x-2 transition shrink-0 ${
             activeTab === 'backup'
-              ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-sm'
+              ? 'bg-accent-600 text-white shadow-sm'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60'
           }`}
         >
-          <Database className="w-4 h-4 text-rose-400" />
+          <Database className="w-4 h-4" />
           <span>Database &amp; Backups</span>
         </button>
 
@@ -736,11 +737,11 @@ rest:
           onClick={() => handleTabClick('import')}
           className={`px-3.5 py-2 rounded-xl text-xs font-bold inline-flex items-center space-x-2 transition shrink-0 ${
             activeTab === 'import'
-              ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-sm'
+              ? 'bg-accent-600 text-white shadow-sm'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60'
           }`}
         >
-          <FileSpreadsheet className="w-4 h-4 text-blue-400" />
+          <FileSpreadsheet className="w-4 h-4" />
           <span>Gegevens Importeren</span>
         </button>
       </div>
@@ -849,6 +850,52 @@ rest:
                   >
                     <span>🇬🇧 English</span>
                   </button>
+                </div>
+              </div>
+
+              {/* Accent Color Selector */}
+              <div className="space-y-2.5 p-4 rounded-xl bg-slate-50 dark:bg-slate-950/50 border border-slate-200/70 dark:border-slate-800/80">
+                <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center space-x-1.5">
+                  <Palette className="w-3.5 h-3.5 text-accent-500" />
+                  <span>{lang === 'nl' ? 'Accentkleur' : 'Accent Color'}</span>
+                </div>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  {lang === 'nl'
+                    ? 'Kies jouw favoriete accentkleur voor knoppen, navigatie en actieve selecties.'
+                    : 'Choose your favorite accent color for buttons, navigation, and active highlights.'}
+                </p>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
+                  {ACCENT_COLOR_OPTIONS.map((opt) => {
+                    const isSelected = accentColor === opt.id;
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setAccentColor(opt.id)}
+                        className={`flex items-center space-x-2.5 p-2 rounded-xl border text-left transition ${
+                          isSelected
+                            ? 'bg-white dark:bg-slate-900 border-accent-500 shadow-sm ring-2 ring-accent-500/30'
+                            : 'bg-white/60 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+                        }`}
+                      >
+                        <span
+                          className="w-4 h-4 rounded-full shrink-0 shadow-sm flex items-center justify-center ring-1 ring-black/10"
+                          style={{ backgroundColor: opt.dotColor }}
+                        >
+                          {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-white"></span>}
+                        </span>
+                        <div className="min-w-0">
+                          <div className={`text-xs font-bold truncate ${isSelected ? 'text-slate-900 dark:text-white' : 'text-slate-700 dark:text-slate-300'}`}>
+                            {lang === 'nl' ? opt.name.split(' ')[0] : opt.enName.split(' ')[0]}
+                          </div>
+                          <div className="text-[9px] text-slate-400 truncate">
+                            {lang === 'nl' ? opt.name : opt.enName}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>

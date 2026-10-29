@@ -296,7 +296,7 @@ export const Tires: React.FC = () => {
 
         <button
           onClick={openCreateModal}
-          className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold inline-flex items-center space-x-2 shadow-sm transition self-start md:self-auto"
+          className="px-4 py-2 bg-accent-600 hover:bg-accent-700 text-white rounded-xl text-xs font-bold inline-flex items-center space-x-2 shadow-sm transition self-start md:self-auto"
         >
           <Plus className="w-4 h-4" />
           <span>Bandenset Toevoegen</span>
@@ -824,7 +824,7 @@ export const Tires: React.FC = () => {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-4 py-2 text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white rounded-xl shadow-sm transition disabled:opacity-50"
+                  className="px-4 py-2 text-xs font-bold bg-accent-600 hover:bg-accent-700 text-white rounded-xl shadow-sm transition disabled:opacity-50"
                 >
                   {saving ? 'Opslaan...' : 'Bandenset Opslaan'}
                 </button>
@@ -901,7 +901,7 @@ export const Tires: React.FC = () => {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-4 py-2 text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white rounded-xl shadow-sm transition disabled:opacity-50"
+                  className="px-4 py-2 text-xs font-bold bg-accent-600 hover:bg-accent-700 text-white rounded-xl shadow-sm transition disabled:opacity-50"
                 >
                   {saving ? 'Wisselen...' : 'Wissel Bevestigen'}
                 </button>
@@ -998,7 +998,7 @@ export const Tires: React.FC = () => {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-4 py-2 text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white rounded-xl shadow-sm transition disabled:opacity-50"
+                  className="px-4 py-2 text-xs font-bold bg-accent-600 hover:bg-accent-700 text-white rounded-xl shadow-sm transition disabled:opacity-50"
                 >
                   {saving ? 'Opslaan...' : 'Meting Opslaan'}
                 </button>

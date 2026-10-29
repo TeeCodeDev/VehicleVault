@@ -8,6 +8,14 @@ export default {
   theme: {
     extend: {
       colors: {
+        accent: {
+          50: 'var(--accent-50)',
+          100: 'var(--accent-100)',
+          200: 'var(--accent-200)',
+          500: 'var(--accent-500)',
+          600: 'var(--accent-600)',
+          700: 'var(--accent-700)',
+        },
         brand: {
           50: '#f8fafc',
           100: '#f1f5f9',
@@ -26,4 +34,3 @@ export default {
   },
   plugins: [],
 }
-

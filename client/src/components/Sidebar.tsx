@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard,
   Car,
+  Landmark,
   Fuel,
   Wrench,
   FolderLock,
@@ -22,6 +23,7 @@ export const Sidebar: React.FC = () => {
   const fullNavItems = [
     { label: t('dashboard'), path: '/', icon: LayoutDashboard },
     { label: t('myGarage'), path: '/vehicles', icon: Car },
+    { label: t('fixedExpenses') || 'Vaste Lasten', path: '/fixed-expenses', icon: Landmark },
     { label: t('fuel'), path: '/fuel', icon: Fuel },
     { label: t('trips') || 'Ritregistratie', path: '/trips', icon: Route },
     { label: t('maintenance'), path: '/maintenance', icon: Wrench },
@@ -39,46 +41,49 @@ export const Sidebar: React.FC = () => {
   const navItems = isDriver ? driverNavItems : fullNavItems;
 
   return (
-    <aside className="w-60 shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 p-3.5 hidden md:flex flex-col justify-between transition-colors">
-      <nav className="space-y-1.5">
+    <aside className="w-60 shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 p-3 hidden md:flex flex-col justify-between transition-colors h-full overflow-hidden">
+      {/* Scrollable Navigation List */}
+      <div className="flex-1 overflow-y-auto pr-1 space-y-1.5 scrollbar-thin">
         <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-3 py-1">
           {isDriver ? 'Chauffeur Modus' : t('appTitle')}
         </div>
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          return (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              className={({ isActive }) =>
-                `flex items-center space-x-3 px-3 py-2 rounded-lg text-xs font-semibold transition ${
-                  isActive
-                    ? 'bg-slate-900 text-white dark:bg-slate-800 dark:text-slate-100 shadow-sm'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
-                }`
-              }
-            >
-              <Icon className="w-4 h-4 shrink-0" />
-              <span>{item.label}</span>
-            </NavLink>
-          );
-        })}
-      </nav>
+        <nav className="space-y-1">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                className={({ isActive }) =>
+                  `flex items-center space-x-3 px-3 py-2 rounded-xl text-xs font-semibold transition ${
+                    isActive
+                      ? 'bg-accent-600 text-white shadow-sm font-bold'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
+                  }`
+                }
+              >
+                <Icon className="w-4 h-4 shrink-0" />
+                <span>{item.label}</span>
+              </NavLink>
+            );
+          })}
+        </nav>
+      </div>
 
-      {/* Bottom Section: Settings Button & App Version */}
-      <div className="space-y-2">
+      {/* Bottom Section: Always Visible & Pinned */}
+      <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800 shrink-0 mt-2">
         {!isDriver && (
           <NavLink
             to="/settings"
             className={({ isActive }) =>
-              `flex items-center space-x-3 px-3 py-2 rounded-lg text-xs font-semibold transition ${
+              `flex items-center space-x-3 px-3 py-2 rounded-xl text-xs font-semibold transition ${
                 isActive
-                  ? 'bg-slate-900 text-white dark:bg-slate-800 dark:text-slate-100 shadow-sm'
+                  ? 'bg-accent-600 text-white shadow-sm font-bold'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
               }`
             }
           >
-            <SettingsIcon className="w-4 h-4 shrink-0 text-slate-500" />
+            <SettingsIcon className="w-4 h-4 shrink-0" />
             <span>{t('settings')}</span>
           </NavLink>
         )}
@@ -90,7 +95,7 @@ export const Sidebar: React.FC = () => {
               <span>VehicleVault</span>
             </div>
             <span className="text-emerald-600 dark:text-emerald-400 text-[10px] px-1.5 py-0.2 rounded bg-emerald-100 dark:bg-emerald-950/60 font-mono">
-              v1.0.20
+              v1.0.22
             </span>
           </div>
           <p className="text-[10px] text-slate-500 leading-tight">Self-Hosted PWA &amp; Model Context Protocol</p>

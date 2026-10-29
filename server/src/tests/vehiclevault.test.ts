@@ -28,6 +28,7 @@ import { isAuthDisabled, getDefaultUser } from '../middleware/auth.js';
 import { HaService } from '../services/haService.js';
 import { NotificationService } from '../services/notificationService.js';
 import { BackupService } from '../services/backupService.js';
+import { TripExportService } from '../services/tripExportService.js';
 
 describe('VehicleVault Comprehensive Test Suite', () => {
   let testUserId: string;
@@ -747,7 +748,7 @@ Date,Odometer,Fuel_amount,Price,Total_cost,Notes
       // TCO service calculation without fixed expenses
       const tcoWithoutFixed = TcoService.calculateTco({ vehicleId: testVehicleId, includeFixedExpenses: false });
       assert.equal(tcoWithoutFixed.includeFixedExpenses, false);
-      assert.equal(tcoWithoutFixed.totalCost, tco.totalCost - tco.fixedExpensesTotal);
+      assert.equal(tcoWithoutFixed.totalCost, Math.round((tco.totalCost - tco.fixedExpensesTotal) * 100) / 100);
     });
   });
 
@@ -825,6 +826,30 @@ Date,Odometer,Fuel_amount,Price,Total_cost,Notes
       assert.ok(csvContent.startsWith('\uFEFFDatum;Vertrekadres;Aankomstadres'));
       assert.ok(csvContent.includes('"Amsterdam";"Rotterdam"'));
       assert.ok(csvContent.includes('Zakelijk'));
+    });
+
+    it('should generate an Excel (.xlsx) workbook for trips with summary metrics and formulas', async () => {
+      const trips = db.query<any>('SELECT * FROM trips WHERE vehicle_id = ? ORDER BY date DESC', [testVehicleId]);
+      const vehicle = db.get<any>('SELECT * FROM vehicles WHERE id = ?', [testVehicleId]);
+
+      const buffer = await TripExportService.generateExcel(vehicle, trips, '2026');
+      assert.ok(Buffer.isBuffer(buffer));
+      assert.ok(buffer.length > 1000);
+      assert.equal(buffer[0], 0x50); // 'P'
+      assert.equal(buffer[1], 0x4b); // 'K'
+      assert.equal(buffer[2], 0x03);
+      assert.equal(buffer[3], 0x04);
+    });
+
+    it('should generate a PDF fiscal dossier (landscape A4) for trips', async () => {
+      const trips = db.query<any>('SELECT * FROM trips WHERE vehicle_id = ? ORDER BY date DESC', [testVehicleId]);
+      const vehicle = db.get<any>('SELECT * FROM vehicles WHERE id = ?', [testVehicleId]);
+
+      const buffer = await TripExportService.generatePdf(vehicle, trips, '2026');
+      assert.ok(Buffer.isBuffer(buffer));
+      assert.ok(buffer.length > 1000);
+      const headerStr = buffer.subarray(0, 5).toString('utf-8');
+      assert.equal(headerStr, '%PDF-');
     });
   });
 

@@ -994,7 +994,7 @@ export const FuelLog: React.FC = () => {
             <button
               type="submit"
               disabled={submitting || uploadingReceipt}
-              className="px-5 py-2 bg-slate-900 text-white hover:bg-black dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white rounded-xl font-bold text-xs transition disabled:opacity-50 shadow-sm hover:scale-[1.02]"
+              className="px-5 py-2 bg-accent-600 hover:bg-accent-700 text-white rounded-xl font-bold text-xs transition disabled:opacity-50 shadow-sm hover:scale-[1.02]"
             >
               {submitting || uploadingReceipt ? t('saving') : t('newFuelEntry')}
             </button>
@@ -1419,7 +1419,7 @@ export const FuelLog: React.FC = () => {
                 <button
                   type="submit"
                   disabled={savingEdit}
-                  className="px-4 py-2 bg-slate-900 text-white hover:bg-black dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white rounded-xl text-xs font-bold inline-flex items-center space-x-1.5 transition shadow-sm disabled:opacity-50"
+                  className="px-4 py-2 bg-accent-600 hover:bg-accent-700 text-white rounded-xl text-xs font-bold inline-flex items-center space-x-1.5 transition shadow-sm disabled:opacity-50"
                 >
                   {savingEdit ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
                   <span>{savingEdit ? t('saving') : t('save')}</span>

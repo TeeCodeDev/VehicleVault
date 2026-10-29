@@ -12,6 +12,7 @@ import {
   Car,
   Camera,
   X,
+  Landmark,
 } from 'lucide-react';
 import { Vehicle, VehicleType } from '../types/index.js';
 import { apiFetch } from '../api/client.js';
@@ -273,7 +274,7 @@ export const Vehicles: React.FC = () => {
 
           <button
             onClick={openCreateModal}
-            className="px-4 py-2 bg-slate-900 text-white hover:bg-black dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white rounded-xl text-xs font-bold inline-flex items-center space-x-1.5 transition shadow-sm hover:scale-[1.02]"
+            className="px-4 py-2 bg-accent-600 hover:bg-accent-700 text-white rounded-xl text-xs font-bold inline-flex items-center space-x-1.5 transition shadow-sm hover:scale-[1.02]"
           >
             <Plus className="w-4 h-4" />
             <span>{t('addVehicle')}</span>
@@ -394,12 +395,27 @@ export const Vehicles: React.FC = () => {
                   </button>
                 </div>
 
-                <Link
-                  to={`/analytics?vehicleId=${v.id}`}
-                  className="text-sky-600 dark:text-sky-400 font-bold hover:underline flex items-center space-x-1 text-xs"
-                >
-                  <span>{t('tcoStats')}</span>
-                </Link>
+                <div className="flex items-center space-x-2.5">
+                  <Link
+                    to="/fixed-expenses"
+                    onClick={() => {
+                      localStorage.setItem('vv_active_vehicle', v.id);
+                      window.dispatchEvent(new CustomEvent('vehicle:changed', { detail: { vehicleId: v.id } }));
+                    }}
+                    className="text-slate-500 hover:text-accent-600 dark:hover:text-accent-400 font-semibold text-xs flex items-center space-x-1 transition"
+                    title="Vaste lasten bekijken"
+                  >
+                    <Landmark className="w-3.5 h-3.5 text-accent-500" />
+                    <span>Lasten</span>
+                  </Link>
+                  <span className="text-slate-300 dark:text-slate-700">|</span>
+                  <Link
+                    to={`/analytics?vehicleId=${v.id}`}
+                    className="text-accent-600 dark:text-accent-400 font-bold hover:underline flex items-center space-x-1 text-xs"
+                  >
+                    <span>{t('tcoStats')}</span>
+                  </Link>
+                </div>
               </div>
             </div>
           ))}

@@ -11,6 +11,7 @@ import { FuelLog } from './pages/FuelLog.js';
 import { Maintenance } from './pages/Maintenance.js';
 import { Documents } from './pages/Documents.js';
 import { AnalyticsTco } from './pages/AnalyticsTco.js';
+import { FixedExpenses } from './pages/FixedExpenses.js';
 import { Trips } from './pages/Trips.js';
 import { Tires } from './pages/Tires.js';
 import { Settings } from './pages/Settings.js';
@@ -55,6 +56,7 @@ export const App: React.FC = () => {
               >
                 <Route index element={<Dashboard />} />
                 <Route path="vehicles" element={<Vehicles />} />
+                <Route path="fixed-expenses" element={<FixedExpenses />} />
                 <Route path="fuel" element={<FuelLog />} />
                 <Route path="trips" element={<Trips />} />
                 <Route path="maintenance" element={<Maintenance />} />

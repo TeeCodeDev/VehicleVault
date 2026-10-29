@@ -457,7 +457,7 @@ export const Trips: React.FC = () => {
 
           <button
             onClick={openCreateModal}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold inline-flex items-center space-x-2 shadow-sm transition"
+            className="px-4 py-2 bg-accent-600 hover:bg-accent-700 text-white rounded-xl text-xs font-bold inline-flex items-center space-x-2 shadow-sm transition"
           >
             <Plus className="w-4 h-4" />
             <span>Rit Toevoegen</span>
@@ -551,8 +551,8 @@ export const Trips: React.FC = () => {
             onClick={() => setSelectedPurpose('business')}
             className={`px-3 py-1.5 rounded-xl text-xs font-bold transition inline-flex items-center space-x-1.5 ${
               selectedPurpose === 'business'
-                ? 'bg-indigo-600 text-white shadow-sm'
-                : 'text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40'
+                ? 'bg-accent-600 text-white shadow-sm'
+                : 'text-accent-600 dark:text-accent-400 hover:bg-accent-50 dark:hover:bg-accent-100/10'
             }`}
           >
             <Briefcase className="w-3.5 h-3.5" />
@@ -596,7 +596,7 @@ export const Trips: React.FC = () => {
             <p className="text-xs text-slate-500 mt-1">Begin direct met het vastleggen van je zakelijke en privé kilometers.</p>
             <button
               onClick={openCreateModal}
-              className="mt-4 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold inline-flex items-center space-x-2"
+              className="mt-4 px-4 py-2 bg-accent-600 hover:bg-accent-700 text-white rounded-xl text-xs font-bold inline-flex items-center space-x-2"
             >
               <Plus className="w-4 h-4" />
               <span>Eerste Rit Vastleggen</span>
@@ -876,7 +876,7 @@ export const Trips: React.FC = () => {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-4 py-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-sm transition disabled:opacity-50"
+                  className="px-4 py-2 text-xs font-bold bg-accent-600 hover:bg-accent-700 text-white rounded-xl shadow-sm transition disabled:opacity-50"
                 >
                   {saving ? 'Opslaan...' : 'Rit Opslaan'}
                 </button>

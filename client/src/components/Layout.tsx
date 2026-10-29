@@ -4,7 +4,15 @@ import { Navbar } from './Navbar.js';
 import { Sidebar } from './Sidebar.js';
 import { Vehicle } from '../types/index.js';
 import { apiFetch } from '../api/client.js';
-import { LayoutDashboard, Car, Fuel, Wrench, FolderLock, LineChart, Route } from 'lucide-react';
+import {
+  LayoutDashboard,
+  Car,
+  Landmark,
+  Fuel,
+  LineChart,
+  Route,
+  Settings as SettingsIcon,
+} from 'lucide-react';
 import { OfflineBanner } from './OfflineBanner.js';
 import { useAuth } from '../context/AuthContext.js';
 
@@ -59,25 +67,25 @@ export const Layout: React.FC = () => {
       </div>
 
       {/* Mobile Bottom Navigation Bar */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 h-14 bg-white/95 dark:bg-slate-900/95 border-t border-slate-200 dark:border-slate-800 flex items-center justify-around z-40 px-2 backdrop-blur shadow-lg">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 h-14 bg-white/95 dark:bg-slate-900/95 border-t border-slate-200 dark:border-slate-800 flex items-center justify-around z-40 px-1 backdrop-blur shadow-lg overflow-x-auto">
         <NavLink
           to="/"
           className={({ isActive }) =>
-            `flex flex-col items-center justify-center text-[10px] ${
-              isActive ? 'text-sky-600 dark:text-white font-bold' : 'text-slate-500'
+            `flex flex-col items-center justify-center text-[10px] px-1.5 py-1 ${
+              isActive ? 'text-accent-600 dark:text-accent-400 font-bold' : 'text-slate-500'
             }`
           }
         >
           <LayoutDashboard className="w-4 h-4 mb-0.5" />
-          <span>Overzicht</span>
+          <span>Home</span>
         </NavLink>
 
         {!isDriver && (
           <NavLink
             to="/vehicles"
             className={({ isActive }) =>
-              `flex flex-col items-center justify-center text-[10px] ${
-                isActive ? 'text-sky-600 dark:text-white font-bold' : 'text-slate-500'
+              `flex flex-col items-center justify-center text-[10px] px-1.5 py-1 ${
+                isActive ? 'text-accent-600 dark:text-accent-400 font-bold' : 'text-slate-500'
               }`
             }
           >
@@ -89,8 +97,8 @@ export const Layout: React.FC = () => {
         <NavLink
           to="/fuel"
           className={({ isActive }) =>
-            `flex flex-col items-center justify-center text-[10px] ${
-              isActive ? 'text-sky-600 dark:text-white font-bold' : 'text-slate-500'
+            `flex flex-col items-center justify-center text-[10px] px-1.5 py-1 ${
+              isActive ? 'text-accent-600 dark:text-accent-400 font-bold' : 'text-slate-500'
             }`
           }
         >
@@ -101,8 +109,8 @@ export const Layout: React.FC = () => {
         <NavLink
           to="/trips"
           className={({ isActive }) =>
-            `flex flex-col items-center justify-center text-[10px] ${
-              isActive ? 'text-sky-600 dark:text-white font-bold' : 'text-slate-500'
+            `flex flex-col items-center justify-center text-[10px] px-1.5 py-1 ${
+              isActive ? 'text-accent-600 dark:text-accent-400 font-bold' : 'text-slate-500'
             }`
           }
         >
@@ -113,37 +121,39 @@ export const Layout: React.FC = () => {
         {!isDriver && (
           <>
             <NavLink
-              to="/maintenance"
+              to="/fixed-expenses"
               className={({ isActive }) =>
-                `flex flex-col items-center justify-center text-[10px] ${
-                  isActive ? 'text-sky-600 dark:text-white font-bold' : 'text-slate-500'
+                `flex flex-col items-center justify-center text-[10px] px-1.5 py-1 ${
+                  isActive ? 'text-accent-600 dark:text-accent-400 font-bold' : 'text-slate-500'
                 }`
               }
             >
-              <Wrench className="w-4 h-4 mb-0.5" />
-              <span>Onderhoud</span>
+              <Landmark className="w-4 h-4 mb-0.5" />
+              <span>Lasten</span>
             </NavLink>
-            <NavLink
-              to="/documents"
-              className={({ isActive }) =>
-                `flex flex-col items-center justify-center text-[10px] ${
-                  isActive ? 'text-sky-600 dark:text-white font-bold' : 'text-slate-500'
-                }`
-              }
-            >
-              <FolderLock className="w-4 h-4 mb-0.5" />
-              <span>Documenten</span>
-            </NavLink>
+
             <NavLink
               to="/analytics"
               className={({ isActive }) =>
-                `flex flex-col items-center justify-center text-[10px] ${
-                  isActive ? 'text-sky-600 dark:text-white font-bold' : 'text-slate-500'
+                `flex flex-col items-center justify-center text-[10px] px-1.5 py-1 ${
+                  isActive ? 'text-accent-600 dark:text-accent-400 font-bold' : 'text-slate-500'
                 }`
               }
             >
               <LineChart className="w-4 h-4 mb-0.5" />
-              <span>Kosten</span>
+              <span>TCO</span>
+            </NavLink>
+
+            <NavLink
+              to="/settings"
+              className={({ isActive }) =>
+                `flex flex-col items-center justify-center text-[10px] px-1.5 py-1 ${
+                  isActive ? 'text-accent-600 dark:text-accent-400 font-bold' : 'text-slate-500'
+                }`
+              }
+            >
+              <SettingsIcon className="w-4 h-4 mb-0.5" />
+              <span>Opties</span>
             </NavLink>
           </>
         )}

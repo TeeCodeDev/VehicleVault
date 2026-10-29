@@ -224,9 +224,9 @@ export const RecurringExpensesCard: React.FC<RecurringExpensesCardProps> = ({
         </div>
 
         <div className="flex items-center space-x-2.5">
-          <div className="px-3 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800/60 text-right">
-            <div className="text-[10px] uppercase font-bold text-indigo-600 dark:text-indigo-400">Vaste Kosten</div>
-            <div className="text-xs font-black font-mono text-indigo-950 dark:text-indigo-200">
+          <div className="px-3 py-1.5 rounded-xl bg-accent-50 dark:bg-accent-100/10 border border-accent-200 dark:border-accent-500/30 text-right">
+            <div className="text-[10px] uppercase font-bold text-accent-600 dark:text-accent-400">Vaste Kosten</div>
+            <div className="text-xs font-black font-mono text-slate-900 dark:text-white">
               € {monthlyTotal.toFixed(2)} <span className="text-[10px] font-normal text-slate-500">/ mnd</span>
               <span className="text-[10px] text-slate-400 font-normal ml-1">
                 (€ {yearlyTotal.toFixed(2)}/jr)
@@ -236,7 +236,7 @@ export const RecurringExpensesCard: React.FC<RecurringExpensesCardProps> = ({
 
           <button
             onClick={openCreateModal}
-            className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold inline-flex items-center space-x-1.5 shadow-sm transition"
+            className="px-3 py-1.5 bg-accent-600 hover:bg-accent-700 text-white rounded-xl text-xs font-bold inline-flex items-center space-x-1.5 shadow-sm transition"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Vaste Last Toevoegen</span>
@@ -438,7 +438,7 @@ export const RecurringExpensesCard: React.FC<RecurringExpensesCardProps> = ({
                   id="activeExpenseCheckbox"
                   checked={isActive}
                   onChange={(e) => setIsActive(e.target.checked)}
-                  className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                  className="w-4 h-4 rounded text-accent-600 focus:ring-accent-500 cursor-pointer"
                 />
                 <label htmlFor="activeExpenseCheckbox" className="font-bold text-slate-800 dark:text-slate-200 cursor-pointer">
                   Deze vaste last is momenteel actief
@@ -456,7 +456,7 @@ export const RecurringExpensesCard: React.FC<RecurringExpensesCardProps> = ({
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-4 py-2 font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-sm transition disabled:opacity-50"
+                  className="px-4 py-2 font-bold bg-accent-600 hover:bg-accent-700 text-white rounded-xl shadow-sm transition disabled:opacity-50"
                 >
                   {saving ? 'Opslaan...' : 'Vaste Last Opslaan'}
                 </button>

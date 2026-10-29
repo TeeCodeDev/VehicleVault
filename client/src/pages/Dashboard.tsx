@@ -105,7 +105,7 @@ export const Dashboard: React.FC = () => {
         </p>
         <Link
           to="/vehicles"
-          className="mt-6 inline-flex items-center space-x-2 px-5 py-2.5 bg-slate-900 text-white dark:bg-white dark:text-slate-900 rounded-xl font-bold text-xs hover:opacity-90 transition shadow-md"
+          className="mt-6 inline-flex items-center space-x-2 px-5 py-2.5 bg-accent-600 hover:bg-accent-700 text-white rounded-xl font-bold text-xs transition shadow-md"
         >
           <Plus className="w-4 h-4" />
           <span>{t('addFirstVehicle')}</span>
@@ -277,7 +277,7 @@ export const Dashboard: React.FC = () => {
           <div className="flex flex-wrap items-center gap-2.5">
             <Link
               to="/fuel"
-              className="px-4 py-2 bg-slate-900 text-white hover:bg-black dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white rounded-xl text-xs font-bold inline-flex items-center space-x-2 transition shadow-sm hover:scale-[1.02]"
+              className="px-4 py-2 bg-accent-600 hover:bg-accent-700 text-white rounded-xl text-xs font-bold inline-flex items-center space-x-2 transition shadow-sm hover:scale-[1.02]"
             >
               <Fuel className="w-4 h-4 text-amber-400" />
               <span>{t('newFuelEntry')}</span>

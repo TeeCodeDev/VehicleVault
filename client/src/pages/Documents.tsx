@@ -217,7 +217,7 @@ export const Documents: React.FC = () => {
 
         <button
           onClick={() => setIsUploadModalOpen(true)}
-          className="px-4 py-2 bg-slate-900 text-white hover:bg-black dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white rounded-xl text-xs font-bold inline-flex items-center space-x-1.5 transition shadow-sm hover:scale-[1.02] self-start sm:self-auto"
+          className="px-4 py-2 bg-accent-600 hover:bg-accent-700 text-white rounded-xl text-xs font-bold inline-flex items-center space-x-1.5 transition shadow-sm hover:scale-[1.02] self-start sm:self-auto"
         >
           <Plus className="w-4 h-4" />
           <span>{t('uploadDocument')}</span>
@@ -270,7 +270,7 @@ export const Documents: React.FC = () => {
           </p>
           <button
             onClick={() => setIsUploadModalOpen(true)}
-            className="px-4 py-2 bg-slate-900 text-white hover:bg-black dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white rounded-xl text-xs font-bold inline-flex items-center space-x-1.5 transition shadow-sm"
+            className="px-4 py-2 bg-accent-600 hover:bg-accent-700 text-white rounded-xl text-xs font-bold inline-flex items-center space-x-1.5 transition shadow-sm"
           >
             <Plus className="w-4 h-4" />
             <span>{t('uploadDocument')}</span>
@@ -463,7 +463,7 @@ export const Documents: React.FC = () => {
                 <button
                   type="submit"
                   disabled={isUploading || !docFile}
-                  className="px-4 py-1.5 bg-slate-900 hover:bg-black dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white text-white rounded-xl text-xs font-bold transition shadow-sm disabled:opacity-50"
+                  className="px-4 py-2 bg-accent-600 hover:bg-accent-700 text-white rounded-xl text-xs font-bold transition shadow-sm disabled:opacity-50"
                 >
                   {isUploading ? t('saving') : t('save')}
                 </button>

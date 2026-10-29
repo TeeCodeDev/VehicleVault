@@ -291,7 +291,7 @@ export const Maintenance: React.FC = () => {
           </button>
           <button
             onClick={() => setIsLogServiceOpen(true)}
-            className="px-4 py-2 bg-slate-900 text-white hover:bg-black dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white rounded-xl text-xs font-bold inline-flex items-center space-x-1.5 transition shadow-sm hover:scale-[1.02]"
+            className="px-4 py-2 bg-accent-600 hover:bg-accent-700 text-white rounded-xl text-xs font-bold inline-flex items-center space-x-1.5 transition shadow-sm hover:scale-[1.02]"
           >
             <Plus className="w-4 h-4" />
             <span>{t('logService')}</span>
@@ -705,7 +705,7 @@ export const Maintenance: React.FC = () => {
                 <button
                   type="submit"
                   disabled={submittingService}
-                  className="px-5 py-2 bg-slate-900 text-white hover:bg-black dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white rounded-xl font-bold transition shadow-sm disabled:opacity-50"
+                  className="px-5 py-2 bg-accent-600 hover:bg-accent-700 text-white rounded-xl font-bold transition shadow-sm disabled:opacity-50"
                 >
                   {submittingService ? t('saving') : t('save')}
                 </button>
@@ -821,7 +821,7 @@ export const Maintenance: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-slate-900 text-white hover:bg-black dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white rounded-xl font-bold transition shadow-sm"
+                  className="px-5 py-2 bg-accent-600 hover:bg-accent-700 text-white rounded-xl font-bold transition shadow-sm"
                 >
                   {t('save')}
                 </button>
@@ -918,7 +918,7 @@ export const Maintenance: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-slate-900 text-white hover:bg-black dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white rounded-xl font-bold transition shadow-sm"
+                  className="px-5 py-2 bg-accent-600 hover:bg-accent-700 text-white rounded-xl font-bold transition shadow-sm"
                 >
                   {t('save')}
                 </button>
