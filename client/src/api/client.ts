@@ -56,12 +56,18 @@ export async function apiFetch<T = any>(endpoint: string, options: RequestInit =
     throw new Error(errMessage);
   }
 
-  // Handle blob downloads (e.g. PDF)
-  const contentType = res.headers.get('content-type');
-  if (contentType && contentType.includes('application/pdf')) {
+  // Handle file and blob downloads (PDF, Excel, CSV, attachments)
+  const contentType = res.headers.get('content-type') || '';
+  const contentDisp = res.headers.get('content-disposition') || '';
+  if (
+    contentDisp.includes('attachment') ||
+    contentType.includes('application/pdf') ||
+    contentType.includes('spreadsheetml') ||
+    contentType.includes('text/csv') ||
+    contentType.includes('application/octet-stream')
+  ) {
     return (await res.blob()) as unknown as T;
   }
 
   return res.json();
 }
-

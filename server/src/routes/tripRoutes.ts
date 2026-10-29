@@ -9,6 +9,8 @@ router.use(requireAuth);
 router.get('/', TripController.list);
 router.post('/', TripController.create);
 router.get('/export/csv', TripController.exportCsv);
+router.get('/export/excel', TripController.exportExcel);
+router.get('/export/pdf', TripController.exportPdf);
 router.put('/:id', TripController.update);
 router.delete('/:id', TripController.delete);
 

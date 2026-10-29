@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import crypto from 'node:crypto';
 import { db } from '../db/database.js';
+import { TripExportService } from '../services/tripExportService.js';
 
 export class TripController {
   public static async list(req: Request, res: Response): Promise<void> {
@@ -249,6 +250,86 @@ export class TripController {
       res.send(csvContent);
     } catch (err: any) {
       res.status(500).json({ error: err?.message || 'Failed to export trips CSV' });
+    }
+  }
+
+  public static async exportExcel(req: Request, res: Response): Promise<void> {
+    try {
+      const { vehicleId, year } = req.query;
+      if (!vehicleId || typeof vehicleId !== 'string') {
+        res.status(400).json({ error: 'vehicleId query parameter is required' });
+        return;
+      }
+
+      const vehicle = db.get<any>(
+        'SELECT * FROM vehicles WHERE id = ?',
+        [vehicleId]
+      );
+      if (!vehicle) {
+        res.status(404).json({ error: 'Vehicle not found' });
+        return;
+      }
+
+      let query = 'SELECT * FROM trips WHERE vehicle_id = ?';
+      const params: any[] = [vehicleId];
+      if (year && typeof year === 'string') {
+        query += " AND strftime('%Y', date) = ?";
+        params.push(year);
+      }
+      query += ' ORDER BY date ASC, start_odometer ASC';
+
+      const trips = db.query<any>(query, params);
+      const buffer = await TripExportService.generateExcel(vehicle, trips, year as string | undefined);
+
+      const plate = vehicle.license_plate ? vehicle.license_plate.replace(/[^a-zA-Z0-9]/g, '_') : 'ritten';
+      const yearStr = year || 'compleet';
+      const filename = `Rittenregistratie_${plate}_${yearStr}.xlsx`;
+
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.send(buffer);
+    } catch (err: any) {
+      res.status(500).json({ error: err?.message || 'Failed to export trips Excel' });
+    }
+  }
+
+  public static async exportPdf(req: Request, res: Response): Promise<void> {
+    try {
+      const { vehicleId, year } = req.query;
+      if (!vehicleId || typeof vehicleId !== 'string') {
+        res.status(400).json({ error: 'vehicleId query parameter is required' });
+        return;
+      }
+
+      const vehicle = db.get<any>(
+        'SELECT * FROM vehicles WHERE id = ?',
+        [vehicleId]
+      );
+      if (!vehicle) {
+        res.status(404).json({ error: 'Vehicle not found' });
+        return;
+      }
+
+      let query = 'SELECT * FROM trips WHERE vehicle_id = ?';
+      const params: any[] = [vehicleId];
+      if (year && typeof year === 'string') {
+        query += " AND strftime('%Y', date) = ?";
+        params.push(year);
+      }
+      query += ' ORDER BY date ASC, start_odometer ASC';
+
+      const trips = db.query<any>(query, params);
+      const buffer = await TripExportService.generatePdf(vehicle, trips, year as string | undefined);
+
+      const plate = vehicle.license_plate ? vehicle.license_plate.replace(/[^a-zA-Z0-9]/g, '_') : 'ritten';
+      const yearStr = year || 'compleet';
+      const filename = `Rittenregistratie_${plate}_${yearStr}.pdf`;
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.send(buffer);
+    } catch (err: any) {
+      res.status(500).json({ error: err?.message || 'Failed to export trips PDF' });
     }
   }
 }

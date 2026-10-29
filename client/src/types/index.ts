@@ -188,6 +188,7 @@ export interface TcoSummary {
   serviceTotal: number;
   fixedExpensesTotal?: number;
   monthlyFixedCost?: number;
+  includeFixedExpenses?: boolean;
   purchasePrice: number;
   includePurchasePrice: boolean;
   totalCost: number;

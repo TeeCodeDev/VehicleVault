@@ -10,6 +10,7 @@ import {
   MapPin,
   TrendingDown,
   TrendingUp,
+  Landmark,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -50,6 +51,7 @@ export const AnalyticsTco: React.FC = () => {
   const [minOdometer, setMinOdometer] = useState('');
   const [maxOdometer, setMaxOdometer] = useState('');
   const [includePurchasePrice, setIncludePurchasePrice] = useState(false);
+  const [includeFixedExpenses, setIncludeFixedExpenses] = useState(true);
   const [economyUnit, setEconomyUnit] = useState<'l100km' | 'kml'>(() => {
     const saved = localStorage.getItem('vv_lang') || 'nl';
     return saved === 'nl' ? 'kml' : 'l100km';
@@ -69,11 +71,12 @@ export const AnalyticsTco: React.FC = () => {
     minOdometer,
     maxOdometer,
     includePurchasePrice,
+    includeFixedExpenses,
   ]);
 
   const loadTco = async (vehicleId: string) => {
     try {
-      let query = `?includePurchasePrice=${includePurchasePrice}`;
+      let query = `?includePurchasePrice=${includePurchasePrice}&includeFixedExpenses=${includeFixedExpenses}`;
       if (startDate) query += `&startDate=${startDate}`;
       if (endDate) query += `&endDate=${endDate}`;
       if (minOdometer) query += `&minOdometer=${minOdometer}`;
@@ -117,8 +120,10 @@ export const AnalyticsTco: React.FC = () => {
   const totalSpend = tco?.totalCost || 0;
   const fuelSpend = tco?.fuelTotal || 0;
   const serviceSpend = tco?.serviceTotal || 0;
+  const fixedSpend = (includeFixedExpenses ? tco?.fixedExpensesTotal : 0) || 0;
   const fuelPercent = totalSpend > 0 ? Math.round((fuelSpend / totalSpend) * 100) : 0;
   const servicePercent = totalSpend > 0 ? Math.round((serviceSpend / totalSpend) * 100) : 0;
+  const fixedPercent = totalSpend > 0 ? Math.round((fixedSpend / totalSpend) * 100) : 0;
 
   // Best & Worst fuel consumption
   const validConsumption = tco?.fuelTrends
@@ -199,21 +204,36 @@ export const AnalyticsTco: React.FC = () => {
             </button>
           </div>
 
-          <div className="flex items-center space-x-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Explicit TCO Toggle: Vaste lasten meerekenen */}
+            <label className="flex items-center space-x-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-3.5 py-2 rounded-xl cursor-pointer select-none shadow-sm hover:border-slate-300 dark:hover:border-slate-700 transition">
+              <input
+                type="checkbox"
+                checked={includeFixedExpenses}
+                onChange={(e) => setIncludeFixedExpenses(e.target.checked)}
+                className="rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-0 cursor-pointer"
+              />
+              <span className="text-slate-800 dark:text-slate-200 font-bold flex items-center space-x-1.5 text-xs">
+                <Landmark className="w-3.5 h-3.5 text-indigo-500" />
+                <span>
+                  {lang === 'nl' ? 'Vaste lasten meerekenen' : 'Include fixed expenses'}
+                  {tco?.fixedExpensesTotal ? ` (€${tco.fixedExpensesTotal.toFixed(0)})` : ''}
+                </span>
+              </span>
+            </label>
+
             {/* Explicit TCO Toggle: Aankoopbedrag meerekenen */}
             <label className="flex items-center space-x-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-3.5 py-2 rounded-xl cursor-pointer select-none shadow-sm hover:border-slate-300 dark:hover:border-slate-700 transition">
               <input
                 type="checkbox"
                 checked={includePurchasePrice}
                 onChange={(e) => setIncludePurchasePrice(e.target.checked)}
-                className="rounded border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:ring-0"
+                className="rounded border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:ring-0 cursor-pointer"
               />
-              <span className="text-slate-800 dark:text-slate-200 font-bold">
+              <span className="text-slate-800 dark:text-slate-200 font-bold text-xs">
                 {t('includePurchaseToggle')} (€{selectedVehicle.purchase_price?.toLocaleString() || 0})
               </span>
             </label>
-
-
           </div>
         </div>
 
@@ -370,9 +390,16 @@ export const AnalyticsTco: React.FC = () => {
             style={{ width: `${servicePercent}%` }}
             title={`Maintenance: ${servicePercent}% (€${serviceSpend.toFixed(2)})`}
           />
+          {includeFixedExpenses && fixedSpend > 0 && (
+            <div
+              className="bg-indigo-500 transition-all duration-500"
+              style={{ width: `${fixedPercent}%` }}
+              title={`Fixed: ${fixedPercent}% (€${fixedSpend.toFixed(2)})`}
+            />
+          )}
         </div>
 
-        <div className="flex items-center justify-between text-xs font-semibold mt-3 text-slate-600 dark:text-slate-400">
+        <div className="flex items-center justify-between text-xs font-semibold mt-3 text-slate-600 dark:text-slate-400 flex-wrap gap-2">
           <div className="flex items-center space-x-2">
             <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
             <span>{t('fuelSpend')}: {fuelPercent}% (€{fuelSpend.toFixed(2)})</span>
@@ -382,6 +409,13 @@ export const AnalyticsTco: React.FC = () => {
             <span className="w-2.5 h-2.5 rounded-full bg-sky-500" />
             <span>{t('maintenanceSpend')}: {servicePercent}% (€{serviceSpend.toFixed(2)})</span>
           </div>
+
+          {includeFixedExpenses && fixedSpend > 0 && (
+            <div className="flex items-center space-x-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-indigo-500" />
+              <span>Vaste lasten: {fixedPercent}% (€{fixedSpend.toFixed(2)})</span>
+            </div>
+          )}
 
           {bestL100 && worstL100 && (
             <div className="text-[11px] text-slate-500 hidden sm:block">

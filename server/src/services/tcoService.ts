@@ -7,6 +7,7 @@ export interface TcoFilterOptions {
   minOdometer?: number;
   maxOdometer?: number;
   includePurchasePrice?: boolean;
+  includeFixedExpenses?: boolean;
 }
 
 export interface FuelTrendPoint {
@@ -92,6 +93,7 @@ export interface VehicleTcoSummary {
   serviceTotal: number;
   fixedExpensesTotal: number;
   monthlyFixedCost: number;
+  includeFixedExpenses: boolean;
   purchasePrice: number;
   includePurchasePrice: boolean;
   totalCost: number;
@@ -108,7 +110,15 @@ export interface VehicleTcoSummary {
 
 export class TcoService {
   public static calculateTco(options: TcoFilterOptions): VehicleTcoSummary {
-    const { vehicleId, startDate, endDate, minOdometer, maxOdometer, includePurchasePrice = false } = options;
+    const {
+      vehicleId,
+      startDate,
+      endDate,
+      minOdometer,
+      maxOdometer,
+      includePurchasePrice = false,
+      includeFixedExpenses = true,
+    } = options;
 
     const vehicle = db.get<any>('SELECT * FROM vehicles WHERE id = ?', [vehicleId]);
     if (!vehicle) {
@@ -302,8 +312,8 @@ export class TcoService {
         fuel: Math.round(val.fuel * 100) / 100,
         regularMaintenance: Math.round(val.regular * 100) / 100,
         unscheduledRepairs: Math.round(val.unscheduled * 100) / 100,
-        fixedExpenses: monthlyFixedCost,
-        total: Math.round((val.fuel + val.regular + val.unscheduled + monthlyFixedCost) * 100) / 100,
+        fixedExpenses: includeFixedExpenses ? monthlyFixedCost : 0,
+        total: Math.round((val.fuel + val.regular + val.unscheduled + (includeFixedExpenses ? monthlyFixedCost : 0)) * 100) / 100,
       }));
 
     // 4. Extended Fuel & Tank Statistics
@@ -451,8 +461,9 @@ export class TcoService {
 
     // 6. Total Cost of Ownership
     const purchasePrice = vehicle.purchase_price || 0;
+    const effectiveFixed = includeFixedExpenses ? fixedExpensesTotal : 0;
     const totalCost = Math.round(
-      (totalFuelCost + totalServiceCost + fixedExpensesTotal + (includePurchasePrice ? purchasePrice : 0)) * 100
+      (totalFuelCost + totalServiceCost + effectiveFixed + (includePurchasePrice ? purchasePrice : 0)) * 100
     ) / 100;
 
     const costPerKm =
@@ -475,6 +486,7 @@ export class TcoService {
       serviceTotal: Math.round(totalServiceCost * 100) / 100,
       fixedExpensesTotal,
       monthlyFixedCost,
+      includeFixedExpenses,
       purchasePrice,
       includePurchasePrice,
       totalCost,

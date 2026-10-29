@@ -739,10 +739,15 @@ Date,Odometer,Fuel_amount,Price,Total_cost,Notes
       assert.equal(monthlyTotal, 135.0); // 65 + 60 + 10 = 135
 
       // TCO service calculation
-      const tco = TcoService.calculateTco({ vehicleId: testVehicleId });
+      const tco = TcoService.calculateTco({ vehicleId: testVehicleId, includeFixedExpenses: true });
       assert.equal(tco.monthlyFixedCost, 135.0);
       assert.ok(tco.fixedExpensesTotal >= 135.0);
       assert.ok(tco.totalCost >= tco.fixedExpensesTotal);
+
+      // TCO service calculation without fixed expenses
+      const tcoWithoutFixed = TcoService.calculateTco({ vehicleId: testVehicleId, includeFixedExpenses: false });
+      assert.equal(tcoWithoutFixed.includeFixedExpenses, false);
+      assert.equal(tcoWithoutFixed.totalCost, tco.totalCost - tco.fixedExpensesTotal);
     });
   });
 

@@ -6,7 +6,7 @@ import { PdfService } from '../services/pdfService.js';
 export class AnalyticsController {
   public static async getTco(req: Request, res: Response): Promise<void> {
     const { vehicleId } = req.params;
-    const { startDate, endDate, minOdometer, maxOdometer, includePurchasePrice } = req.query;
+    const { startDate, endDate, minOdometer, maxOdometer, includePurchasePrice, includeFixedExpenses } = req.query;
 
     const vehicle = db.get('SELECT id FROM vehicles WHERE id = ? AND user_id = ?', [vehicleId, req.user?.userId]);
     if (!vehicle) {
@@ -22,6 +22,7 @@ export class AnalyticsController {
         minOdometer: minOdometer ? parseFloat(String(minOdometer)) : undefined,
         maxOdometer: maxOdometer ? parseFloat(String(maxOdometer)) : undefined,
         includePurchasePrice: includePurchasePrice === 'true' || includePurchasePrice === '1',
+        includeFixedExpenses: includeFixedExpenses !== undefined ? (includeFixedExpenses === 'true' || includeFixedExpenses === '1') : true,
       });
 
       res.json(summary);
