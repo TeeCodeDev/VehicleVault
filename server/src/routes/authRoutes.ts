@@ -16,7 +16,8 @@ router.get('/api-keys', requireAuth, AuthController.listApiKeys);
 router.post('/api-keys', requireAuth, AuthController.createApiKey);
 router.delete('/api-keys/:id', requireAuth, AuthController.deleteApiKey);
 
-// User Management (Admin only)
+// User Management & Sharing
+router.get('/users/shareable', requireAuth, AuthController.listShareableUsers);
 router.get('/users', requireAuth, requireAdmin, AuthController.listUsers);
 router.post('/users', requireAuth, requireAdmin, AuthController.createUser);
 router.patch('/users/:id/role', requireAuth, requireAdmin, AuthController.updateUserRole);

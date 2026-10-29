@@ -3,6 +3,7 @@ import { Request, Response } from 'express';
 import { z } from 'zod';
 import { db } from '../db/database.js';
 import { RdwService } from '../services/rdwService.js';
+import { getVehicleAccess } from '../utils/vehicleAccess.js';
 
 const vehicleSchema = z.object({
   name: z.string().min(1).max(100),
@@ -26,16 +27,26 @@ export class VehicleController {
   public static async list(req: Request, res: Response): Promise<void> {
     try {
       const status = req.query.status as string;
-      const isSharedRole = req.user?.role === 'admin' || req.user?.role === 'driver';
+      const userId = req.user?.userId;
+      const showAll = req.query.all === 'true' && req.user?.role === 'admin';
+
       let sql = `
         SELECT v.*, 
+          u.email as owner_email,
+          CASE WHEN v.user_id = ? THEN 1 ELSE 0 END as is_owner,
+          CASE WHEN v.user_id = ? THEN 'owner' ELSE COALESCE(vs.role, 'editor') END as access_role,
           MAX(COALESCE(f.max_f, 0), COALESCE(s.max_s, 0), v.initial_odometer) as current_odometer
         FROM vehicles v
+        LEFT JOIN users u ON u.id = v.user_id
+        LEFT JOIN vehicle_shares vs ON vs.vehicle_id = v.id AND vs.user_id = ?
         LEFT JOIN (SELECT vehicle_id, MAX(odometer) as max_f FROM fuel_entries GROUP BY vehicle_id) f ON f.vehicle_id = v.id
         LEFT JOIN (SELECT vehicle_id, MAX(odometer) as max_s FROM service_records GROUP BY vehicle_id) s ON s.vehicle_id = v.id
-        WHERE (${isSharedRole ? '1=1' : 'v.user_id = ?'})
+        WHERE (${showAll ? '1=1' : '(v.user_id = ? OR vs.user_id = ?)'})
       `;
-      const params: any[] = isSharedRole ? [] : [req.user?.userId];
+      const params: any[] = [userId, userId, userId];
+      if (!showAll) {
+        params.push(userId, userId);
+      }
 
       if (status && status !== 'all') {
         sql += ' AND v.status = ?';
@@ -50,6 +61,7 @@ export class VehicleController {
         const apk = RdwService.evaluateApkStatus(v.apk_expiration_date);
         return {
           ...v,
+          is_owner: Boolean(v.is_owner),
           apk_status: apk,
         };
       });
@@ -64,16 +76,28 @@ export class VehicleController {
   public static async getById(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
-      const isSharedRole = req.user?.role === 'admin' || req.user?.role === 'driver';
+      const userId = req.user?.userId;
+      const access = getVehicleAccess(id, userId);
+
+      if (!access.hasAccess && req.user?.role !== 'admin') {
+        res.status(404).json({ error: 'Vehicle not found' });
+        return;
+      }
+
       const vehicle = db.get<any>(
         `SELECT v.*, 
+          u.email as owner_email,
+          CASE WHEN v.user_id = ? THEN 1 ELSE 0 END as is_owner,
+          CASE WHEN v.user_id = ? THEN 'owner' ELSE COALESCE(vs.role, 'editor') END as access_role,
           MAX(COALESCE(f.max_f, 0), COALESCE(s.max_s, 0), v.initial_odometer) as current_odometer
          FROM vehicles v
+         LEFT JOIN users u ON u.id = v.user_id
+         LEFT JOIN vehicle_shares vs ON vs.vehicle_id = v.id AND vs.user_id = ?
          LEFT JOIN (SELECT vehicle_id, MAX(odometer) as max_f FROM fuel_entries GROUP BY vehicle_id) f ON f.vehicle_id = v.id
          LEFT JOIN (SELECT vehicle_id, MAX(odometer) as max_s FROM service_records GROUP BY vehicle_id) s ON s.vehicle_id = v.id
-         WHERE v.id = ? ${isSharedRole ? '' : 'AND v.user_id = ?'}
+         WHERE v.id = ?
          GROUP BY v.id`,
-        isSharedRole ? [id] : [id, req.user?.userId]
+        [userId, userId, userId, id]
       );
 
       if (!vehicle) {
@@ -84,6 +108,7 @@ export class VehicleController {
       res.json({
         vehicle: {
           ...vehicle,
+          is_owner: Boolean(vehicle.is_owner),
           apk_status: RdwService.evaluateApkStatus(vehicle.apk_expiration_date),
         },
       });
@@ -188,15 +213,12 @@ export class VehicleController {
         return;
       }
 
-      const isSharedRole = req.user?.role === 'admin' || req.user?.role === 'driver';
-      const existing = db.get<any>(
-        `SELECT * FROM vehicles WHERE id = ? ${isSharedRole ? '' : 'AND user_id = ?'}`,
-        isSharedRole ? [id] : [id, req.user?.userId]
-      );
-      if (!existing) {
-        res.status(404).json({ error: 'Vehicle not found' });
+      const access = getVehicleAccess(id, req.user?.userId);
+      if (!access.hasAccess || (!access.isOwner && access.role !== 'editor')) {
+        res.status(403).json({ error: 'Geen bewerkrechten voor dit voertuig' });
         return;
       }
+      const existing = access.vehicle;
 
       const data = parse.data;
       const now = new Date().toISOString();
@@ -224,7 +246,7 @@ export class VehicleController {
           name = ?, type = ?, license_plate = ?, vin = ?, year = ?, make = ?, model = ?,
           fuel_type = ?, purchase_date = ?, purchase_price = ?, initial_odometer = ?,
           notes = ?, status = ?, apk_expiration_date = ?, image_path = ?, updated_at = ?
-         WHERE id = ? AND user_id = ?`,
+         WHERE id = ?`,
         [
           name,
           type,
@@ -243,7 +265,6 @@ export class VehicleController {
           image_path,
           now,
           id,
-          req.user?.userId,
         ]
       );
 
@@ -262,9 +283,9 @@ export class VehicleController {
         return;
       }
 
-      const vehicle = db.get('SELECT id FROM vehicles WHERE id = ? AND user_id = ?', [id, req.user?.userId]);
-      if (!vehicle) {
-        res.status(404).json({ error: 'Vehicle not found' });
+      const access = getVehicleAccess(id, req.user?.userId);
+      if (!access.hasAccess || (!access.isOwner && access.role !== 'editor')) {
+        res.status(403).json({ error: 'Geen bewerkrechten voor dit voertuig' });
         return;
       }
 
@@ -289,11 +310,117 @@ export class VehicleController {
   public static async delete(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
-      db.run('DELETE FROM vehicles WHERE id = ? AND user_id = ?', [id, req.user?.userId]);
+      const access = getVehicleAccess(id, req.user?.userId);
+      if (!access.isOwner && req.user?.role !== 'admin') {
+        res.status(403).json({ error: 'Alleen de eigenaar kan dit voertuig verwijderen' });
+        return;
+      }
+
+      db.run('DELETE FROM vehicles WHERE id = ?', [id]);
       res.json({ success: true, message: 'Vehicle deleted' });
     } catch (err: any) {
       console.error('Delete vehicle error:', err);
       res.status(500).json({ error: err?.message || 'Failed to delete vehicle' });
+    }
+  }
+
+  public static async getShares(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const currentUserId = req.user?.userId;
+      const access = getVehicleAccess(id, currentUserId);
+      if (!access.isOwner && req.user?.role !== 'admin') {
+        res.status(403).json({ error: 'Alleen de eigenaar kan gedeelde gebruikers inzien' });
+        return;
+      }
+
+      const shares = db.query<any>(
+        `SELECT vs.id, vs.vehicle_id, vs.user_id, vs.role, vs.created_at, u.email
+         FROM vehicle_shares vs
+         JOIN users u ON u.id = vs.user_id
+         WHERE vs.vehicle_id = ?
+         ORDER BY vs.created_at ASC`,
+        [id]
+      );
+
+      res.json({ shares });
+    } catch (err: any) {
+      console.error('Get vehicle shares error:', err);
+      res.status(500).json({ error: 'Gedeelde gebruikers ophalen mislukt' });
+    }
+  }
+
+  public static async addShare(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const currentUserId = req.user?.userId;
+      const access = getVehicleAccess(id, currentUserId);
+      if (!access.isOwner && req.user?.role !== 'admin') {
+        res.status(403).json({ error: 'Alleen de eigenaar kan dit voertuig delen' });
+        return;
+      }
+
+      const { email, role = 'editor' } = req.body;
+      if (!email || typeof email !== 'string') {
+        res.status(400).json({ error: 'Geldig e-mailadres is verplicht' });
+        return;
+      }
+
+      const targetUser = db.get<any>('SELECT id, email FROM users WHERE email = ?', [email.trim().toLowerCase()]);
+      if (!targetUser) {
+        res.status(404).json({ error: 'Er is geen gebruiker gevonden met dit e-mailadres' });
+        return;
+      }
+
+      if (targetUser.id === access.vehicle?.user_id) {
+        res.status(400).json({ error: 'Dit voertuig is al eigendom van deze gebruiker' });
+        return;
+      }
+
+      const validRoles = ['editor', 'viewer'];
+      const targetRole = validRoles.includes(role) ? role : 'editor';
+
+      const shareId = crypto.randomUUID();
+      const now = new Date().toISOString();
+      db.run(
+        `INSERT INTO vehicle_shares (id, vehicle_id, user_id, role, created_at)
+         VALUES (?, ?, ?, ?, ?)
+         ON CONFLICT(vehicle_id, user_id) DO UPDATE SET role = excluded.role`,
+        [shareId, id, targetUser.id, targetRole, now]
+      );
+
+      res.status(201).json({
+        message: `Voertuig succesvol gedeeld met ${targetUser.email}`,
+        share: {
+          id: shareId,
+          vehicle_id: id,
+          user_id: targetUser.id,
+          email: targetUser.email,
+          role: targetRole,
+          created_at: now,
+        },
+      });
+    } catch (err: any) {
+      console.error('Add vehicle share error:', err);
+      res.status(500).json({ error: err?.message || 'Voertuig delen mislukt' });
+    }
+  }
+
+  public static async removeShare(req: Request, res: Response): Promise<void> {
+    try {
+      const { id, userId: targetUserId } = req.params;
+      const currentUserId = req.user?.userId;
+      const access = getVehicleAccess(id, currentUserId);
+      if (!access.isOwner && req.user?.role !== 'admin' && currentUserId !== targetUserId) {
+        res.status(403).json({ error: 'Alleen de eigenaar kan toegang intrekken' });
+        return;
+      }
+
+      db.run('DELETE FROM vehicle_shares WHERE vehicle_id = ? AND user_id = ?', [id, targetUserId]);
+      res.json({ message: 'Toegang succesvol ingetrokken' });
+    } catch (err: any) {
+      console.error('Remove vehicle share error:', err);
+      res.status(500).json({ error: 'Toegang intrekken mislukt' });
     }
   }
 

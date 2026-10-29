@@ -24,12 +24,12 @@ export async function apiFetch<T = any>(endpoint: string, options: RequestInit =
     headers.set('Authorization', `Bearer ${token}`);
   }
 
-  let res = await fetch(endpoint, { ...options, headers });
+  let res = await fetch(endpoint, { credentials: 'same-origin', ...options, headers });
 
   // Handle token expiration & automatic refresh
   if (res.status === 401 && endpoint !== '/api/auth/login' && endpoint !== '/api/auth/refresh') {
     try {
-      const refreshRes = await fetch('/api/auth/refresh', { method: 'POST' });
+      const refreshRes = await fetch('/api/auth/refresh', { method: 'POST', credentials: 'same-origin' });
       if (refreshRes.ok) {
         const data = await refreshRes.json();
         setAuthToken(data.accessToken);

@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext.js';
 export const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const { login, user, authDisabled } = useAuth();
@@ -23,7 +24,7 @@ export const Login: React.FC = () => {
     setLoading(true);
 
     try {
-      await login(email, password);
+      await login(email, password, rememberMe);
       navigate('/');
     } catch (err: any) {
       setError(err?.message || 'Inloggen mislukt. Controleer uw gegevens.');
@@ -83,10 +84,22 @@ export const Login: React.FC = () => {
             </div>
           </div>
 
+          <div className="flex items-center justify-between pt-1">
+            <label className="flex items-center space-x-2 text-slate-600 dark:text-slate-400 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-accent-600 focus:ring-accent-500/20"
+              />
+              <span className="text-[11px] font-medium">Blijf ingelogd op dit apparaat</span>
+            </label>
+          </div>
+
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2.5 bg-slate-900 text-white hover:bg-black dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white rounded-xl font-bold transition disabled:opacity-50 flex items-center justify-center space-x-2 mt-3 shadow-md hover:scale-[1.01]"
+            className="w-full py-2.5 bg-accent-600 text-white hover:bg-accent-700 rounded-xl font-bold transition disabled:opacity-50 flex items-center justify-center space-x-2 mt-3 shadow-md hover:scale-[1.01]"
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
             <span>{loading ? 'Bezig met inloggen...' : 'Inloggen'}</span>

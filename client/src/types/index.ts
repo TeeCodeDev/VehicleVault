@@ -27,8 +27,20 @@ export interface Vehicle {
   apk_expiration_date?: string | null;
   apk_status?: ApkStatus;
   image_path?: string | null;
+  is_owner?: boolean;
+  access_role?: 'owner' | 'editor' | 'viewer';
+  owner_email?: string;
   created_at: string;
   updated_at: string;
+}
+
+export interface VehicleShare {
+  id: string;
+  vehicle_id: string;
+  user_id: string;
+  email: string;
+  role: 'editor' | 'viewer';
+  created_at: string;
 }
 
 export interface FuelEntry {

@@ -105,7 +105,7 @@ export const Sidebar: React.FC = () => {
               <span>VehicleVault</span>
             </div>
             <span className="text-emerald-600 dark:text-emerald-400 text-[10px] px-1.5 py-0.2 rounded bg-emerald-100 dark:bg-emerald-950/60 font-mono">
-              v1.0.25
+              v1.0.26
             </span>
           </div>
           <p className="text-[10px] text-slate-500 leading-tight">Self-Hosted PWA &amp; Model Context Protocol</p>

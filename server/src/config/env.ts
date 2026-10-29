@@ -43,8 +43,8 @@ const envSchema = z.object({
   DATABASE_URL: z.string().optional(),
   JWT_SECRET: stringOrDefault('vehiclevault_super_secret_jwt_key_change_in_production_12345'),
   JWT_REFRESH_SECRET: stringOrDefault('vehiclevault_super_secret_refresh_key_change_in_production_67890'),
-  JWT_EXPIRES_IN: stringOrDefault('15m'),
-  JWT_REFRESH_EXPIRES_IN_DAYS: numberOrDefault(7),
+  JWT_EXPIRES_IN: stringOrDefault('30d'),
+  JWT_REFRESH_EXPIRES_IN_DAYS: numberOrDefault(90),
   CORS_ORIGIN: stringOrDefault('*'),
 });
 

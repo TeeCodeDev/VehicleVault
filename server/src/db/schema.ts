@@ -81,6 +81,22 @@ export function initializeDatabase(): void {
     db.exec('ALTER TABLE vehicles ADD COLUMN image_path TEXT;');
   }
 
+  // 4b. Multi-User Vehicle Sharing
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS vehicle_shares (
+      id TEXT PRIMARY KEY,
+      vehicle_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      role TEXT NOT NULL DEFAULT 'editor',
+      created_at TEXT NOT NULL,
+      UNIQUE(vehicle_id, user_id),
+      FOREIGN KEY (vehicle_id) REFERENCES vehicles(id) ON DELETE CASCADE,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_vehicle_shares_user_id ON vehicle_shares (user_id);
+    CREATE INDEX IF NOT EXISTS idx_vehicle_shares_vehicle_id ON vehicle_shares (vehicle_id);
+  `);
+
   // Migrate legacy English preset names in existing database to Dutch
   const legacyTranslationMap: Record<string, string> = {
     'Engine Oil & Filter': 'Motorolie & Oliefilter',

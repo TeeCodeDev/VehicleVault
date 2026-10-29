@@ -20,6 +20,7 @@ const registerSchema = z.object({
 const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1),
+  rememberMe: z.boolean().optional(),
 });
 
 const createApiKeySchema = z.object({
@@ -73,7 +74,7 @@ export class AuthController {
         httpOnly: true,
         secure: isSecureRequest(req),
         sameSite: 'lax',
-        maxAge: 7 * 24 * 60 * 60 * 1000,
+        maxAge: 90 * 24 * 60 * 60 * 1000,
       });
 
       res.status(201).json({
@@ -115,7 +116,7 @@ export class AuthController {
         httpOnly: true,
         secure: isSecureRequest(req),
         sameSite: 'lax',
-        maxAge: 7 * 24 * 60 * 60 * 1000,
+        maxAge: 90 * 24 * 60 * 60 * 1000,
       });
 
       res.json({
@@ -317,6 +318,20 @@ export class AuthController {
     } catch (err: any) {
       console.error('Create user error:', err);
       res.status(500).json({ error: err?.message || 'Gebruiker aanmaken mislukt' });
+    }
+  }
+
+  public static async listShareableUsers(req: Request, res: Response): Promise<void> {
+    try {
+      const currentUserId = req.user?.userId;
+      const users = db.query<any>(
+        'SELECT id, email, role FROM users WHERE id != ? ORDER BY email ASC',
+        currentUserId ? [currentUserId] : []
+      );
+      res.json({ users });
+    } catch (err: any) {
+      console.error('List shareable users error:', err);
+      res.status(500).json({ error: 'Gebruikers ophalen mislukt' });
     }
   }
 

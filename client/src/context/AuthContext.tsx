@@ -6,7 +6,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   authDisabled: boolean;
-  login: (email: string, pass: string) => Promise<void>;
+  login: (email: string, pass: string, rememberMe?: boolean) => Promise<void>;
   register: (email: string, pass: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshAuthStatus: () => Promise<void>;
@@ -58,7 +58,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } else {
       // Attempt cookie refresh
       try {
-        const res = await fetch('/api/auth/refresh', { method: 'POST' });
+        const res = await fetch('/api/auth/refresh', { method: 'POST', credentials: 'same-origin' });
         if (res.ok) {
           const data = await res.json();
           setAuthToken(data.accessToken);
@@ -83,10 +83,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => window.removeEventListener('auth:unauthorized', handleUnauthorized);
   }, [checkAuth, authDisabled]);
 
-  const login = async (email: string, pass: string) => {
+  const login = async (email: string, pass: string, rememberMe = true) => {
     const res = await apiFetch<{ accessToken: string; user: User }>('/api/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ email, password: pass }),
+      body: JSON.stringify({ email, password: pass, rememberMe }),
     });
     setAuthToken(res.accessToken);
     setUser(res.user);

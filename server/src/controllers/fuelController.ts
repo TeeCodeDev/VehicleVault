@@ -5,6 +5,7 @@ import { db } from '../db/database.js';
 import { OcrService } from '../services/ocrService.js';
 import { StationService } from '../services/stationService.js';
 import { FuelExportService } from '../services/fuelExportService.js';
+import { getVehicleAccess } from '../utils/vehicleAccess.js';
 
 const fuelSchema = z.object({
   vehicle_id: z.string().uuid(),
@@ -34,12 +35,8 @@ export class FuelController {
       return;
     }
 
-    const isShared = req.user?.role === 'admin' || req.user?.role === 'driver';
-    const vehicle = db.get<any>(
-      `SELECT id FROM vehicles WHERE id = ? ${isShared ? '' : 'AND user_id = ?'}`,
-      isShared ? [vehicleId] : [vehicleId, req.user?.userId]
-    );
-    if (!vehicle) {
+    const access = getVehicleAccess(vehicleId, req.user?.userId);
+    if (!access.hasAccess && req.user?.role !== 'admin') {
       res.status(404).json({ error: 'Vehicle not found' });
       return;
     }
@@ -60,17 +57,12 @@ export class FuelController {
     }
 
     const data = parse.data;
-    const isShared = req.user?.role === 'admin' || req.user?.role === 'driver';
-
-    // Verify vehicle belongs to user or shared instance
-    const vehicle = db.get<{ initial_odometer: number }>(
-      `SELECT initial_odometer FROM vehicles WHERE id = ? ${isShared ? '' : 'AND user_id = ?'}`,
-      isShared ? [data.vehicle_id] : [data.vehicle_id, req.user?.userId]
-    );
-    if (!vehicle) {
+    const access = getVehicleAccess(data.vehicle_id, req.user?.userId);
+    if (!access.hasAccess && req.user?.role !== 'admin') {
       res.status(404).json({ error: 'Vehicle not found' });
       return;
     }
+    const vehicle = access.vehicle;
 
     // Check odometer sanity against previous highest
     const lastFuel = db.get<{ max_odo: number | null }>(
@@ -293,15 +285,12 @@ export class FuelController {
         return;
       }
 
-      const isShared = req.user?.role === 'admin' || req.user?.role === 'driver';
-      const vehicle = db.get<any>(
-        `SELECT * FROM vehicles WHERE id = ? ${isShared ? '' : 'AND user_id = ?'}`,
-        isShared ? [vehicleId] : [vehicleId, req.user?.userId]
-      );
-      if (!vehicle) {
+      const access = getVehicleAccess(vehicleId, req.user?.userId);
+      if (!access.hasAccess && req.user?.role !== 'admin') {
         res.status(404).json({ error: 'Vehicle not found' });
         return;
       }
+      const vehicle = access.vehicle;
 
       const entries = db.query<any>(
         'SELECT * FROM fuel_entries WHERE vehicle_id = ? ORDER BY odometer ASC',
@@ -329,15 +318,12 @@ export class FuelController {
         return;
       }
 
-      const isShared = req.user?.role === 'admin' || req.user?.role === 'driver';
-      const vehicle = db.get<any>(
-        `SELECT * FROM vehicles WHERE id = ? ${isShared ? '' : 'AND user_id = ?'}`,
-        isShared ? [vehicleId] : [vehicleId, req.user?.userId]
-      );
-      if (!vehicle) {
+      const access = getVehicleAccess(vehicleId, req.user?.userId);
+      if (!access.hasAccess && req.user?.role !== 'admin') {
         res.status(404).json({ error: 'Vehicle not found' });
         return;
       }
+      const vehicle = access.vehicle;
 
       const entries = db.query<any>(
         'SELECT * FROM fuel_entries WHERE vehicle_id = ? ORDER BY odometer ASC',

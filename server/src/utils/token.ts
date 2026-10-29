@@ -27,9 +27,9 @@ export async function comparePassword(password: string, hash: string): Promise<b
   return bcrypt.compare(password, hash);
 }
 
-export function generateAccessToken(payload: TokenPayload): string {
+export function generateAccessToken(payload: TokenPayload, expiresIn?: string): string {
   return jwt.sign(payload, getJwtSecret(), {
-    expiresIn: (env.JWT_EXPIRES_IN || '15m') as any,
+    expiresIn: (expiresIn || env.JWT_EXPIRES_IN || '30d') as any,
   });
 }
 
@@ -41,11 +41,11 @@ export function verifyAccessToken(token: string): TokenPayload | null {
   }
 }
 
-export function generateRefreshToken(): { token: string; hash: string; expiresAt: string } {
+export function generateRefreshToken(days = 90): { token: string; hash: string; expiresAt: string } {
   const token = crypto.randomBytes(40).toString('hex');
   const hash = hashToken(token);
   const expires = new Date();
-  expires.setDate(expires.getDate() + (env.JWT_REFRESH_EXPIRES_IN_DAYS || 7));
+  expires.setDate(expires.getDate() + (env.JWT_REFRESH_EXPIRES_IN_DAYS || days));
   return {
     token,
     hash,

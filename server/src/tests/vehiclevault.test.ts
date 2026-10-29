@@ -6,7 +6,15 @@ import path from 'node:path';
 
 import { db } from '../db/database.js';
 import { initializeDatabase } from '../db/schema.js';
-import { hashPassword, comparePassword, generateApiKey, hashToken } from '../utils/token.js';
+import {
+  hashPassword,
+  comparePassword,
+  generateApiKey,
+  hashToken,
+  generateAccessToken,
+  verifyAccessToken,
+  generateRefreshToken,
+} from '../utils/token.js';
 import { OcrService } from '../services/ocrService.js';
 import { MaintenanceService } from '../services/maintenanceService.js';
 import { TcoService } from '../services/tcoService.js';
@@ -30,6 +38,7 @@ import { NotificationService } from '../services/notificationService.js';
 import { BackupService } from '../services/backupService.js';
 import { TripExportService } from '../services/tripExportService.js';
 import { FuelExportService } from '../services/fuelExportService.js';
+import { getVehicleAccess } from '../utils/vehicleAccess.js';
 
 describe('VehicleVault Comprehensive Test Suite', () => {
   let testUserId: string;
@@ -1066,6 +1075,117 @@ Date,Odometer,Fuel_amount,Price,Total_cost,Notes
           })
         );
       }
+    });
+  });
+
+  describe('Multi-User Vehicle Isolation & Vehicle Sharing Engine', () => {
+    it('should isolate vehicles between distinct users and respect sharing permissions', () => {
+      const userSon = crypto.randomUUID();
+      const userFather = crypto.randomUUID();
+      const userWife = crypto.randomUUID();
+      const now = new Date().toISOString();
+
+      db.run('INSERT INTO users (id, email, password_hash, role, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)', [
+        userSon,
+        `son_${crypto.randomUUID()}@vault.local`,
+        'hash',
+        'admin',
+        now,
+        now,
+      ]);
+      db.run('INSERT INTO users (id, email, password_hash, role, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)', [
+        userFather,
+        `father_${crypto.randomUUID()}@vault.local`,
+        'hash',
+        'user',
+        now,
+        now,
+      ]);
+      db.run('INSERT INTO users (id, email, password_hash, role, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)', [
+        userWife,
+        `wife_${crypto.randomUUID()}@vault.local`,
+        'hash',
+        'user',
+        now,
+        now,
+      ]);
+
+      const sonCarId = crypto.randomUUID();
+      const fatherCarId = crypto.randomUUID();
+
+      // Son owns Kia Niro
+      db.run(
+        `INSERT INTO vehicles (id, user_id, name, type, license_plate, created_at, updated_at)
+         VALUES (?, ?, ?, 'car', 'NBL-41-K', ?, ?)`,
+        [sonCarId, userSon, 'Kia Niro', now, now]
+      );
+
+      // Father owns Mercedes B180
+      db.run(
+        `INSERT INTO vehicles (id, user_id, name, type, license_plate, created_at, updated_at)
+         VALUES (?, ?, ?, 'car', 'NK-956-Z', ?, ?)`,
+        [fatherCarId, userFather, 'Mercedes-Benz B 180', now, now]
+      );
+
+      // 1. Initial access check: Son can access sonCar, Father can access fatherCar
+      const sonAccessOwn = getVehicleAccess(sonCarId, userSon);
+      assert.equal(sonAccessOwn.hasAccess, true);
+      assert.equal(sonAccessOwn.isOwner, true);
+      assert.equal(sonAccessOwn.role, 'owner');
+
+      const fatherAccessSonCar = getVehicleAccess(sonCarId, userFather);
+      assert.equal(fatherAccessSonCar.hasAccess, false);
+
+      const sonAccessFatherCar = getVehicleAccess(fatherCarId, userSon);
+      assert.equal(sonAccessFatherCar.hasAccess, false);
+
+      const wifeAccessSonCarInitial = getVehicleAccess(sonCarId, userWife);
+      assert.equal(wifeAccessSonCarInitial.hasAccess, false);
+
+      // 2. Son shares Kia Niro with his wife as editor
+      const shareId = crypto.randomUUID();
+      db.run(
+        `INSERT INTO vehicle_shares (id, vehicle_id, user_id, role, created_at)
+         VALUES (?, ?, ?, 'editor', ?)`,
+        [shareId, sonCarId, userWife, now]
+      );
+
+      // Wife now has access as editor
+      const wifeAccessSonCar = getVehicleAccess(sonCarId, userWife);
+      assert.equal(wifeAccessSonCar.hasAccess, true);
+      assert.equal(wifeAccessSonCar.isOwner, false);
+      assert.equal(wifeAccessSonCar.role, 'editor');
+
+      // Wife still has NO access to father's Mercedes
+      const wifeAccessFatherCar = getVehicleAccess(fatherCarId, userWife);
+      assert.equal(wifeAccessFatherCar.hasAccess, false);
+
+      // Father still has NO access to son's Kia Niro
+      const fatherAccessSonCarStill = getVehicleAccess(sonCarId, userFather);
+      assert.equal(fatherAccessSonCarStill.hasAccess, false);
+
+      // 3. Revoke share from wife
+      db.run('DELETE FROM vehicle_shares WHERE id = ?', [shareId]);
+      const wifeAccessAfterRevoke = getVehicleAccess(sonCarId, userWife);
+      assert.equal(wifeAccessAfterRevoke.hasAccess, false);
+    });
+
+    it('should issue long-lived persistent access tokens for session retention', () => {
+      const payload = { userId: 'u1', email: 'test@local', role: 'user' };
+      const token = generateAccessToken(payload);
+      assert.ok(token);
+
+      const verified = verifyAccessToken(token);
+      assert.ok(verified);
+      assert.equal(verified?.userId, 'u1');
+      assert.equal(verified?.email, 'test@local');
+
+      const refresh = generateRefreshToken(90);
+      assert.ok(refresh.token);
+      assert.ok(refresh.expiresAt);
+      const expiresDate = new Date(refresh.expiresAt);
+      const daysAhead = Math.round((expiresDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+      assert.ok(daysAhead >= 88 && daysAhead <= 91);
     });
   });
 });
