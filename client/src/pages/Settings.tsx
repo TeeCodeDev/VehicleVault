@@ -62,17 +62,20 @@ export const Settings: React.FC = () => {
   const vehicles = outlet?.vehicles || [];
   const selectedVehicle = outlet?.selectedVehicle || null;
 
-  const validTabs = ['general', 'ai', 'users', 'notifications', 'backup', 'import'] as const;
+  const validTabs = ['general', 'ai', 'users', 'notifications', 'homeassistant', 'backup', 'import'] as const;
   type TabType = typeof validTabs[number];
   const urlTab = searchParams.get('tab');
-  const [activeTab, setActiveTab] = useState<TabType>(
-    urlTab && (validTabs as readonly string[]).includes(urlTab) ? (urlTab as TabType) : 'general'
-  );
+  const normalizeTab = (t: string | null): TabType => {
+    if (t === 'ha') return 'homeassistant';
+    if (t && (validTabs as readonly string[]).includes(t)) return t as TabType;
+    return 'general';
+  };
+  const [activeTab, setActiveTab] = useState<TabType>(normalizeTab(urlTab));
 
   useEffect(() => {
     const tParam = searchParams.get('tab');
-    if (tParam && (validTabs as readonly string[]).includes(tParam)) {
-      setActiveTab(tParam as TabType);
+    if (tParam) {
+      setActiveTab(normalizeTab(tParam));
     }
   }, [searchParams]);
 
@@ -739,7 +742,19 @@ rest:
           }`}
         >
           <Bell className="w-4 h-4" />
-          <span>Notificaties &amp; Home Assistant</span>
+          <span>Notificaties</span>
+        </button>
+
+        <button
+          onClick={() => handleTabClick('homeassistant')}
+          className={`px-3.5 py-2 rounded-xl text-xs font-bold inline-flex items-center space-x-2 transition shrink-0 ${
+            activeTab === 'homeassistant'
+              ? 'bg-accent-600 text-white shadow-sm'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60'
+          }`}
+        >
+          <Radio className="w-4 h-4" />
+          <span>Home Assistant</span>
         </button>
 
         <button
@@ -1870,17 +1885,51 @@ rest:
               </div>
             </div>
           </div>
+        </div>
+      )}
 
+      {/* TAB 5: HOME ASSISTANT INTEGRATIE */}
+      {activeTab === 'homeassistant' && (
+        <div className="space-y-6">
           {/* Home Assistant Integration Guide (HACS & YAML) */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
-            <div>
-              <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center space-x-2">
-                <Radio className="w-4 h-4 text-sky-500" />
-                <span>Home Assistant Integratie</span>
-              </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                Koppel VehicleVault in Home Assistant om kilometerstanden, APK status en verbruik in je dashboards weer te geven.
-              </p>
+          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div>
+                <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center space-x-2">
+                  <Radio className="w-4 h-4 text-sky-500" />
+                  <span>Home Assistant Integratie</span>
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Koppel VehicleVault in Home Assistant om kilometerstanden, APK status en verbruik in je dashboards weer te geven.
+                </p>
+              </div>
+
+              <span className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-sky-50 text-sky-700 dark:bg-sky-950/60 dark:text-sky-400 border border-sky-200 dark:border-sky-800/60 shrink-0 self-start sm:self-auto">
+                <span className="w-2 h-2 rounded-full bg-sky-500 animate-pulse"></span>
+                <span>REST API Actief</span>
+              </span>
+            </div>
+
+            {/* Quick REST API URL Banner */}
+            <div className="p-3.5 bg-slate-50 dark:bg-slate-950/60 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
+              <div className="min-w-0">
+                <span className="text-[10px] text-slate-400 uppercase font-bold block">VehicleVault Sensoren Endpoint</span>
+                <span className="font-mono text-slate-800 dark:text-slate-200 truncate block mt-0.5">
+                  {haHost}/api/integrations/ha/sensors
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(`${haHost}/api/integrations/ha/sensors`);
+                  setHaCopied(true);
+                  setTimeout(() => setHaCopied(false), 2000);
+                }}
+                className="px-3 py-1.5 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 border border-slate-200 dark:border-slate-700 shrink-0"
+              >
+                {haCopied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>{haCopied ? 'Gekopieerd' : 'Kopieer Endpoint URL'}</span>
+              </button>
             </div>
 
             {/* Option 1: HACS UI Integration */}
@@ -1906,7 +1955,7 @@ rest:
               </div>
 
               <p className="text-xs text-slate-600 dark:text-slate-300">
-                Geen handmatige YAML configuratie nodig! Installeer de integratie via HACS en voeg VehicleVault met 1 klik toe via <strong>Instellingen → Apparaten & Diensten</strong>. Elk voertuig krijgt automatisch een eigen Apparaat en sensoren in Home Assistant.
+                Geen handmatige YAML configuratie nodig! Installeer de integratie via HACS en voeg VehicleVault met 1 klik toe via <strong>Instellingen → Apparaten &amp; Diensten</strong>. Elk voertuig krijgt automatisch een eigen Apparaat en sensoren in Home Assistant.
               </p>
 
               <ol className="list-decimal list-inside text-xs text-slate-600 dark:text-slate-300 space-y-1.5 pl-1">
@@ -1945,10 +1994,66 @@ rest:
               </div>
             </div>
           </div>
+
+          {/* Home Assistant API Key Card */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center space-x-2">
+                  <KeyRound className="w-4 h-4 text-sky-500" />
+                  <span>Home Assistant API-Sleutel</span>
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Gebruik een persoonlijke API-sleutel om Home Assistant veilig toegang te geven tot de sensoren.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleTabClick('users')}
+                className="text-xs text-sky-600 dark:text-sky-400 font-bold hover:underline flex items-center space-x-1"
+              >
+                <span>Alle API-sleutels beheren</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {apiKeys.some((k) => k.name.toLowerCase().includes('home assistant') || k.name.toLowerCase().includes('ha')) ? (
+              <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl flex items-center justify-between text-xs">
+                <div className="flex items-center space-x-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                  <div>
+                    <span className="font-bold text-emerald-900 dark:text-emerald-200 block">
+                      Home Assistant API-sleutel actief ({apiKeys.find((k) => k.name.toLowerCase().includes('home assistant') || k.name.toLowerCase().includes('ha'))?.name})
+                    </span>
+                    <span className="text-slate-500 dark:text-slate-400 font-mono text-[11px]">
+                      {apiKeys.find((k) => k.name.toLowerCase().includes('home assistant') || k.name.toLowerCase().includes('ha'))?.prefix}••••••••
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="p-3 bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                <span className="text-slate-600 dark:text-slate-300">
+                  Nog geen specifieke sleutel voor Home Assistant aangemaakt.
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNewKeyName('Home Assistant');
+                    handleTabClick('users');
+                  }}
+                  className="px-3.5 py-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-xs font-bold transition flex items-center space-x-1 self-start sm:self-auto shrink-0"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Sleutel Aanmaken</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
-      {/* TAB 5: DATABASE & BACKUPS */}
+      {/* TAB 6: DATABASE & BACKUPS */}
       {activeTab === 'backup' && (
         <div className="space-y-6">
           <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-5">
@@ -2052,7 +2157,7 @@ rest:
         </div>
       )}
 
-      {/* TAB 6: GEGEVENS IMPORTEREN (CSV / FUELIO / LUBELOGGER) */}
+      {/* TAB 7: GEGEVENS IMPORTEREN (CSV / FUELIO / LUBELOGGER) */}
       {activeTab === 'import' && (
         <div className="space-y-6">
           <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-5">
