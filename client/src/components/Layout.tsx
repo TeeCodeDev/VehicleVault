@@ -4,7 +4,7 @@ import { Navbar } from './Navbar.js';
 import { Sidebar } from './Sidebar.js';
 import { Vehicle } from '../types/index.js';
 import { apiFetch } from '../api/client.js';
-import { LayoutDashboard, Car, Fuel, Wrench, FolderLock, LineChart } from 'lucide-react';
+import { LayoutDashboard, Car, Fuel, Wrench, FolderLock, LineChart, Route } from 'lucide-react';
 import { OfflineBanner } from './OfflineBanner.js';
 import { useAuth } from '../context/AuthContext.js';
 
@@ -96,6 +96,18 @@ export const Layout: React.FC = () => {
         >
           <Fuel className="w-4 h-4 mb-0.5" />
           <span>Tanken</span>
+        </NavLink>
+
+        <NavLink
+          to="/trips"
+          className={({ isActive }) =>
+            `flex flex-col items-center justify-center text-[10px] ${
+              isActive ? 'text-sky-600 dark:text-white font-bold' : 'text-slate-500'
+            }`
+          }
+        >
+          <Route className="w-4 h-4 mb-0.5" />
+          <span>Ritten</span>
         </NavLink>
 
         {!isDriver && (

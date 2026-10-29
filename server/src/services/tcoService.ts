@@ -25,6 +25,7 @@ export interface MonthlySpendBreakdown {
   fuel: number;
   regularMaintenance: number;
   unscheduledRepairs: number;
+  fixedExpenses: number;
   total: number;
 }
 
@@ -89,6 +90,8 @@ export interface VehicleTcoSummary {
   totalMonths: number;
   fuelTotal: number;
   serviceTotal: number;
+  fixedExpensesTotal: number;
+  monthlyFixedCost: number;
   purchasePrice: number;
   includePurchasePrice: boolean;
   totalCost: number;
@@ -241,16 +244,6 @@ export class TcoService {
       monthlyMap.set(monthKey, current);
     }
 
-    const monthlyBreakdown: MonthlySpendBreakdown[] = Array.from(monthlyMap.entries())
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([month, val]) => ({
-        month,
-        fuel: Math.round(val.fuel * 100) / 100,
-        regularMaintenance: Math.round(val.regular * 100) / 100,
-        unscheduledRepairs: Math.round(val.unscheduled * 100) / 100,
-        total: Math.round((val.fuel + val.regular + val.unscheduled) * 100) / 100,
-      }));
-
     // 3. Distance & Time span
     const startOdo =
       minOdometer !== undefined
@@ -277,6 +270,41 @@ export class TcoService {
       const diffMonths = (d2.getFullYear() - d1.getFullYear()) * 12 + (d2.getMonth() - d1.getMonth());
       totalMonths = Math.max(1, diffMonths + 1);
     }
+
+    // 4. Fixed / Recurring Expenses (Wegenbelasting, Verzekering, Abonnementen)
+    let recurringExpenses: any[] = [];
+    try {
+      recurringExpenses = db.query<any>(
+        'SELECT * FROM recurring_expenses WHERE vehicle_id = ? AND is_active = 1',
+        [vehicleId]
+      );
+    } catch {
+      recurringExpenses = [];
+    }
+
+    let monthlyFixedCost = 0;
+    for (const exp of recurringExpenses) {
+      if (exp.frequency === 'monthly') {
+        monthlyFixedCost += exp.amount;
+      } else if (exp.frequency === 'quarterly') {
+        monthlyFixedCost += exp.amount / 3;
+      } else if (exp.frequency === 'yearly') {
+        monthlyFixedCost += exp.amount / 12;
+      }
+    }
+    monthlyFixedCost = Math.round(monthlyFixedCost * 100) / 100;
+    const fixedExpensesTotal = Math.round(monthlyFixedCost * totalMonths * 100) / 100;
+
+    const monthlyBreakdown: MonthlySpendBreakdown[] = Array.from(monthlyMap.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([month, val]) => ({
+        month,
+        fuel: Math.round(val.fuel * 100) / 100,
+        regularMaintenance: Math.round(val.regular * 100) / 100,
+        unscheduledRepairs: Math.round(val.unscheduled * 100) / 100,
+        fixedExpenses: monthlyFixedCost,
+        total: Math.round((val.fuel + val.regular + val.unscheduled + monthlyFixedCost) * 100) / 100,
+      }));
 
     // 4. Extended Fuel & Tank Statistics
     const tripMetrics: FuelTripMetric[] = [];
@@ -424,7 +452,7 @@ export class TcoService {
     // 6. Total Cost of Ownership
     const purchasePrice = vehicle.purchase_price || 0;
     const totalCost = Math.round(
-      (totalFuelCost + totalServiceCost + (includePurchasePrice ? purchasePrice : 0)) * 100
+      (totalFuelCost + totalServiceCost + fixedExpensesTotal + (includePurchasePrice ? purchasePrice : 0)) * 100
     ) / 100;
 
     const costPerKm =
@@ -445,6 +473,8 @@ export class TcoService {
       totalMonths,
       fuelTotal: Math.round(totalFuelCost * 100) / 100,
       serviceTotal: Math.round(totalServiceCost * 100) / 100,
+      fixedExpensesTotal,
+      monthlyFixedCost,
       purchasePrice,
       includePurchasePrice,
       totalCost,

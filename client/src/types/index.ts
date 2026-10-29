@@ -186,6 +186,8 @@ export interface TcoSummary {
   totalMonths: number;
   fuelTotal: number;
   serviceTotal: number;
+  fixedExpensesTotal?: number;
+  monthlyFixedCost?: number;
   purchasePrice: number;
   includePurchasePrice: boolean;
   totalCost: number;
@@ -209,6 +211,7 @@ export interface TcoSummary {
     fuel: number;
     regularMaintenance: number;
     unscheduledRepairs: number;
+    fixedExpenses?: number;
     total: number;
   }[];
   fuelStats?: FuelDetailedStats;
@@ -227,5 +230,68 @@ export interface ApiKeyItem {
   prefix: string;
   last_used_at: string | null;
   created_at: string;
+}
+
+export interface RecurringExpense {
+  id: string;
+  vehicle_id: string;
+  name: string;
+  category: 'tax' | 'insurance' | 'roadside' | 'subscription' | 'lease' | 'inspection' | 'other';
+  frequency: 'monthly' | 'quarterly' | 'yearly';
+  amount: number;
+  start_date: string;
+  end_date: string | null;
+  is_active: number;
+  notes: string | null;
+  created_at: string;
+}
+
+export interface Trip {
+  id: string;
+  vehicle_id: string;
+  user_id: string;
+  date: string;
+  start_odometer: number;
+  end_odometer: number;
+  distance_km: number;
+  from_location: string;
+  to_location: string;
+  purpose: 'business' | 'commute' | 'private';
+  description: string | null;
+  is_return_trip: number;
+  created_at: string;
+}
+
+export interface TripSummary {
+  totalTrips: number;
+  totalDistance: number;
+  businessDistance: number;
+  commuteDistance: number;
+  privateDistance: number;
+  businessPercentage: number;
+}
+
+export interface TireSet {
+  id: string;
+  vehicle_id: string;
+  name: string;
+  season: 'summer' | 'winter' | 'all_season';
+  brand_model: string | null;
+  tire_size: string | null;
+  dot_code: string | null;
+  storage_location: string | null;
+  status: 'mounted' | 'stored' | 'disposed';
+  mounted_odometer: number | null;
+  mounted_date: string | null;
+  total_km: number;
+  tread_depth_fl: number | null;
+  tread_depth_fr: number | null;
+  tread_depth_rl: number | null;
+  tread_depth_rr: number | null;
+  last_measured_date: string | null;
+  notes: string | null;
+  created_at: string;
+  minDepth?: number | null;
+  treadStatus?: 'ok' | 'warning' | 'critical' | 'unknown';
 }
 

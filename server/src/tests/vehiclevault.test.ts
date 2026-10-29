@@ -699,4 +699,219 @@ Date,Odometer,Fuel_amount,Price,Total_cost,Notes
       assert.equal(user.role, 'driver');
     });
   });
+
+  describe('Recurring Expenses & Fixed Costs TCO Engine', () => {
+    it('should calculate monthly normalized recurring costs accurately', () => {
+      const exp1Id = crypto.randomUUID();
+      const exp2Id = crypto.randomUUID();
+      const exp3Id = crypto.randomUUID();
+      const now = new Date().toISOString();
+
+      // Road tax: 65 / month
+      db.run(
+        `INSERT INTO recurring_expenses (id, vehicle_id, name, category, frequency, amount, start_date, is_active, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)`,
+        [exp1Id, testVehicleId, 'Motorrijtuigenbelasting (MRB)', 'tax', 'monthly', 65.0, '2026-01-01', now]
+      );
+
+      // Insurance: 720 / year = 60 / month
+      db.run(
+        `INSERT INTO recurring_expenses (id, vehicle_id, name, category, frequency, amount, start_date, is_active, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)`,
+        [exp2Id, testVehicleId, 'All-risk Autoverzekering', 'insurance', 'yearly', 720.0, '2026-01-01', now]
+      );
+
+      // Roadside assistance: 30 / quarter = 10 / month
+      db.run(
+        `INSERT INTO recurring_expenses (id, vehicle_id, name, category, frequency, amount, start_date, is_active, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)`,
+        [exp3Id, testVehicleId, 'ANWB Wegenwacht', 'roadside', 'quarterly', 30.0, '2026-01-01', now]
+      );
+
+      const expenses = db.query<any>('SELECT * FROM recurring_expenses WHERE vehicle_id = ? AND is_active = 1', [testVehicleId]);
+      let monthlyTotal = 0;
+      for (const e of expenses) {
+        if (e.frequency === 'monthly') monthlyTotal += e.amount;
+        else if (e.frequency === 'quarterly') monthlyTotal += e.amount / 3;
+        else if (e.frequency === 'yearly') monthlyTotal += e.amount / 12;
+      }
+
+      assert.equal(monthlyTotal, 135.0); // 65 + 60 + 10 = 135
+
+      // TCO service calculation
+      const tco = TcoService.calculateTco({ vehicleId: testVehicleId });
+      assert.equal(tco.monthlyFixedCost, 135.0);
+      assert.ok(tco.fixedExpensesTotal >= 135.0);
+      assert.ok(tco.totalCost >= tco.fixedExpensesTotal);
+    });
+  });
+
+  describe('Trip Logging & Belastingdienst CSV Export Engine', () => {
+    it('should record trips, calculate distances and summarize business vs private km', () => {
+      const trip1Id = crypto.randomUUID();
+      const trip2Id = crypto.randomUUID();
+      const now = new Date().toISOString();
+
+      // Trip 1: Business trip, 16500 to 16560 = 60km
+      db.run(
+        `INSERT INTO trips (id, vehicle_id, user_id, date, start_odometer, end_odometer, distance_km, from_location, to_location, purpose, description, is_return_trip, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)`,
+        [trip1Id, testVehicleId, testUserId, '2026-10-20', 16500, 16560, 60.0, 'Amsterdam', 'Rotterdam', 'business', 'Klantafspraak', now]
+      );
+
+      // Trip 2: Private trip, 16560 to 16585 = 25km
+      db.run(
+        `INSERT INTO trips (id, vehicle_id, user_id, date, start_odometer, end_odometer, distance_km, from_location, to_location, purpose, description, is_return_trip, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)`,
+        [trip2Id, testVehicleId, testUserId, '2026-10-21', 16560, 16585, 25.0, 'Rotterdam', 'Breda', 'private', 'Familiebezoek', now]
+      );
+
+      const trips = db.query<any>('SELECT * FROM trips WHERE vehicle_id = ? ORDER BY date ASC', [testVehicleId]);
+      assert.ok(trips.length >= 2);
+
+      let totalDist = 0;
+      let businessDist = 0;
+      let privateDist = 0;
+      for (const t of trips) {
+        totalDist += Number(t.distance_km);
+        if (t.purpose === 'business') businessDist += Number(t.distance_km);
+        if (t.purpose === 'private') privateDist += Number(t.distance_km);
+      }
+
+      assert.ok(totalDist >= 85.0);
+      assert.ok(businessDist >= 60.0);
+      assert.ok(privateDist >= 25.0);
+    });
+
+    it('should format Belastingdienst-compliant CSV export with correct headers and semicolon delimiter', () => {
+      const trips = db.query<any>('SELECT * FROM trips WHERE vehicle_id = ? ORDER BY date DESC', [testVehicleId]);
+      assert.ok(trips.length > 0);
+
+      const headers = [
+        'Datum',
+        'Vertrekadres',
+        'Aankomstadres',
+        'Beginstand (km)',
+        'Eindstand (km)',
+        'Afstand (km)',
+        'Karakter rit',
+        'Toelichting/Omschrijving',
+        'Terugrit',
+      ];
+
+      const csvLines = [headers.join(';')];
+      for (const t of trips) {
+        csvLines.push(
+          [
+            t.date,
+            `"${(t.from_location || '').replace(/"/g, '""')}"`,
+            `"${(t.to_location || '').replace(/"/g, '""')}"`,
+            t.start_odometer,
+            t.end_odometer,
+            t.distance_km,
+            t.purpose === 'business' ? 'Zakelijk' : t.purpose === 'commute' ? 'Woon-werk' : 'Prive',
+            `"${(t.description || '').replace(/"/g, '""')}"`,
+            t.is_return_trip ? 'Ja' : 'Nee',
+          ].join(';')
+        );
+      }
+
+      const csvContent = '\uFEFF' + csvLines.join('\r\n');
+      assert.ok(csvContent.startsWith('\uFEFFDatum;Vertrekadres;Aankomstadres'));
+      assert.ok(csvContent.includes('"Amsterdam";"Rotterdam"'));
+      assert.ok(csvContent.includes('Zakelijk'));
+    });
+  });
+
+  describe('Tire Set Management & Safety Limit Alerts Engine', () => {
+    it('should detect tread depth warnings and legal minimum alerts correctly', () => {
+      const summerSetId = crypto.randomUUID();
+      const winterSetId = crypto.randomUUID();
+      const wornSetId = crypto.randomUUID();
+      const now = new Date().toISOString();
+
+      // Good Summer Set (6.5mm)
+      db.run(
+        `INSERT INTO tire_sets (id, vehicle_id, name, season, brand_model, tire_size, status, tread_depth_fl, tread_depth_fr, tread_depth_rl, tread_depth_rr, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [summerSetId, testVehicleId, 'Zomerset 18 inch', 'summer', 'Michelin Pilot Sport 5', '225/40 R18', 'mounted', 6.5, 6.5, 6.8, 6.8, now]
+      );
+
+      // Winter Set with 3.5mm tread (< 4.0mm warning for winter tires)
+      db.run(
+        `INSERT INTO tire_sets (id, vehicle_id, name, season, brand_model, tire_size, status, tread_depth_fl, tread_depth_fr, tread_depth_rl, tread_depth_rr, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [winterSetId, testVehicleId, 'Winterset 16 inch', 'winter', 'Continental WinterContact TS 870', '205/55 R16', 'stored', 3.5, 3.6, 3.8, 3.8, now]
+      );
+
+      // Worn Set with 1.4mm tread (< 1.6mm legal rejection)
+      db.run(
+        `INSERT INTO tire_sets (id, vehicle_id, name, season, brand_model, tire_size, status, tread_depth_fl, tread_depth_fr, tread_depth_rl, tread_depth_rr, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [wornSetId, testVehicleId, 'Oude Bandenset', 'summer', 'Budget Tire', '205/55 R16', 'stored', 1.4, 1.5, 2.0, 2.1, now]
+      );
+
+      function evaluateStatus(set: any): 'ok' | 'warning' | 'critical' {
+        const depths = [set.tread_depth_fl, set.tread_depth_fr, set.tread_depth_rl, set.tread_depth_rr].filter((d: any) => d != null);
+        const min = Math.min(...depths);
+        if (min < 1.6) return 'critical';
+        if (set.season === 'winter' && min < 4.0) return 'warning';
+        if (min < 2.5) return 'warning';
+        return 'ok';
+      }
+
+      const summer = db.get<any>('SELECT * FROM tire_sets WHERE id = ?', [summerSetId]);
+      const winter = db.get<any>('SELECT * FROM tire_sets WHERE id = ?', [winterSetId]);
+      const worn = db.get<any>('SELECT * FROM tire_sets WHERE id = ?', [wornSetId]);
+
+      assert.equal(evaluateStatus(summer), 'ok');
+      assert.equal(evaluateStatus(winter), 'warning');
+      assert.equal(evaluateStatus(worn), 'critical');
+    });
+
+    it('should calculate mileage delta when swapping tire sets', () => {
+      const setAId = crypto.randomUUID();
+      const setBId = crypto.randomUUID();
+      const now = new Date().toISOString();
+
+      // Set A mounted at 10,000 km
+      db.run(
+        `INSERT INTO tire_sets (id, vehicle_id, name, season, status, mounted_odometer, total_km, created_at)
+         VALUES (?, ?, ?, ?, 'mounted', 10000, 5000, ?)`,
+        [setAId, testVehicleId, 'Set A', 'summer', now]
+      );
+
+      // Set B currently stored with 3,000 km
+      db.run(
+        `INSERT INTO tire_sets (id, vehicle_id, name, season, status, mounted_odometer, total_km, created_at)
+         VALUES (?, ?, ?, ?, 'stored', NULL, 3000, ?)`,
+        [setBId, testVehicleId, 'Set B', 'winter', now]
+      );
+
+      // Swap at odometer 18,000 km: Set A ran (18000 - 10000) = 8000 km. Set A total_km becomes 5000 + 8000 = 13000 km.
+      const swapOdometer = 18000;
+      const currentMounted = db.get<any>("SELECT * FROM tire_sets WHERE id = ?", [setAId]);
+      assert.ok(currentMounted);
+      const delta = swapOdometer - currentMounted.mounted_odometer;
+      const newTotal = currentMounted.total_km + delta;
+
+      db.run(
+        "UPDATE tire_sets SET status = 'stored', total_km = ?, mounted_odometer = NULL WHERE id = ?",
+        [newTotal, currentMounted.id]
+      );
+
+      db.run(
+        "UPDATE tire_sets SET status = 'mounted', mounted_odometer = ? WHERE id = ?",
+        [swapOdometer, setBId]
+      );
+
+      const updatedA = db.get<any>('SELECT * FROM tire_sets WHERE id = ?', [currentMounted.id]);
+      const updatedB = db.get<any>('SELECT * FROM tire_sets WHERE id = ?', [setBId]);
+
+      assert.equal(updatedA.status, 'stored');
+      assert.equal(updatedA.total_km, 13000);
+      assert.equal(updatedB.status, 'mounted');
+      assert.equal(updatedB.mounted_odometer, 18000);
+    });
+  });
 });

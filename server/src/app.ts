@@ -21,6 +21,9 @@ import settingsRoutes from './routes/settingsRoutes.js';
 import haRoutes from './routes/haRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import backupRoutes from './routes/backupRoutes.js';
+import expenseRoutes from './routes/expenseRoutes.js';
+import tripRoutes from './routes/tripRoutes.js';
+import tireRoutes from './routes/tireRoutes.js';
 
 export function createApp(): express.Application {
   const app = express();
@@ -64,7 +67,7 @@ export function createApp(): express.Application {
         database: dbCheck?.healthy === 1 ? 'connected' : 'unhealthy',
         uptime: process.uptime(),
         timestamp: new Date().toISOString(),
-        version: '1.0.19',
+        version: '1.0.20',
       });
     } catch (err: any) {
       res.status(503).json({
@@ -90,6 +93,9 @@ export function createApp(): express.Application {
   app.use('/api/integrations/ha', haRoutes);
   app.use('/api/notifications', notificationRoutes);
   app.use('/api/backup', backupRoutes);
+  app.use('/api/expenses', expenseRoutes);
+  app.use('/api/trips', tripRoutes);
+  app.use('/api/tires', tireRoutes);
 
   // Serve static client PWA in production or unified container
   const possiblePaths = [

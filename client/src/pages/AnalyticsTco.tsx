@@ -29,6 +29,7 @@ import { Vehicle, TcoSummary } from '../types/index.js';
 import { apiFetch } from '../api/client.js';
 import { PdfExportModal } from '../components/PdfExportModal.js';
 import { DatePicker } from '../components/DatePicker.js';
+import { RecurringExpensesCard } from '../components/RecurringExpensesCard.js';
 import { useLanguage } from '../context/LanguageContext.js';
 import { formatDisplayDate } from '../utils/format.js';
 
@@ -284,6 +285,7 @@ export const AnalyticsTco: React.FC = () => {
           </div>
           <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 font-medium">
             {t('fuelSpend')}: €{tco?.fuelTotal.toFixed(2)} • {t('maintenanceSpend')}: €{tco?.serviceTotal.toFixed(2)}
+            {tco?.fixedExpensesTotal ? ` • Vaste lasten: €${tco.fixedExpensesTotal.toFixed(2)}` : ''}
           </div>
         </div>
 
@@ -316,7 +318,7 @@ export const AnalyticsTco: React.FC = () => {
           </div>
           <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
             {lang === 'nl'
-              ? `Gemiddeld over ${tco?.totalMonths || 1} ${tco?.totalMonths === 1 ? 'maand' : 'maanden'}`
+              ? `Gemiddeld over ${tco?.totalMonths || 1} ${tco?.totalMonths === 1 ? 'maand' : 'maanden'}${tco?.monthlyFixedCost ? ` (incl. €${tco.monthlyFixedCost.toFixed(2)} vaste lasten)` : ''}`
               : `Averaged over ${tco?.totalMonths || 1} ${tco?.totalMonths === 1 ? 'month' : 'months'}`}
           </span>
         </div>
@@ -395,6 +397,12 @@ export const AnalyticsTco: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Vaste Lasten & Wegenbelasting Tracker */}
+      <RecurringExpensesCard
+        vehicleId={selectedVehicle.id}
+        onExpenseChange={() => loadTco(selectedVehicle.id)}
+      />
 
       {/* Visualisaties (Recharts) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

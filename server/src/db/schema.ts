@@ -247,6 +247,71 @@ export function initializeDatabase(): void {
     );
   `);
 
+  // 11. Recurring expenses (Vaste Lasten: Wegenbelasting, Verzekering, Abonnementen)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS recurring_expenses (
+      id TEXT PRIMARY KEY,
+      vehicle_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      category TEXT NOT NULL DEFAULT 'other',
+      frequency TEXT NOT NULL DEFAULT 'monthly',
+      amount REAL NOT NULL DEFAULT 0,
+      start_date TEXT NOT NULL,
+      end_date TEXT,
+      is_active INTEGER NOT NULL DEFAULT 1,
+      notes TEXT,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (vehicle_id) REFERENCES vehicles(id) ON DELETE CASCADE
+    );
+  `);
+
+  // 12. Trips (Ritregistratie: Zakelijk, Woon-werk, Privé)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS trips (
+      id TEXT PRIMARY KEY,
+      vehicle_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      date TEXT NOT NULL,
+      start_odometer REAL NOT NULL,
+      end_odometer REAL NOT NULL,
+      distance_km REAL NOT NULL,
+      from_location TEXT NOT NULL,
+      to_location TEXT NOT NULL,
+      purpose TEXT NOT NULL DEFAULT 'business',
+      description TEXT,
+      is_return_trip INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (vehicle_id) REFERENCES vehicles(id) ON DELETE CASCADE,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+  `);
+
+  // 13. Tire sets & tread depth (Bandenbeheer)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS tire_sets (
+      id TEXT PRIMARY KEY,
+      vehicle_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      season TEXT NOT NULL DEFAULT 'summer',
+      brand_model TEXT,
+      tire_size TEXT,
+      dot_code TEXT,
+      storage_location TEXT,
+      status TEXT NOT NULL DEFAULT 'mounted',
+      mounted_odometer REAL,
+      mounted_date TEXT,
+      total_km REAL NOT NULL DEFAULT 0,
+      tread_depth_fl REAL,
+      tread_depth_fr REAL,
+      tread_depth_rl REAL,
+      tread_depth_rr REAL,
+      last_measured_date TEXT,
+      notes TEXT,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (vehicle_id) REFERENCES vehicles(id) ON DELETE CASCADE
+    );
+  `);
+
   // Seed default presets
   seedPresets();
 }
