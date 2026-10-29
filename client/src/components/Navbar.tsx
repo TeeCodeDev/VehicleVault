@@ -136,19 +136,10 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
               title={lang === 'nl' ? 'Wissel van actief voertuig' : 'Switch active vehicle'}
             >
-              {/* Vehicle Avatar / Icon */}
-              {getVehicleImageUrl(activeVehicle.image_path) && !failedImages[`active-${activeVehicle.id}`] ? (
-                <img
-                  src={getVehicleImageUrl(activeVehicle.image_path)!}
-                  alt={activeVehicle.name}
-                  onError={() => handleImageError(`active-${activeVehicle.id}`)}
-                  className="w-7 h-7 rounded-lg object-cover border border-slate-200 dark:border-slate-700 shrink-0 shadow-2xs"
-                />
-              ) : (
-                <div className="w-7 h-7 rounded-lg bg-accent-100/70 dark:bg-accent-950/70 text-accent-600 dark:text-accent-400 flex items-center justify-center shrink-0 border border-accent-200 dark:border-accent-800">
-                  <Car className="w-4 h-4" />
-                </div>
-              )}
+              {/* Vehicle Icon Badge (crisp vector icon, avoiding micro-scaled blurry vehicle photos in header) */}
+              <div className="w-7 h-7 rounded-lg bg-accent-100/70 dark:bg-accent-950/70 text-accent-600 dark:text-accent-400 flex items-center justify-center shrink-0 border border-accent-200/80 dark:border-accent-800 shadow-2xs">
+                <Car className="w-4 h-4" />
+              </div>
 
               {/* Vehicle Name & Dutch Plate Badge */}
               <div className="flex items-center space-x-2 min-w-0">
@@ -204,10 +195,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                               src={getVehicleImageUrl(v.image_path)!}
                               alt={v.name}
                               onError={() => handleImageError(v.id)}
-                              className="w-9 h-9 rounded-xl object-cover border border-slate-200 dark:border-slate-700 shrink-0"
+                              className="w-12 h-8 rounded-lg object-cover border border-slate-200 dark:border-slate-700 shrink-0 shadow-2xs"
                             />
                           ) : (
-                            <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 flex items-center justify-center shrink-0">
+                            <div className="w-12 h-8 rounded-lg bg-accent-50/60 dark:bg-accent-950/40 text-accent-600 dark:text-accent-400 flex items-center justify-center shrink-0 border border-accent-100 dark:border-accent-900/50">
                               <Car className="w-4 h-4" />
                             </div>
                           )}

@@ -692,7 +692,7 @@ export const Vehicles: React.FC = () => {
                 </label>
                 <div className="flex items-center space-x-4">
                   {imagePreview ? (
-                    <div className="w-20 h-20 rounded-xl overflow-hidden bg-slate-200 dark:bg-slate-800 shrink-0 border border-slate-300 dark:border-slate-700 relative group">
+                    <div className="w-36 h-24 rounded-xl overflow-hidden bg-slate-200 dark:bg-slate-800 shrink-0 border border-slate-300 dark:border-slate-700 relative group shadow-xs">
                       <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
                       <button
                         type="button"
@@ -700,16 +700,16 @@ export const Vehicles: React.FC = () => {
                           setImageFile(null);
                           setImagePreview(null);
                         }}
-                        className="absolute top-1 right-1 bg-black/60 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition"
+                        className="absolute top-1.5 right-1.5 bg-black/60 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition shadow-xs"
                         title={t('delete')}
                       >
-                        <X className="w-3 h-3" />
+                        <X className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   ) : (
-                    <div className="w-20 h-20 rounded-xl bg-slate-100 dark:bg-slate-900 border-2 border-dashed border-slate-300 dark:border-slate-800 flex flex-col items-center justify-center text-slate-400 shrink-0">
-                      <Camera className="w-5 h-5 mb-0.5" />
-                      <span className="text-[9px]">{t('noPhoto')}</span>
+                    <div className="w-36 h-24 rounded-xl bg-slate-100 dark:bg-slate-900 border-2 border-dashed border-slate-300 dark:border-slate-800 flex flex-col items-center justify-center text-slate-400 shrink-0">
+                      <Camera className="w-5 h-5 mb-1" />
+                      <span className="text-[10px] font-medium">{t('noPhoto')}</span>
                     </div>
                   )}
                   <div className="flex-1">

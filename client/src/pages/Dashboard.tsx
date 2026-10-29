@@ -226,20 +226,11 @@ export const Dashboard: React.FC = () => {
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Hero Vehicle Card: Modern, energetic automotive aesthetic */}
       <div className="relative overflow-hidden bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 md:p-6 shadow-sm transition-colors">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-5 relative z-10">
-          <div className="flex items-start space-x-4">
-            {selectedVehicle?.image_path ? (
-              <div className="w-20 h-20 md:w-24 md:h-24 rounded-xl overflow-hidden shrink-0 border border-slate-200/80 dark:border-slate-800 shadow-xs">
-                <img
-                  src={`/uploads/vehicles/${selectedVehicle.image_path}`}
-                  alt={selectedVehicle.name}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            ) : null}
-
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+          {/* Left: Vehicle Details & Quick Actions */}
+          <div className="flex-1 min-w-0 space-y-4">
             <div>
-              <div className="flex items-center space-x-3 mb-1.5">
+              <div className="flex items-center space-x-3 mb-2">
                 <span className="text-[11px] font-extrabold tracking-wider uppercase text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-950/60 px-2.5 py-0.5 rounded-full border border-sky-200 dark:border-sky-800/40">
                   {selectedVehicle?.type === 'motorcycle'
                     ? t('motorcycle')
@@ -252,8 +243,8 @@ export const Dashboard: React.FC = () => {
                 <StatusBadge status={selectedVehicle?.status || 'active'} />
               </div>
 
-              <div className="flex items-center space-x-3">
-                <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">
+              <div className="flex flex-wrap items-center gap-3">
+                <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900 dark:text-white">
                   {selectedVehicle?.name}
                 </h1>
 
@@ -266,40 +257,52 @@ export const Dashboard: React.FC = () => {
                 )}
               </div>
 
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1.5 font-medium">
                 {selectedVehicle?.year ? `${selectedVehicle.year} ` : ''}
                 {selectedVehicle?.make} {selectedVehicle?.model} • {t('fuelType')}: {selectedVehicle?.fuel_type || '—'}
               </p>
             </div>
+
+            {/* Quick Action Buttons */}
+            <div className="flex flex-wrap items-center gap-2.5 pt-1">
+              <Link
+                to="/fuel"
+                className="px-4 py-2 bg-accent-600 hover:bg-accent-700 text-white rounded-xl text-xs font-bold inline-flex items-center space-x-2 transition shadow-sm hover:scale-[1.02]"
+              >
+                <Fuel className="w-4 h-4 text-amber-300" />
+                <span>{t('newFuelEntry')}</span>
+              </Link>
+
+              <Link
+                to="/maintenance"
+                className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-xl text-xs font-semibold inline-flex items-center space-x-1.5 transition border border-slate-200 dark:border-slate-700/60"
+              >
+                <Wrench className="w-3.5 h-3.5" />
+                <span>{t('logService')}</span>
+              </Link>
+
+              <button
+                onClick={() => setIsPdfModalOpen(true)}
+                className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-xl text-xs font-semibold inline-flex items-center space-x-1.5 transition border border-slate-200 dark:border-slate-700/60"
+                title={t('exportPdf')}
+              >
+                <FileDown className="w-3.5 h-3.5 text-sky-500" />
+                <span>PDF Dossier</span>
+              </button>
+            </div>
           </div>
 
-          {/* Quick Action Buttons */}
-          <div className="flex flex-wrap items-center gap-2.5">
-            <Link
-              to="/fuel"
-              className="px-4 py-2 bg-accent-600 hover:bg-accent-700 text-white rounded-xl text-xs font-bold inline-flex items-center space-x-2 transition shadow-sm hover:scale-[1.02]"
-            >
-              <Fuel className="w-4 h-4 text-amber-400" />
-              <span>{t('newFuelEntry')}</span>
-            </Link>
-
-            <Link
-              to="/maintenance"
-              className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-xl text-xs font-semibold inline-flex items-center space-x-1.5 transition border border-slate-200 dark:border-slate-700/60"
-            >
-              <Wrench className="w-3.5 h-3.5" />
-              <span>{t('logService')}</span>
-            </Link>
-
-            <button
-              onClick={() => setIsPdfModalOpen(true)}
-              className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-xl text-xs font-semibold inline-flex items-center space-x-1.5 transition border border-slate-200 dark:border-slate-700/60"
-              title={t('exportPdf')}
-            >
-              <FileDown className="w-3.5 h-3.5 text-sky-500" />
-              <span>PDF Dossier</span>
-            </button>
-          </div>
+          {/* Right: Automotive Showcase Photo in true 16:9 widescreen format */}
+          {selectedVehicle?.image_path && (
+            <div className="w-full sm:w-80 md:w-96 lg:w-[420px] aspect-video rounded-xl overflow-hidden shrink-0 bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-800 shadow-sm relative group">
+              <img
+                src={`/uploads/vehicles/${selectedVehicle.image_path}`}
+                alt={selectedVehicle.name}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent pointer-events-none" />
+            </div>
+          )}
         </div>
       </div>
 
