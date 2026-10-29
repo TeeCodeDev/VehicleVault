@@ -6,8 +6,11 @@ import { Vehicle } from '../types/index.js';
 import { apiFetch } from '../api/client.js';
 import { LayoutDashboard, Car, Fuel, Wrench, FolderLock, LineChart } from 'lucide-react';
 import { OfflineBanner } from './OfflineBanner.js';
+import { useAuth } from '../context/AuthContext.js';
 
 export const Layout: React.FC = () => {
+  const { user } = useAuth();
+  const isDriver = user?.role === 'driver';
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
 
@@ -68,17 +71,21 @@ export const Layout: React.FC = () => {
           <LayoutDashboard className="w-4 h-4 mb-0.5" />
           <span>Overzicht</span>
         </NavLink>
-        <NavLink
-          to="/vehicles"
-          className={({ isActive }) =>
-            `flex flex-col items-center justify-center text-[10px] ${
-              isActive ? 'text-sky-600 dark:text-white font-bold' : 'text-slate-500'
-            }`
-          }
-        >
-          <Car className="w-4 h-4 mb-0.5" />
-          <span>Garage</span>
-        </NavLink>
+
+        {!isDriver && (
+          <NavLink
+            to="/vehicles"
+            className={({ isActive }) =>
+              `flex flex-col items-center justify-center text-[10px] ${
+                isActive ? 'text-sky-600 dark:text-white font-bold' : 'text-slate-500'
+              }`
+            }
+          >
+            <Car className="w-4 h-4 mb-0.5" />
+            <span>Garage</span>
+          </NavLink>
+        )}
+
         <NavLink
           to="/fuel"
           className={({ isActive }) =>
@@ -90,39 +97,44 @@ export const Layout: React.FC = () => {
           <Fuel className="w-4 h-4 mb-0.5" />
           <span>Tanken</span>
         </NavLink>
-        <NavLink
-          to="/maintenance"
-          className={({ isActive }) =>
-            `flex flex-col items-center justify-center text-[10px] ${
-              isActive ? 'text-sky-600 dark:text-white font-bold' : 'text-slate-500'
-            }`
-          }
-        >
-          <Wrench className="w-4 h-4 mb-0.5" />
-          <span>Onderhoud</span>
-        </NavLink>
-        <NavLink
-          to="/documents"
-          className={({ isActive }) =>
-            `flex flex-col items-center justify-center text-[10px] ${
-              isActive ? 'text-sky-600 dark:text-white font-bold' : 'text-slate-500'
-            }`
-          }
-        >
-          <FolderLock className="w-4 h-4 mb-0.5" />
-          <span>Documenten</span>
-        </NavLink>
-        <NavLink
-          to="/analytics"
-          className={({ isActive }) =>
-            `flex flex-col items-center justify-center text-[10px] ${
-              isActive ? 'text-sky-600 dark:text-white font-bold' : 'text-slate-500'
-            }`
-          }
-        >
-          <LineChart className="w-4 h-4 mb-0.5" />
-          <span>Kosten</span>
-        </NavLink>
+
+        {!isDriver && (
+          <>
+            <NavLink
+              to="/maintenance"
+              className={({ isActive }) =>
+                `flex flex-col items-center justify-center text-[10px] ${
+                  isActive ? 'text-sky-600 dark:text-white font-bold' : 'text-slate-500'
+                }`
+              }
+            >
+              <Wrench className="w-4 h-4 mb-0.5" />
+              <span>Onderhoud</span>
+            </NavLink>
+            <NavLink
+              to="/documents"
+              className={({ isActive }) =>
+                `flex flex-col items-center justify-center text-[10px] ${
+                  isActive ? 'text-sky-600 dark:text-white font-bold' : 'text-slate-500'
+                }`
+              }
+            >
+              <FolderLock className="w-4 h-4 mb-0.5" />
+              <span>Documenten</span>
+            </NavLink>
+            <NavLink
+              to="/analytics"
+              className={({ isActive }) =>
+                `flex flex-col items-center justify-center text-[10px] ${
+                  isActive ? 'text-sky-600 dark:text-white font-bold' : 'text-slate-500'
+                }`
+              }
+            >
+              <LineChart className="w-4 h-4 mb-0.5" />
+              <span>Kosten</span>
+            </NavLink>
+          </>
+        )}
       </nav>
     </div>
   );

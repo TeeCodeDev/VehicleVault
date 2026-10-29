@@ -4,6 +4,7 @@ import {
   Gauge,
   Calendar,
   Fuel,
+  Zap,
   Wrench,
   ShieldCheck,
   Plus,
@@ -19,6 +20,7 @@ import { IntervalProgressBar } from '../components/IntervalProgressBar.js';
 import { PdfExportModal } from '../components/PdfExportModal.js';
 import { useLanguage } from '../context/LanguageContext.js';
 import { formatDisplayDate } from '../utils/format.js';
+import { useAuth } from '../context/AuthContext.js';
 
 interface ContextType {
   vehicles: Vehicle[];
@@ -29,6 +31,7 @@ interface ContextType {
 export const Dashboard: React.FC = () => {
   const { vehicles, selectedVehicle, refreshVehicles } = useOutletContext<ContextType>();
   const { t, lang } = useLanguage();
+  const { user } = useAuth();
   const [intervals, setIntervals] = useState<MaintenanceInterval[]>([]);
   const [recentFuels, setRecentFuels] = useState<FuelEntry[]>([]);
   const [fleetAlerts, setFleetAlerts] = useState<any[]>([]);
@@ -103,6 +106,96 @@ export const Dashboard: React.FC = () => {
           <Plus className="w-4 h-4" />
           <span>{t('addFirstVehicle')}</span>
         </Link>
+      </div>
+    );
+  }
+
+  // Simplified high-contrast Driver Dashboard (ideal for quick mobile fueling & family members)
+  if (user?.role === 'driver') {
+    return (
+      <div className="space-y-5 max-w-2xl mx-auto py-2">
+        {/* Driver Hero Card */}
+        <div className="bg-gradient-to-br from-slate-900 via-slate-850 to-slate-950 text-white p-6 rounded-3xl shadow-xl border border-slate-800">
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-xs font-bold text-emerald-400 bg-emerald-950/80 border border-emerald-800/80 px-3 py-1 rounded-full">
+              🚗 Chauffeur Modus
+            </span>
+            {selectedVehicle?.license_plate && (
+              <div className="inline-flex items-center bg-amber-400 text-slate-950 font-mono font-black text-xs px-2.5 py-0.5 rounded border border-amber-500 shadow-sm">
+                <span className="text-[9px] bg-blue-700 text-white px-1 py-0.2 rounded-l mr-1.5 font-bold">NL</span>
+                {selectedVehicle.license_plate}
+              </div>
+            )}
+          </div>
+
+          <h2 className="text-2xl font-black tracking-tight">{selectedVehicle?.name || 'Mijn Voertuig'}</h2>
+          <p className="text-xs text-slate-400 mt-1 font-medium">
+            {selectedVehicle?.make} {selectedVehicle?.model} • {selectedVehicle?.fuel_type || 'Brandstof'}
+          </p>
+
+          <div className="mt-5 pt-4 border-t border-slate-800 flex items-center justify-between">
+            <div>
+              <span className="text-[11px] text-slate-400 uppercase font-semibold">Huidige Stand</span>
+              <div className="text-xl font-mono font-black text-white mt-0.5">
+                {(selectedVehicle?.current_odometer || 0).toLocaleString()} km
+              </div>
+            </div>
+            {recentFuels[0] && (
+              <div className="text-right">
+                <span className="text-[11px] text-slate-400 uppercase font-semibold">Laatst Getankt</span>
+                <div className="text-xs font-bold text-slate-200 mt-0.5">
+                  {formatDisplayDate(recentFuels[0].date)}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Big Action Button */}
+        <Link
+          to="/fuel"
+          className="w-full py-4 px-6 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-2xl flex items-center justify-center space-x-3 text-sm md:text-base shadow-lg transition active:scale-95"
+        >
+          <Fuel className="w-6 h-6 shrink-0" />
+          <span>⛽ Tankbeurt of Laadbeurt Invoeren</span>
+        </Link>
+
+        {/* Recent Fuelings List */}
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 shadow-sm">
+          <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">
+            Laatste 3 Registraties
+          </h3>
+          {recentFuels.length === 0 ? (
+            <p className="text-xs text-slate-400 py-6 text-center">Nog geen tankbeurten geregistreerd.</p>
+          ) : (
+            <div className="space-y-2.5">
+              {recentFuels.slice(0, 3).map((f) => (
+                <div
+                  key={f.id}
+                  className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-100 dark:border-slate-800/80"
+                >
+                  <div className="flex items-center space-x-3">
+                    <div className="w-9 h-9 rounded-xl bg-amber-100 dark:bg-amber-950/60 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
+                      {f.energy_type === 'electric' ? <Zap className="w-4 h-4 text-cyan-500" /> : <Fuel className="w-4 h-4" />}
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-slate-900 dark:text-white">
+                        {f.energy_type === 'electric' ? `${f.kwh || 0} kWh` : `${f.liters} Liter`}
+                        {f.station_name && ` • ${f.station_name}`}
+                      </div>
+                      <div className="text-[11px] text-slate-400 font-mono">
+                        {formatDisplayDate(f.date)} • {f.odometer.toLocaleString()} km
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm font-black text-slate-900 dark:text-white">€ {f.total_cost.toFixed(2)}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     );
   }

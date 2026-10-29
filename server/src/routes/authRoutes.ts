@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { AuthController } from '../controllers/authController.js';
-import { requireAuth } from '../middleware/auth.js';
+import { requireAuth, requireAdmin } from '../middleware/auth.js';
 import { authLimiter } from '../middleware/rateLimiter.js';
 
 const router = Router();
@@ -15,5 +15,10 @@ router.get('/me', requireAuth, AuthController.me);
 router.get('/api-keys', requireAuth, AuthController.listApiKeys);
 router.post('/api-keys', requireAuth, AuthController.createApiKey);
 router.delete('/api-keys/:id', requireAuth, AuthController.deleteApiKey);
+
+// User Management (Admin only)
+router.get('/users', requireAuth, requireAdmin, AuthController.listUsers);
+router.patch('/users/:id/role', requireAuth, requireAdmin, AuthController.updateUserRole);
+router.delete('/users/:id', requireAuth, requireAdmin, AuthController.deleteUser);
 
 export default router;

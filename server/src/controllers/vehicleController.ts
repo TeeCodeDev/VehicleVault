@@ -26,15 +26,16 @@ export class VehicleController {
   public static async list(req: Request, res: Response): Promise<void> {
     try {
       const status = req.query.status as string;
+      const isSharedRole = req.user?.role === 'admin' || req.user?.role === 'driver';
       let sql = `
         SELECT v.*, 
           MAX(COALESCE(f.max_f, 0), COALESCE(s.max_s, 0), v.initial_odometer) as current_odometer
         FROM vehicles v
         LEFT JOIN (SELECT vehicle_id, MAX(odometer) as max_f FROM fuel_entries GROUP BY vehicle_id) f ON f.vehicle_id = v.id
         LEFT JOIN (SELECT vehicle_id, MAX(odometer) as max_s FROM service_records GROUP BY vehicle_id) s ON s.vehicle_id = v.id
-        WHERE v.user_id = ?
+        WHERE (${isSharedRole ? '1=1' : 'v.user_id = ?'})
       `;
-      const params: any[] = [req.user?.userId];
+      const params: any[] = isSharedRole ? [] : [req.user?.userId];
 
       if (status && status !== 'all') {
         sql += ' AND v.status = ?';
@@ -63,15 +64,16 @@ export class VehicleController {
   public static async getById(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
+      const isSharedRole = req.user?.role === 'admin' || req.user?.role === 'driver';
       const vehicle = db.get<any>(
         `SELECT v.*, 
           MAX(COALESCE(f.max_f, 0), COALESCE(s.max_s, 0), v.initial_odometer) as current_odometer
          FROM vehicles v
          LEFT JOIN (SELECT vehicle_id, MAX(odometer) as max_f FROM fuel_entries GROUP BY vehicle_id) f ON f.vehicle_id = v.id
          LEFT JOIN (SELECT vehicle_id, MAX(odometer) as max_s FROM service_records GROUP BY vehicle_id) s ON s.vehicle_id = v.id
-         WHERE v.id = ? AND v.user_id = ?
+         WHERE v.id = ? ${isSharedRole ? '' : 'AND v.user_id = ?'}
          GROUP BY v.id`,
-        [id, req.user?.userId]
+        isSharedRole ? [id] : [id, req.user?.userId]
       );
 
       if (!vehicle) {

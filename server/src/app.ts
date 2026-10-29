@@ -18,6 +18,9 @@ import importRoutes from './routes/importRoutes.js';
 import mcpRoutes from './routes/mcpRoutes.js';
 import documentRoutes from './routes/documentRoutes.js';
 import settingsRoutes from './routes/settingsRoutes.js';
+import haRoutes from './routes/haRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
+import backupRoutes from './routes/backupRoutes.js';
 
 export function createApp(): express.Application {
   const app = express();
@@ -61,7 +64,7 @@ export function createApp(): express.Application {
         database: dbCheck?.healthy === 1 ? 'connected' : 'unhealthy',
         uptime: process.uptime(),
         timestamp: new Date().toISOString(),
-        version: '1.0.13',
+        version: '1.0.14',
       });
     } catch (err: any) {
       res.status(503).json({
@@ -84,6 +87,9 @@ export function createApp(): express.Application {
   app.use('/api/mcp', mcpRoutes);
   app.use('/api/documents', documentRoutes);
   app.use('/api/settings', settingsRoutes);
+  app.use('/api/integrations/ha', haRoutes);
+  app.use('/api/notifications', notificationRoutes);
+  app.use('/api/backup', backupRoutes);
 
   // Serve static client PWA in production or unified container
   const possiblePaths = [

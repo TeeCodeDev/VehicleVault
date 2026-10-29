@@ -25,6 +25,9 @@ import {
 } from '../services/aiReceiptService.js';
 import { StationService } from '../services/stationService.js';
 import { isAuthDisabled, getDefaultUser } from '../middleware/auth.js';
+import { HaService } from '../services/haService.js';
+import { NotificationService } from '../services/notificationService.js';
+import { BackupService } from '../services/backupService.js';
 
 describe('VehicleVault Comprehensive Test Suite', () => {
   let testUserId: string;
@@ -99,11 +102,11 @@ describe('VehicleVault Comprehensive Test Suite', () => {
       setSystemSetting('disable_auth', 'true');
       assert.equal(isAuthDisabled(), true);
 
-      // Verify default user lookup returns a valid admin user
+      // Verify default user lookup returns a valid user
       const defaultUser = getDefaultUser();
       assert.ok(defaultUser.userId);
       assert.ok(defaultUser.email);
-      assert.ok(['admin', 'user'].includes(defaultUser.role));
+      assert.ok(['admin', 'user', 'driver'].includes(defaultUser.role));
 
       // Clean up
       db.run('DELETE FROM system_settings WHERE key = ?', ['disable_auth']);
@@ -593,6 +596,107 @@ Date,Odometer,Fuel_amount,Price,Total_cost,Notes
 
       // Preferred recommended model must be first
       assert.equal(filtered[0], 'gemini-3.8-flash');
+    });
+  });
+
+  describe('Home Assistant REST Telemetry & Sensors Engine', () => {
+    it('should generate sensor payload for active vehicles with accurate telemetry', () => {
+      const payload = HaService.getSensorsPayload();
+      assert.equal(payload.status, 'ok');
+      assert.equal(payload.version, '1.0.14');
+      assert.ok(Array.isArray(payload.vehicles));
+      assert.ok(payload.total_vehicles >= 1);
+
+      const target = payload.vehicles.find((v) => v.id === testVehicleId);
+      assert.ok(target, 'Test vehicle must be present in HA sensor payload');
+      assert.equal(target.name, 'Daily Driver Golf 7');
+      assert.equal(target.status, 'active');
+      assert.ok(typeof target.odometer === 'number');
+      assert.ok(target.apk);
+      assert.ok(target.fuel_stats);
+      assert.ok(target.attributes);
+      assert.equal(target.attributes.license_plate, '12-XYZ-3');
+    });
+  });
+
+  describe('Notification Engine & Dispatch Service', () => {
+    it('should save and retrieve notification settings correctly', () => {
+      NotificationService.saveSettings({
+        provider: 'ntfy',
+        ntfyUrl: 'https://ntfy.sh/test-vault-channel',
+        enabledApk: true,
+        enabledMaintenance: false,
+      });
+
+      const settings = NotificationService.getSettings();
+      assert.equal(settings.provider, 'ntfy');
+      assert.equal(settings.ntfyUrl, 'https://ntfy.sh/test-vault-channel');
+      assert.equal(settings.enabledApk, true);
+      assert.equal(settings.enabledMaintenance, false);
+    });
+
+    it('should handle test notification rejection when no provider is set gracefully', async () => {
+      NotificationService.saveSettings({ provider: 'none' });
+      const res = await NotificationService.testNotification();
+      assert.equal(res.success, false);
+      assert.ok(res.message.includes('uitgeschakeld'));
+    });
+  });
+
+  describe('1-Click Database & File Backup/Restore Engine', () => {
+    it('should generate valid zip archive containing vehiclevault.db and manifest.json', async () => {
+      const zipBuffer = await BackupService.createBackupZip();
+      assert.ok(zipBuffer.length > 0);
+
+      const stats = BackupService.getStorageStats();
+      assert.ok(typeof stats.databaseSizeFormatted === 'string');
+      assert.ok(typeof stats.totalUploadsFormatted === 'string');
+      assert.ok(typeof stats.dataDir === 'string');
+    });
+  });
+
+  describe('PHEV/EV Energy Logging & Multi-User Roles', () => {
+    it('should record electric charging sessions with kWh and price per kWh', () => {
+      const fuelId = crypto.randomUUID();
+      db.run(
+        `INSERT INTO fuel_entries (
+          id, vehicle_id, date, odometer, liters, price_per_liter, total_cost,
+          energy_type, kwh, price_per_kwh, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          fuelId,
+          testVehicleId,
+          '2026-10-29',
+          16500,
+          0,
+          0,
+          15.82,
+          'electric',
+          45.2,
+          0.35,
+          new Date().toISOString(),
+        ]
+      );
+
+      const entry = db.get<any>('SELECT * FROM fuel_entries WHERE id = ?', [fuelId]);
+      assert.ok(entry);
+      assert.equal(entry.energy_type, 'electric');
+      assert.equal(entry.kwh, 45.2);
+      assert.equal(entry.price_per_kwh, 0.35);
+      assert.equal(entry.total_cost, 15.82);
+    });
+
+    it('should support driver and admin roles properly', () => {
+      const driverUserId = crypto.randomUUID();
+      const uniqueEmail = `driver_${crypto.randomUUID()}@vehiclevault.local`;
+      const now = new Date().toISOString();
+      db.run(
+        'INSERT INTO users (id, email, password_hash, role, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
+        [driverUserId, uniqueEmail, 'fakehash', 'driver', now, now]
+      );
+
+      const user = db.get<any>('SELECT role FROM users WHERE id = ?', [driverUserId]);
+      assert.equal(user.role, 'driver');
     });
   });
 });

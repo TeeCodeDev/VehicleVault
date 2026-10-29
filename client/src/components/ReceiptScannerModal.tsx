@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Camera, Upload, CheckCircle2, AlertCircle, AlertTriangle, Loader2, X, Sparkles, MapPin, Fuel } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext.js';
+import { compressImage } from '../utils/imageCompressor.js';
 import { formatDisplayDate } from '../utils/format.js';
 
 interface ReceiptScannerModalProps {
@@ -51,11 +52,12 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({ isOpen
 
   if (!isOpen) return null;
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const selected = e.target.files[0];
-      setFile(selected);
-      setPreviewUrl(URL.createObjectURL(selected));
+      const compressed = await compressImage(selected);
+      setFile(compressed);
+      setPreviewUrl(URL.createObjectURL(compressed));
       setOcrResult(null);
       setError(null);
     }

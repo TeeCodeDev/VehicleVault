@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import { Request, Response, NextFunction } from 'express';
 import { verifyAccessToken, hashToken } from '../utils/token.js';
 import { db } from '../db/database.js';
@@ -84,19 +85,34 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
 
   if (proxyUserHeader && typeof proxyUserHeader === 'string' && proxyUserHeader.trim().length > 0) {
     const email = proxyUserHeader.trim().toLowerCase();
-    const user = db.get<{ id: string; email: string; role: string }>(
+    let user = db.get<{ id: string; email: string; role: string }>(
       'SELECT id, email, role FROM users WHERE email = ?',
       [email]
     );
-    if (user) {
-      req.user = {
-        userId: user.id,
-        email: user.email,
-        role: user.role,
-        isApiKey: false,
-      };
-      return next();
+
+    if (!user) {
+      // Auto-provision user from reverse proxy
+      const userCount = db.get<{ count: number }>('SELECT count(*) as count FROM users')?.count || 0;
+      const groupsHeader = ((req.headers['remote-groups'] || req.headers['x-forwarded-groups']) as string || '').toLowerCase();
+      const isAdmin = userCount === 0 || groupsHeader.includes('admin');
+      const role = isAdmin ? 'admin' : 'driver';
+      const newUserId = crypto.randomUUID();
+      const now = new Date().toISOString();
+
+      db.run(
+        'INSERT INTO users (id, email, password_hash, role, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
+        [newUserId, email, 'proxy_auth_placeholder', role, now, now]
+      );
+      user = { id: newUserId, email, role };
     }
+
+    req.user = {
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+      isApiKey: false,
+    };
+    return next();
   }
 
   const authHeader = req.headers.authorization;
@@ -157,6 +173,19 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
     role: payload.role,
     isApiKey: false,
   };
+
+  next();
+}
+
+export function requireAdmin(req: Request, res: Response, next: NextFunction): void {
+  if (isAuthDisabled()) {
+    return next();
+  }
+
+  if (!req.user || req.user.role !== 'admin') {
+    res.status(403).json({ error: 'Toegang geweigerd: Alleen beheerders hebben toegang tot deze actie.' });
+    return;
+  }
 
   next();
 }

@@ -129,6 +129,9 @@ export function initializeDatabase(): void {
       station_address TEXT,
       latitude REAL,
       longitude REAL,
+      energy_type TEXT NOT NULL DEFAULT 'fuel',
+      kwh REAL,
+      price_per_kwh REAL,
       created_at TEXT NOT NULL,
       FOREIGN KEY (vehicle_id) REFERENCES vehicles(id) ON DELETE CASCADE
     );
@@ -145,6 +148,15 @@ export function initializeDatabase(): void {
   }
   if (!columnExists('fuel_entries', 'longitude')) {
     db.exec('ALTER TABLE fuel_entries ADD COLUMN longitude REAL;');
+  }
+  if (!columnExists('fuel_entries', 'energy_type')) {
+    db.exec("ALTER TABLE fuel_entries ADD COLUMN energy_type TEXT NOT NULL DEFAULT 'fuel';");
+  }
+  if (!columnExists('fuel_entries', 'kwh')) {
+    db.exec('ALTER TABLE fuel_entries ADD COLUMN kwh REAL;');
+  }
+  if (!columnExists('fuel_entries', 'price_per_kwh')) {
+    db.exec('ALTER TABLE fuel_entries ADD COLUMN price_per_kwh REAL;');
   }
 
   // 6. Service categories

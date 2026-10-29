@@ -5,8 +5,6 @@ import {
   Trash2,
   Copy,
   Check,
-  Cpu,
-  Shield,
   Activity,
   Sun,
   Moon,
@@ -22,6 +20,15 @@ import {
   Lock,
   Unlock,
   ShieldCheck,
+  Users,
+  Bell,
+  Database,
+  Download,
+  Upload,
+  Radio,
+  Sliders,
+  Terminal,
+  RefreshCw,
 } from 'lucide-react';
 import { ApiKeyItem } from '../types/index.js';
 import { apiFetch } from '../api/client.js';
@@ -31,6 +38,7 @@ import { useAuth } from '../context/AuthContext.js';
 import { formatDisplayDate } from '../utils/format.js';
 
 export const Settings: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<'general' | 'ai' | 'users' | 'notifications' | 'backup'>('general');
   const [apiKeys, setApiKeys] = useState<ApiKeyItem[]>([]);
   const [newKeyName, setNewKeyName] = useState('');
   const [generatedKey, setGeneratedKey] = useState<string | null>(null);
@@ -38,6 +46,7 @@ export const Settings: React.FC = () => {
   const [health, setHealth] = useState<any | null>(null);
   const { theme, setTheme } = useTheme();
   const { lang, setLang, t } = useLanguage();
+  const { refreshAuthStatus } = useAuth();
 
   // AI Vision Receipt Scanner State
   const [aiProvider, setAiProvider] = useState<'gemini' | 'openai' | 'none'>('gemini');
@@ -65,22 +74,101 @@ export const Settings: React.FC = () => {
   const [isEnvEnforced, setIsEnvEnforced] = useState(false);
   const [securityLoading, setSecurityLoading] = useState(false);
   const [securityMessage, setSecurityMessage] = useState<string | null>(null);
-  const { refreshAuthStatus } = useAuth();
+
+  // Users Management State
+  const [usersList, setUsersList] = useState<any[]>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+
+  // Notifications State
+  const [notifProvider, setNotifProvider] = useState<'none' | 'ntfy' | 'gotify' | 'webhook'>('none');
+  const [ntfyUrl, setNtfyUrl] = useState('');
+  const [ntfyToken, setNtfyToken] = useState('');
+  const [gotifyUrl, setGotifyUrl] = useState('');
+  const [gotifyToken, setGotifyToken] = useState('');
+  const [webhookUrl, setWebhookUrl] = useState('');
+  const [notifApk, setNotifApk] = useState(true);
+  const [notifMaintenance, setNotifMaintenance] = useState(true);
+  const [notifTesting, setNotifTesting] = useState(false);
+  const [notifTestResult, setNotifTestResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [notifSaving, setNotifSaving] = useState(false);
+  const [notifSaveSuccess, setNotifSaveSuccess] = useState(false);
+
+  // Home Assistant State
+  const [haCopied, setHaCopied] = useState(false);
+
+  // Backup & Storage State
+  const [storageStats, setStorageStats] = useState<{
+    databaseSizeFormatted: string;
+    totalUploadsFormatted: string;
+    dataDir: string;
+  } | null>(null);
+  const [restoringBackup, setRestoringBackup] = useState(false);
+  const [restoreMessage, setRestoreMessage] = useState<string | null>(null);
+  const [restoreError, setRestoreError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadApiKeys();
     loadHealth();
+    loadApiKeys();
     loadAiSettings();
     loadSecuritySettings();
+    loadUsers();
+    loadNotificationSettings();
+    loadStorageStats();
   }, []);
+
+  const loadHealth = async () => {
+    try {
+      const res = await fetch('/healthz');
+      if (res.ok) setHealth(await res.json());
+    } catch {}
+  };
+
+  const loadApiKeys = async () => {
+    try {
+      const res = await apiFetch<{ apiKeys: ApiKeyItem[] }>('/api/auth/api-keys');
+      setApiKeys(res.apiKeys);
+    } catch {}
+  };
 
   const loadSecuritySettings = async () => {
     try {
       const res = await apiFetch<{ disableAuth: boolean; isEnvEnforced: boolean }>('/api/settings/security');
       setDisableAuth(res.disableAuth);
       setIsEnvEnforced(res.isEnvEnforced);
+    } catch {}
+  };
+
+  const loadUsers = async () => {
+    setUsersLoading(true);
+    try {
+      const res = await apiFetch<{ users: any[] }>('/api/auth/users');
+      setUsersList(res.users);
     } catch {
-      // ignore
+      // Non-admins will receive 403, ignore
+    } finally {
+      setUsersLoading(false);
+    }
+  };
+
+  const handleUpdateRole = async (userId: string, newRole: string) => {
+    try {
+      await apiFetch(`/api/auth/users/${userId}/role`, {
+        method: 'PATCH',
+        body: JSON.stringify({ role: newRole }),
+      });
+      await loadUsers();
+    } catch (err: any) {
+      alert(err?.message || 'Fout bij bijwerken van rol');
+    }
+  };
+
+  const handleDeleteUser = async (userId: string, userEmail: string) => {
+    if (!confirm(`Weet je zeker dat je gebruiker "${userEmail}" wilt verwijderen?`)) return;
+    try {
+      await apiFetch(`/api/auth/users/${userId}`, { method: 'DELETE' });
+      await loadUsers();
+    } catch (err: any) {
+      alert(err?.message || 'Fout bij verwijderen van gebruiker');
     }
   };
 
@@ -99,26 +187,6 @@ export const Settings: React.FC = () => {
       setSecurityMessage(err?.message || 'Fout bij wijzigen van inloginstellingen');
     } finally {
       setSecurityLoading(false);
-    }
-  };
-
-  const loadApiKeys = async () => {
-    try {
-      const res = await apiFetch<{ apiKeys: ApiKeyItem[] }>('/api/auth/api-keys');
-      setApiKeys(res.apiKeys);
-    } catch {
-      // ignore
-    }
-  };
-
-  const loadHealth = async () => {
-    try {
-      const res = await fetch('/healthz');
-      if (res.ok) {
-        setHealth(await res.json());
-      }
-    } catch {
-      // ignore
     }
   };
 
@@ -143,14 +211,11 @@ export const Settings: React.FC = () => {
       if (res.availableGeminiModels && res.availableGeminiModels.length > 0) {
         setDiscoveredGeminiModels(res.availableGeminiModels);
       }
-
       setOpenaiModel(res.openaiModel || 'gpt-4o-mini');
       setOpenaiBaseUrl(res.openaiBaseUrl || 'https://api.openai.com/v1');
       setHasOpenaiKey(res.hasOpenaiKey);
       setOpenaiKeyMasked(res.openaiKeyMasked);
-    } catch {
-      // ignore if settings not initialized
-    }
+    } catch {}
   };
 
   const handleTestAiConnection = async () => {
@@ -164,9 +229,7 @@ export const Settings: React.FC = () => {
         apiKey: aiProvider === 'gemini' ? geminiApiKey : openaiApiKey,
         model: aiProvider === 'gemini' ? geminiModel : openaiModel,
       };
-      if (aiProvider === 'openai') {
-        payload.baseUrl = openaiBaseUrl;
-      }
+      if (aiProvider === 'openai') payload.baseUrl = openaiBaseUrl;
 
       const res = await apiFetch<{ success: boolean; message: string; models?: string[] }>('/api/settings/ai/test', {
         method: 'POST',
@@ -175,16 +238,13 @@ export const Settings: React.FC = () => {
       setAiTestResult(res);
       if (res.models && res.models.length > 0) {
         setDiscoveredGeminiModels(res.models);
-        if (!res.models.includes(geminiModel) || geminiModel === 'gemini-1.5-flash' || geminiModel === 'gemini-2.0-flash') {
+        if (!res.models.includes(geminiModel)) {
           const best = res.models.find((m) => m.includes('3.8-flash')) || res.models.find((m) => m.includes('flash')) || res.models[0];
           if (best) setGeminiModel(best);
         }
       }
     } catch (err: any) {
-      setAiTestResult({
-        success: false,
-        message: err?.message || 'Verbindingstest mislukt',
-      });
+      setAiTestResult({ success: false, message: err?.message || 'Verbindingstest mislukt' });
     } finally {
       setAiTesting(false);
     }
@@ -193,7 +253,6 @@ export const Settings: React.FC = () => {
   const handleSaveAiSettings = async () => {
     setAiSaving(true);
     setAiSavedSuccess(false);
-
     try {
       await apiFetch('/api/settings/ai', {
         method: 'PUT',
@@ -206,7 +265,6 @@ export const Settings: React.FC = () => {
           openaiBaseUrl,
         }),
       });
-
       setAiSavedSuccess(true);
       setGeminiApiKey('');
       setOpenaiApiKey('');
@@ -243,7 +301,6 @@ export const Settings: React.FC = () => {
   const handleCreateKey = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newKeyName) return;
-
     try {
       const res = await apiFetch<{ apiKey: string }>('/api/auth/api-keys', {
         method: 'POST',
@@ -253,694 +310,1223 @@ export const Settings: React.FC = () => {
       setNewKeyName('');
       loadApiKeys();
     } catch (err: any) {
-      alert(err?.message || 'Failed to generate API key');
+      alert(err?.message || 'Error generating API key');
     }
   };
 
   const handleDeleteKey = async (id: string) => {
-    if (confirm(lang === 'nl' ? 'Deze API-sleutel intrekken? AI-assistenten die deze sleutel gebruiken verliezen direct toegang.' : 'Revoke this API key? AI assistants using this key will immediately lose access.')) {
-      try {
-        await apiFetch(`/api/auth/api-keys/${id}`, { method: 'DELETE' });
-        loadApiKeys();
-      } catch (err: any) {
-        alert(err?.message || 'Failed to revoke key');
-      }
+    if (!confirm('Are you sure you want to revoke this API key?')) return;
+    try {
+      await apiFetch(`/api/auth/api-keys/${id}`, { method: 'DELETE' });
+      loadApiKeys();
+    } catch (err: any) {
+      alert(err?.message || 'Error deleting key');
     }
   };
 
-  const handleCopy = (text: string) => {
+  const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // Notification Methods
+  const loadNotificationSettings = async () => {
+    try {
+      const res = await apiFetch<any>('/api/notifications/settings');
+      setNotifProvider(res.provider || 'none');
+      setNtfyUrl(res.ntfyUrl || '');
+      setNtfyToken(res.ntfyToken || '');
+      setGotifyUrl(res.gotifyUrl || '');
+      setGotifyToken(res.gotifyToken || '');
+      setWebhookUrl(res.webhookUrl || '');
+      setNotifApk(res.enabledApk ?? true);
+      setNotifMaintenance(res.enabledMaintenance ?? true);
+    } catch {}
+  };
+
+  const handleSaveNotifications = async () => {
+    setNotifSaving(true);
+    setNotifSaveSuccess(false);
+    try {
+      await apiFetch('/api/notifications/settings', {
+        method: 'PUT',
+        body: JSON.stringify({
+          provider: notifProvider,
+          ntfyUrl,
+          ntfyToken,
+          gotifyUrl,
+          gotifyToken,
+          webhookUrl,
+          enabledApk: notifApk,
+          enabledMaintenance: notifMaintenance,
+        }),
+      });
+      setNotifSaveSuccess(true);
+      setTimeout(() => setNotifSaveSuccess(false), 3000);
+    } catch (err: any) {
+      alert(err?.message || 'Fout bij opslaan van notificatie-instellingen');
+    } finally {
+      setNotifSaving(false);
+    }
+  };
+
+  const handleTestNotification = async () => {
+    setNotifTesting(true);
+    setNotifTestResult(null);
+    try {
+      const res = await apiFetch<{ success: boolean; message: string }>('/api/notifications/test', {
+        method: 'POST',
+      });
+      setNotifTestResult(res);
+    } catch (err: any) {
+      setNotifTestResult({ success: false, message: err?.message || 'Fout bij verzenden van testmelding' });
+    } finally {
+      setNotifTesting(false);
+    }
+  };
+
+  // Backup & Storage Methods
+  const loadStorageStats = async () => {
+    try {
+      const res = await apiFetch<any>('/api/backup/stats');
+      setStorageStats(res);
+    } catch {}
+  };
+
+  const handleDownloadBackup = async () => {
+    try {
+      const token = localStorage.getItem('vv_token');
+      const res = await fetch('/api/backup/export', {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) throw new Error('Backup download mislukt');
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `vehiclevault-backup-${new Date().toISOString().slice(0, 10)}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err: any) {
+      alert(err?.message || 'Fout bij downloaden van backup');
+    }
+  };
+
+  const handleRestoreFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files?.[0]) return;
+    const file = e.target.files[0];
+    if (!confirm(`Weet je zeker dat je de backup "${file.name}" wilt terugzetten? De huidige database wordt bijgewerkt.`)) {
+      e.target.value = '';
+      return;
+    }
+
+    setRestoringBackup(true);
+    setRestoreMessage(null);
+    setRestoreError(null);
+
+    const formData = new FormData();
+    formData.append('backup', file);
+
+    try {
+      const token = localStorage.getItem('vv_token');
+      const res = await fetch('/api/backup/import', {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Herstellen van backup mislukt');
+
+      setRestoreMessage(data.message || 'Backup succesvol hersteld!');
+      loadStorageStats();
+      loadHealth();
+    } catch (err: any) {
+      setRestoreError(err?.message || 'Fout bij herstellen van backup');
+    } finally {
+      setRestoringBackup(false);
+      e.target.value = '';
+    }
+  };
+
+  // Home Assistant REST Sensor YAML configuration template
+  const haHost = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3084';
+  const haYamlConfig = `# Home Assistant configuration.yaml
+# Integratie met VehicleVault via REST Sensors
+rest:
+  - resource: ${haHost}/api/integrations/ha/sensors
+    scan_interval: 300
+    headers:
+      x-api-key: ${apiKeys[0]?.prefix ? `${apiKeys[0].prefix}... (plaats hier je volledige API Key)` : 'UW_VEHICLEVAULT_API_KEY'}
+    sensor:
+      - name: "VehicleVault Auto Tellerstand"
+        value_template: "{{ value_json.vehicles[0].odometer }}"
+        unit_of_measurement: "km"
+        icon: "mdi:speedometer"
+      - name: "VehicleVault APK Resterend"
+        value_template: "{{ value_json.vehicles[0].apk.days_remaining }}"
+        unit_of_measurement: "dagen"
+        icon: "mdi:calendar-clock"
+      - name: "VehicleVault APK Status"
+        value_template: "{{ value_json.vehicles[0].apk.status }}"
+        icon: "mdi:car-wrench"
+      - name: "VehicleVault Verbruik"
+        value_template: "{{ value_json.vehicles[0].fuel_stats.consumption_l_per_100km }}"
+        unit_of_measurement: "L/100km"
+        icon: "mdi:gas-station"
+      - name: "VehicleVault Laatste Tankbeurt Bedrag"
+        value_template: "{{ value_json.vehicles[0].fuel_stats.last_fuel_cost }}"
+        unit_of_measurement: "EUR"
+        icon: "mdi:currency-eur"
+`;
+
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
-      <div className="pb-2 border-b border-slate-200 dark:border-slate-800">
+    <div className="space-y-6 max-w-5xl mx-auto pb-10">
+      {/* Page Header */}
+      <div>
         <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center space-x-2">
-          <KeyRound className="w-5 h-5 text-sky-500" />
+          <Sliders className="w-5 h-5 text-sky-500" />
           <span>{t('settingsTitle')}</span>
         </h1>
         <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-          {t('settingsSubtitle')}
-        </p>
-      </div>
-
-      {/* Language Section */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 space-y-4 shadow-sm transition-colors">
-        <div className="flex items-center space-x-2">
-          <Globe className="w-4 h-4 text-sky-500" />
-          <h3 className="text-sm font-bold text-slate-900 dark:text-white">{t('languageSection')}</h3>
-        </div>
-        <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
           {lang === 'nl'
-            ? 'Kies je voorkeurstaal. Alle menu\'s, datumpickers, categorieën en meldingen schakelen direct mee.'
-            : 'Select your preferred language. All menus, date pickers, categories, and alerts will switch immediately.'}
+            ? 'Beheer systeemconfiguratie, AI bonherkenning, gebruikersrollen, notificaties en backups.'
+            : 'Manage system settings, AI receipt scanning, user roles, notifications, and backups.'}
         </p>
-        <div className="flex items-center space-x-3 pt-1">
-          <button
-            onClick={() => setLang('nl')}
-            className={`px-4 py-2 rounded-xl text-xs font-semibold flex items-center space-x-2 border transition ${
-              lang === 'nl'
-                ? 'bg-slate-900 text-white dark:bg-slate-800 dark:text-white border-slate-900 dark:border-slate-700 shadow-sm'
-                : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50'
-            }`}
-          >
-            <span className="text-[11px] font-bold">🇳🇱</span>
-            <span>{t('dutch')}</span>
-          </button>
-          <button
-            onClick={() => setLang('en')}
-            className={`px-4 py-2 rounded-xl text-xs font-semibold flex items-center space-x-2 border transition ${
-              lang === 'en'
-                ? 'bg-slate-900 text-white dark:bg-slate-800 dark:text-white border-slate-900 dark:border-slate-700 shadow-sm'
-                : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50'
-            }`}
-          >
-            <span className="text-[11px] font-bold">🇬🇧</span>
-            <span>{t('english')}</span>
-          </button>
-        </div>
       </div>
 
-      {/* Theme Preference */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 space-y-4 shadow-sm transition-colors">
-        <h3 className="text-sm font-bold text-slate-900 dark:text-white">{t('appearance')}</h3>
-        <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-          {lang === 'nl'
-            ? 'Schakel tussen lichte en donkere modus met het neutrale slate/zinc kleurenpalet.'
-            : 'Switch between light and dark modes with the clean neutral slate/zinc color palette.'}
-        </p>
-        <div className="flex items-center space-x-3 pt-1">
-          <button
-            onClick={() => setTheme('dark')}
-            className={`px-4 py-2 rounded-xl text-xs font-semibold flex items-center space-x-2 border transition ${
-              theme === 'dark'
-                ? 'bg-slate-900 text-white dark:bg-slate-800 dark:text-white border-slate-900 dark:border-slate-700 shadow-sm'
-                : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50'
-            }`}
-          >
-            <Moon className="w-4 h-4 text-amber-400" />
-            <span>{t('themeDark')}</span>
-          </button>
-          <button
-            onClick={() => setTheme('light')}
-            className={`px-4 py-2 rounded-xl text-xs font-semibold flex items-center space-x-2 border transition ${
-              theme === 'light'
-                ? 'bg-slate-900 text-white dark:bg-slate-800 dark:text-white border-slate-900 dark:border-slate-700 shadow-sm'
-                : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50'
-            }`}
-          >
-            <Sun className="w-4 h-4 text-amber-500" />
-            <span>{t('themeLight')}</span>
-          </button>
-          <button
-            onClick={() => setTheme('system')}
-            className={`px-4 py-2 rounded-xl text-xs font-semibold flex items-center space-x-2 border transition ${
-              theme === 'system'
-                ? 'bg-slate-900 text-white dark:bg-slate-800 dark:text-white border-slate-900 dark:border-slate-700 shadow-sm'
-                : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50'
-            }`}
-          >
-            <Laptop className="w-4 h-4" />
-            <span>{t('themeSystem')}</span>
-          </button>
-        </div>
+      {/* Modern 5-Tab Navigation Bar */}
+      <div className="flex items-center space-x-1.5 overflow-x-auto pb-1 border-b border-slate-200 dark:border-slate-800 scrollbar-none">
+        <button
+          onClick={() => setActiveTab('general')}
+          className={`px-3.5 py-2 rounded-xl text-xs font-bold inline-flex items-center space-x-2 transition shrink-0 ${
+            activeTab === 'general'
+              ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-sm'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60'
+          }`}
+        >
+          <Sliders className="w-4 h-4 text-sky-400" />
+          <span>Algemeen</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('ai')}
+          className={`px-3.5 py-2 rounded-xl text-xs font-bold inline-flex items-center space-x-2 transition shrink-0 ${
+            activeTab === 'ai'
+              ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-sm'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60'
+          }`}
+        >
+          <Sparkles className="w-4 h-4 text-amber-400" />
+          <span>AI Bonherkenning</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('users')}
+          className={`px-3.5 py-2 rounded-xl text-xs font-bold inline-flex items-center space-x-2 transition shrink-0 ${
+            activeTab === 'users'
+              ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-sm'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60'
+          }`}
+        >
+          <Users className="w-4 h-4 text-emerald-400" />
+          <span>Gebruikers &amp; Toegang</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('notifications')}
+          className={`px-3.5 py-2 rounded-xl text-xs font-bold inline-flex items-center space-x-2 transition shrink-0 ${
+            activeTab === 'notifications'
+              ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-sm'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60'
+          }`}
+        >
+          <Bell className="w-4 h-4 text-purple-400" />
+          <span>Notificaties &amp; Home Assistant</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('backup')}
+          className={`px-3.5 py-2 rounded-xl text-xs font-bold inline-flex items-center space-x-2 transition shrink-0 ${
+            activeTab === 'backup'
+              ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-sm'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60'
+          }`}
+        >
+          <Database className="w-4 h-4 text-rose-400" />
+          <span>Database &amp; Backups</span>
+        </button>
       </div>
 
-      {/* AI Bonherkenning (Gemini & OpenAI) Card */}
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          handleSaveAiSettings();
-        }}
-        className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 space-y-5 shadow-sm transition-colors"
-      >
-        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-          <div className="flex items-center space-x-2.5">
-            <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
-              <Sparkles className="w-4 h-4" />
-            </div>
-            <div>
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                {t('aiReceiptTitle')}
-              </h3>
-              <p className="text-[11px] text-slate-500">Google Gemini &amp; OpenAI Vision</p>
-            </div>
-          </div>
-          {aiProvider !== 'none' && (hasGeminiKey || hasOpenaiKey) && (
-            <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/60 dark:border-emerald-800/50 dark:text-emerald-300 font-bold text-[10px] flex items-center space-x-1">
-              <Check className="w-3 h-3" />
-              <span>{lang === 'nl' ? 'Actief gekoppeld' : 'Connected'}</span>
-            </span>
-          )}
-        </div>
+      {/* TAB 1: ALGEMEEN */}
+      {activeTab === 'general' && (
+        <div className="space-y-6">
+          {/* Appearance & Language */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-5">
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center space-x-2">
+              <Sun className="w-4 h-4 text-amber-500" />
+              <span>{lang === 'nl' ? 'Weergave & Taal' : 'Appearance & Language'}</span>
+            </h2>
 
-        <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-          {t('aiReceiptSubtitle')}
-        </p>
-
-        {/* Engine Selection */}
-        <div className="space-y-2">
-          <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">
-            {t('aiProviderLabel')}
-          </label>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-            <button
-              type="button"
-              onClick={() => { setAiProvider('gemini'); setAiTestResult(null); }}
-              className={`p-3 rounded-xl text-left border text-xs transition flex flex-col justify-between ${
-                aiProvider === 'gemini'
-                  ? 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/30 text-indigo-950 dark:text-indigo-100 ring-1 ring-indigo-500'
-                  : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/40'
-              }`}
-            >
-              <div className="font-bold flex items-center justify-between">
-                <span>Google Gemini</span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 font-semibold">
-                  {lang === 'nl' ? 'Gratis' : 'Free'}
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Flash • 100% accuraat &amp; snel</p>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => { setAiProvider('openai'); setAiTestResult(null); }}
-              className={`p-3 rounded-xl text-left border text-xs transition flex flex-col justify-between ${
-                aiProvider === 'openai'
-                  ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/30 text-emerald-950 dark:text-emerald-100 ring-1 ring-emerald-500'
-                  : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/40'
-              }`}
-            >
-              <div className="font-bold flex items-center justify-between">
-                <span>OpenAI Vision</span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 font-semibold">GPT-4o-mini</span>
-              </div>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">OpenAI API of compatibel (Groq / Ollama)</p>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => { setAiProvider('none'); setAiTestResult(null); }}
-              className={`p-3 rounded-xl text-left border text-xs transition flex flex-col justify-between ${
-                aiProvider === 'none'
-                  ? 'border-slate-500 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white ring-1 ring-slate-500'
-                  : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/40'
-              }`}
-            >
-              <div className="font-bold flex items-center justify-between">
-                <span>Tesseract OCR</span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold">
-                  {lang === 'nl' ? 'Lokaal' : 'Local'}
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Geen API-sleutel nodig (traditionele OCR)</p>
-            </button>
-          </div>
-        </div>
-
-        {/* Gemini Inputs */}
-        {aiProvider === 'gemini' && (
-          <div className="space-y-3.5 bg-slate-50/70 dark:bg-slate-950/40 border border-slate-200/80 dark:border-slate-800/80 rounded-xl p-4">
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                  {t('geminiApiKeyLabel')}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Theme Selector */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                  {lang === 'nl' ? 'Thema' : 'Theme'}
                 </label>
-                <a
-                  href="https://aistudio.google.com/app/apikey"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline inline-flex items-center space-x-1"
-                >
-                  <span>{t('geminiFreeKeyHelp')}</span>
-                  <ExternalLink className="w-3 h-3" />
-                </a>
-              </div>
-              <div className="relative">
-                <input
-                  type={showGeminiKey ? 'text' : 'password'}
-                  value={geminiApiKey}
-                  onChange={(e) => setGeminiApiKey(e.target.value)}
-                  placeholder={hasGeminiKey && geminiKeyMasked ? `Opgeslagen (${geminiKeyMasked}) - typ om te wijzigen` : t('geminiKeyPlaceholder')}
-                  className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg pl-3 pr-10 py-2 text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 shadow-sm"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowGeminiKey(!showGeminiKey)}
-                  className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                >
-                  {showGeminiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-              {hasGeminiKey && !geminiApiKey && (
-                <div className="flex items-center justify-between mt-1 text-[11px]">
-                  <p className="text-emerald-600 dark:text-emerald-400 flex items-center space-x-1 font-medium">
-                    <Check className="w-3 h-3" />
-                    <span>{lang === 'nl' ? `Huidige actieve sleutel: ${geminiKeyMasked}` : `Active key: ${geminiKeyMasked}`}</span>
-                  </p>
+                <div className="grid grid-cols-3 gap-2">
                   <button
                     type="button"
-                    onClick={() => handleClearKey('gemini')}
-                    className="text-rose-600 hover:text-rose-700 dark:text-rose-400 hover:underline font-medium"
+                    onClick={() => setTheme('light')}
+                    className={`flex items-center justify-center space-x-1.5 p-2.5 rounded-xl border text-xs font-semibold transition ${
+                      theme === 'light'
+                        ? 'border-sky-500 bg-sky-50 text-sky-700 dark:bg-sky-950 dark:text-sky-300'
+                        : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                    }`}
                   >
-                    {lang === 'nl' ? 'Sleutel wissen' : 'Remove key'}
+                    <Sun className="w-3.5 h-3.5" />
+                    <span>{t('themeLight')}</span>
                   </button>
-                </div>
-              )}
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                    {t('geminiModelLabel')}
-                  </label>
-                  {discoveredGeminiModels.length > 0 && (
-                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
-                      ✓ {discoveredGeminiModels.length} modellen actief
-                    </span>
-                  )}
-                </div>
-                <select
-                  value={
-                    ['gemini-3.8-flash', 'gemini-2.5-flash', ...discoveredGeminiModels].includes(geminiModel)
-                      ? geminiModel
-                      : 'custom'
-                  }
-                  onChange={(e) => {
-                    if (e.target.value !== 'custom') {
-                      setGeminiModel(e.target.value);
-                    }
-                  }}
-                  className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 shadow-sm"
-                >
-                  <option value="gemini-3.8-flash">gemini-3.8-flash (Aanbevolen, ultra snel &amp; gratis)</option>
-                  <option value="gemini-2.5-flash">gemini-2.5-flash</option>
-                  {discoveredGeminiModels
-                    .filter((m) => !['gemini-3.8-flash', 'gemini-2.5-flash'].includes(m))
-                    .map((m) => (
-                      <option key={m} value={m}>{m} (Google Account)</option>
-                    ))}
-                  <option value="custom">Aangepast model invoeren...</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-1 block">
-                  Actieve Modelnaam
-                </label>
-                <input
-                  type="text"
-                  value={geminiModel}
-                  onChange={(e) => setGeminiModel(e.target.value)}
-                  placeholder="bijv. gemini-3.8-flash"
-                  className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 shadow-sm"
-                />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* OpenAI Inputs */}
-        {aiProvider === 'openai' && (
-          <div className="space-y-3.5 bg-slate-50/70 dark:bg-slate-950/40 border border-slate-200/80 dark:border-slate-800/80 rounded-xl p-4">
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                  {t('openaiApiKeyLabel')}
-                </label>
-                <a
-                  href="https://platform.openai.com/api-keys"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[11px] text-emerald-600 dark:text-emerald-400 hover:underline inline-flex items-center space-x-1"
-                >
-                  <span>OpenAI API Keys</span>
-                  <ExternalLink className="w-3 h-3" />
-                </a>
-              </div>
-              <div className="relative">
-                <input
-                  type={showOpenaiKey ? 'text' : 'password'}
-                  value={openaiApiKey}
-                  onChange={(e) => setOpenaiApiKey(e.target.value)}
-                  placeholder={hasOpenaiKey && openaiKeyMasked ? `Opgeslagen (${openaiKeyMasked}) - typ om te wijzigen` : t('openaiKeyPlaceholder')}
-                  className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg pl-3 pr-10 py-2 text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500 shadow-sm"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowOpenaiKey(!showOpenaiKey)}
-                  className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                >
-                  {showOpenaiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-              {hasOpenaiKey && !openaiApiKey && (
-                <div className="flex items-center justify-between mt-1 text-[11px]">
-                  <p className="text-emerald-600 dark:text-emerald-400 flex items-center space-x-1 font-medium">
-                    <Check className="w-3 h-3" />
-                    <span>{lang === 'nl' ? `Huidige actieve sleutel: ${openaiKeyMasked}` : `Active key: ${openaiKeyMasked}`}</span>
-                  </p>
                   <button
                     type="button"
-                    onClick={() => handleClearKey('openai')}
-                    className="text-rose-600 hover:text-rose-700 dark:text-rose-400 hover:underline font-medium"
+                    onClick={() => setTheme('dark')}
+                    className={`flex items-center justify-center space-x-1.5 p-2.5 rounded-xl border text-xs font-semibold transition ${
+                      theme === 'dark'
+                        ? 'border-sky-500 bg-sky-50 text-sky-700 dark:bg-sky-950 dark:text-sky-300'
+                        : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                    }`}
                   >
-                    {lang === 'nl' ? 'Sleutel wissen' : 'Remove key'}
+                    <Moon className="w-3.5 h-3.5" />
+                    <span>{t('themeDark')}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTheme('system')}
+                    className={`flex items-center justify-center space-x-1.5 p-2.5 rounded-xl border text-xs font-semibold transition ${
+                      theme === 'system'
+                        ? 'border-sky-500 bg-sky-50 text-sky-700 dark:bg-sky-950 dark:text-sky-300'
+                        : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                    }`}
+                  >
+                    <Laptop className="w-3.5 h-3.5" />
+                    <span>{t('themeSystem')}</span>
                   </button>
                 </div>
-              )}
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-1 block">
-                  {t('openaiModelLabel')}
-                </label>
-                <select
-                  value={openaiModel}
-                  onChange={(e) => setOpenaiModel(e.target.value)}
-                  className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500 shadow-sm"
-                >
-                  <option value="gpt-4o-mini">gpt-4o-mini (Aanbevolen, snel &amp; voordelig)</option>
-                  <option value="gpt-4o">gpt-4o (Volledig model)</option>
-                </select>
               </div>
+
+              {/* Language Selector */}
               <div>
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-1 block">
-                  {t('openaiBaseUrlLabel')}
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                  {lang === 'nl' ? 'Taal' : 'Language'}
                 </label>
-                <input
-                  type="text"
-                  value={openaiBaseUrl}
-                  onChange={(e) => setOpenaiBaseUrl(e.target.value)}
-                  placeholder="https://api.openai.com/v1"
-                  className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500 shadow-sm"
-                />
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setLang('nl')}
+                    className={`flex items-center justify-center space-x-2 p-2.5 rounded-xl border text-xs font-semibold transition ${
+                      lang === 'nl'
+                        ? 'border-sky-500 bg-sky-50 text-sky-700 dark:bg-sky-950 dark:text-sky-300'
+                        : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                    }`}
+                  >
+                    <Globe className="w-3.5 h-3.5" />
+                    <span>Nederlands</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLang('en')}
+                    className={`flex items-center justify-center space-x-2 p-2.5 rounded-xl border text-xs font-semibold transition ${
+                      lang === 'en'
+                        ? 'border-sky-500 bg-sky-50 text-sky-700 dark:bg-sky-950 dark:text-sky-300'
+                        : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                    }`}
+                  >
+                    <Globe className="w-3.5 h-3.5" />
+                    <span>English</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        )}
 
-        {/* Test Result Message */}
-        {aiTestResult && (
-          <div
-            className={`p-3 rounded-xl border text-xs flex items-center space-x-2 ${
-              aiTestResult.success
-                ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/60 text-emerald-800 dark:text-emerald-200'
-                : 'bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800/60 text-rose-800 dark:text-rose-200'
-            }`}
-          >
-            {aiTestResult.success ? (
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-            ) : (
-              <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
-            )}
-            <span className="font-medium">{aiTestResult.message}</span>
+          {/* System Information & Health Card */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center space-x-2">
+              <Activity className="w-4 h-4 text-emerald-500" />
+              <span>{lang === 'nl' ? 'Systeeminformatie & Status' : 'System Diagnostics'}</span>
+            </h2>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+              <div className="p-3 bg-slate-50 dark:bg-slate-950/60 rounded-xl border border-slate-200/70 dark:border-slate-800/80">
+                <span className="text-[10px] text-slate-400 uppercase font-bold block">{lang === 'nl' ? 'App Versie' : 'App Version'}</span>
+                <span className="font-mono font-bold text-slate-800 dark:text-slate-200 mt-1 block">
+                  {health?.version || 'v1.0.14'}
+                </span>
+              </div>
+              <div className="p-3 bg-slate-50 dark:bg-slate-950/60 rounded-xl border border-slate-200/70 dark:border-slate-800/80">
+                <span className="text-[10px] text-slate-400 uppercase font-bold block">{lang === 'nl' ? 'Database Status' : 'Database Status'}</span>
+                <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 mt-1 block">
+                  {health?.database || 'Connected'}
+                </span>
+              </div>
+              <div className="p-3 bg-slate-50 dark:bg-slate-950/60 rounded-xl border border-slate-200/70 dark:border-slate-800/80">
+                <span className="text-[10px] text-slate-400 uppercase font-bold block">{lang === 'nl' ? 'Uptime' : 'Uptime'}</span>
+                <span className="font-mono font-bold text-slate-800 dark:text-slate-200 mt-1 block">
+                  {health?.uptime ? `${Math.floor(health.uptime / 60)} min` : 'Active'}
+                </span>
+              </div>
+              <div className="p-3 bg-slate-50 dark:bg-slate-950/60 rounded-xl border border-slate-200/70 dark:border-slate-800/80">
+                <span className="text-[10px] text-slate-400 uppercase font-bold block">Opslaglocatie</span>
+                <span className="font-mono font-bold text-slate-800 dark:text-slate-200 mt-1 block truncate" title={storageStats?.dataDir || '/data'}>
+                  {storageStats?.dataDir || '/data'}
+                </span>
+              </div>
+            </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Buttons */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-          {aiProvider !== 'none' ? (
-            <button
-              type="button"
-              onClick={handleTestAiConnection}
-              disabled={aiTesting}
-              className="px-4 py-2 border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-semibold inline-flex items-center space-x-1.5 transition disabled:opacity-50 shadow-sm"
-            >
-              {aiTesting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Activity className="w-3.5 h-3.5 text-indigo-500" />}
-              <span>{aiTesting ? t('testingAiConnection') : t('testAiConnection')}</span>
-            </button>
-          ) : <div />}
-
-          <div className="flex items-center space-x-2">
-            {aiSavedSuccess && (
-              <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold flex items-center space-x-1">
-                <Check className="w-3.5 h-3.5" />
-                <span>{t('aiConfigSaved')}</span>
+      {/* TAB 2: AI BONHERKENNING */}
+      {activeTab === 'ai' && (
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+            <div>
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center space-x-2">
+                <Sparkles className="w-4 h-4 text-amber-500" />
+                <span>{lang === 'nl' ? 'AI Bonherkenning Configuratie' : 'AI Receipt Scanning Configuration'}</span>
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                {lang === 'nl' ? 'Stel Google Gemini of OpenAI in om tankbonnen automatisch uit te lezen.' : 'Configure Google Gemini or OpenAI to automatically extract data from receipt photos.'}
+              </p>
+            </div>
+            {hasGeminiKey && aiProvider === 'gemini' && (
+              <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-1 rounded-full border border-emerald-200 dark:border-emerald-800/50 flex items-center space-x-1.5 self-start sm:self-center">
+                <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                <span>Google Gemini Actief</span>
               </span>
             )}
+            {hasOpenaiKey && aiProvider === 'openai' && (
+              <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-1 rounded-full border border-emerald-200 dark:border-emerald-800/50 flex items-center space-x-1.5 self-start sm:self-center">
+                <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                <span>OpenAI Actief</span>
+              </span>
+            )}
+          </div>
+
+          {/* Provider Selection Buttons */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <button
-              type="submit"
-              disabled={aiSaving}
-              className="px-4 py-2 bg-slate-900 text-white hover:bg-black dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white rounded-xl text-xs font-bold inline-flex items-center space-x-1.5 transition shadow-sm disabled:opacity-50"
+              type="button"
+              onClick={() => setAiProvider('gemini')}
+              className={`p-3.5 rounded-xl border text-left transition flex flex-col justify-between ${
+                aiProvider === 'gemini'
+                  ? 'border-sky-500 bg-sky-50/60 dark:bg-sky-950/40 text-slate-900 dark:text-white ring-1 ring-sky-500'
+                  : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+              }`}
             >
-              {aiSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
-              <span>{aiSaving ? t('saving') : (lang === 'nl' ? 'AI Instellingen Opslaan' : 'Save AI Settings')}</span>
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-bold text-xs">Google Gemini</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 font-bold">
+                  {lang === 'nl' ? 'Aanbevolen (Gratis)' : 'Recommended (Free)'}
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                {lang === 'nl'
+                  ? 'Beste herkenning van Nederlandse tankbonnen (Fieten Olie, Shell, etc.). Gratis API sleutel beschikbaar.'
+                  : 'Superior OCR and extraction for receipts. Free API key available in Google AI Studio.'}
+              </p>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setAiProvider('openai')}
+              className={`p-3.5 rounded-xl border text-left transition flex flex-col justify-between ${
+                aiProvider === 'openai'
+                  ? 'border-sky-500 bg-sky-50/60 dark:bg-sky-950/40 text-slate-900 dark:text-white ring-1 ring-sky-500'
+                  : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-bold text-xs">OpenAI / Compatible</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 font-bold">
+                  GPT-4o
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                {lang === 'nl'
+                  ? 'Ondersteunt officiële OpenAI API of lokale self-hosted proxies (bijv. LocalAI / Ollama met visie).'
+                  : 'Official OpenAI API or compatible self-hosted vision endpoints.'}
+              </p>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setAiProvider('none')}
+              className={`p-3.5 rounded-xl border text-left transition flex flex-col justify-between ${
+                aiProvider === 'none'
+                  ? 'border-sky-500 bg-sky-50/60 dark:bg-sky-950/40 text-slate-900 dark:text-white ring-1 ring-sky-500'
+                  : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-bold text-xs">Alleen Tesseract (Offline)</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 font-bold">
+                  Geen AI
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                {lang === 'nl'
+                  ? 'Klassieke lokale regex parser zonder externe API calls. Sneller, maar minder tolerant voor wazige foto\'s.'
+                  : 'Pure on-device Tesseract OCR regex parsing with zero cloud or API requirements.'}
+              </p>
             </button>
           </div>
-        </div>
-      </form>
 
-      {/* Model Context Protocol (MCP) Integration Card */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 space-y-4 shadow-sm transition-colors">
-        <div className="flex items-center space-x-2.5">
-          <div className="w-8 h-8 rounded-lg bg-sky-50 dark:bg-sky-950/60 flex items-center justify-center text-sky-600 dark:text-sky-400">
-            <Cpu className="w-4 h-4" />
-          </div>
-          <div>
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-              {t('mcpInstructionsTitle')}
-            </h3>
-            <p className="text-[11px] text-slate-500">Claude Desktop &amp; Antigravity MCP</p>
-          </div>
-        </div>
+          {/* Gemini Form */}
+          {aiProvider === 'gemini' && (
+            <div className="space-y-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-950/50 border border-slate-200/80 dark:border-slate-800/80 text-xs">
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="font-semibold text-slate-700 dark:text-slate-300">
+                    Google Gemini API Sleutel
+                  </label>
+                  <a
+                    href="https://aistudio.google.com/app/apikey"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-sky-600 dark:text-sky-400 hover:underline inline-flex items-center space-x-1 text-[11px]"
+                  >
+                    <span>{lang === 'nl' ? 'Gratis sleutel aanmaken in Google AI Studio' : 'Get free key at Google AI Studio'}</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
 
-        <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-          {t('mcpInstructionsText')}
-        </p>
+                <div className="relative">
+                  <input
+                    type={showGeminiKey ? 'text' : 'password'}
+                    value={geminiApiKey}
+                    onChange={(e) => setGeminiApiKey(e.target.value)}
+                    placeholder={hasGeminiKey ? (geminiKeyMasked || '•••••••••••••••• (Opgeslagen)') : 'AIzaSy...'}
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 pr-20 text-slate-900 dark:text-white font-mono focus:outline-none focus:border-sky-500"
+                  />
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center space-x-1">
+                    <button
+                      type="button"
+                      onClick={() => setShowGeminiKey(!showGeminiKey)}
+                      className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded"
+                      title={showGeminiKey ? 'Verbergen' : 'Tonen'}
+                    >
+                      {showGeminiKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    </button>
+                    {hasGeminiKey && (
+                      <button
+                        type="button"
+                        onClick={() => handleClearKey('gemini')}
+                        className="p-1 text-rose-500 hover:text-rose-700 rounded"
+                        title="API Sleutel Wissen"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
 
-        <div className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-4 text-xs font-mono space-y-2.5">
-          <div className="text-slate-600 dark:text-slate-400 flex items-center justify-between font-sans">
-            <span className="font-semibold">Claude Desktop Config (claude_desktop_config.json):</span>
-            <button
-              onClick={() =>
-                handleCopy(
-                  JSON.stringify(
-                    {
-                      mcpServers: {
-                        vehiclevault: {
-                          command: 'node',
-                          args: ['/path/to/VehicleVault/server/dist/mcp/stdio.js'],
-                          env: { DATA_DIR: './data' },
-                        },
-                      },
-                    },
-                    null,
-                    2
-                  )
-                )
-              }
-              className="text-sky-600 dark:text-sky-400 hover:underline flex items-center space-x-1 font-semibold"
+              {/* Model Selection */}
+              <div className="space-y-1.5">
+                <label className="font-semibold text-slate-700 dark:text-slate-300 block">
+                  Gemini Model
+                </label>
+                <select
+                  value={geminiModel}
+                  onChange={(e) => setGeminiModel(e.target.value)}
+                  className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-sky-500"
+                >
+                  <option value="gemini-3.8-flash">gemini-3.8-flash (Aanbevolen, ultra snel &amp; modern)</option>
+                  <option value="gemini-2.5-flash">gemini-2.5-flash (Uiterst stabiel)</option>
+                  <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite (Lichtgewicht &amp; zuinig)</option>
+                  <option value="gemini-3.1-flash-lite-preview">gemini-3.1-flash-lite-preview</option>
+                  {discoveredGeminiModels
+                    .filter((m) => !['gemini-3.8-flash', 'gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-3.1-flash-lite-preview'].includes(m))
+                    .map((m) => (
+                      <option key={m} value={m}>
+                        {m} (Gevonden via API)
+                      </option>
+                    ))}
+                </select>
+              </div>
+            </div>
+          )}
+
+          {/* OpenAI Form */}
+          {aiProvider === 'openai' && (
+            <div className="space-y-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-950/50 border border-slate-200/80 dark:border-slate-800/80 text-xs">
+              <div className="space-y-1.5">
+                <label className="font-semibold text-slate-700 dark:text-slate-300 block">
+                  OpenAI API Sleutel
+                </label>
+                <div className="relative">
+                  <input
+                    type={showOpenaiKey ? 'text' : 'password'}
+                    value={openaiApiKey}
+                    onChange={(e) => setOpenaiApiKey(e.target.value)}
+                    placeholder={hasOpenaiKey ? (openaiKeyMasked || '•••••••••••••••• (Opgeslagen)') : 'sk-...'}
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 pr-20 text-slate-900 dark:text-white font-mono focus:outline-none focus:border-sky-500"
+                  />
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center space-x-1">
+                    <button
+                      type="button"
+                      onClick={() => setShowOpenaiKey(!showOpenaiKey)}
+                      className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded"
+                    >
+                      {showOpenaiKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    </button>
+                    {hasOpenaiKey && (
+                      <button
+                        type="button"
+                        onClick={() => handleClearKey('openai')}
+                        className="p-1 text-rose-500 hover:text-rose-700 rounded"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="font-semibold text-slate-700 dark:text-slate-300 block">
+                    Base URL (optioneel voor proxies / Ollama)
+                  </label>
+                  <input
+                    type="text"
+                    value={openaiBaseUrl}
+                    onChange={(e) => setOpenaiBaseUrl(e.target.value)}
+                    placeholder="https://api.openai.com/v1"
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-sky-500"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="font-semibold text-slate-700 dark:text-slate-300 block">
+                    Model Naam
+                  </label>
+                  <input
+                    type="text"
+                    value={openaiModel}
+                    onChange={(e) => setOpenaiModel(e.target.value)}
+                    placeholder="gpt-4o-mini"
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-sky-500"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Test Result Message */}
+          {aiTestResult && (
+            <div
+              className={`p-3.5 rounded-xl border flex items-start space-x-2.5 text-xs font-medium ${
+                aiTestResult.success
+                  ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300'
+                  : 'bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300'
+              }`}
             >
-              <Copy className="w-3.5 h-3.5" />
-              <span>{copied ? 'Copied' : 'Copy JSON'}</span>
-            </button>
-          </div>
-          <pre className="text-slate-800 dark:text-slate-300 overflow-x-auto p-3 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800/80">
-{`"mcpServers": {
-  "vehiclevault": {
-    "command": "node",
-    "args": ["/path/to/VehicleVault/server/dist/mcp/stdio.js"],
-    "env": { "DATA_DIR": "./data" }
-  }
-}`}
-          </pre>
-        </div>
-      </div>
+              {aiTestResult.success ? (
+                <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-emerald-500" />
+              ) : (
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-500" />
+              )}
+              <div className="space-y-1 flex-1">
+                <span className="font-bold block">
+                  {aiTestResult.success ? 'Verbinding Geslaagd!' : 'Verbinding Mislukt'}
+                </span>
+                <span className="block leading-relaxed">{aiTestResult.message}</span>
+              </div>
+            </div>
+          )}
 
-      {/* Granular API Keys Section */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 space-y-4 shadow-sm transition-colors">
-        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-          <div className="flex items-center space-x-2">
-            <Shield className="w-4 h-4 text-sky-500" />
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white">{t('apiKeysTitle')}</h3>
-          </div>
-        </div>
-
-        {/* Create API Key Form */}
-        <form onSubmit={handleCreateKey} className="flex items-center space-x-2.5">
-          <input
-            type="text"
-            required
-            value={newKeyName}
-            onChange={(e) => setNewKeyName(e.target.value)}
-            placeholder={t('keyName')}
-            className="flex-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-3.5 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-sky-500 shadow-sm"
-          />
-          <button
-            type="submit"
-            className="px-4 py-2 bg-slate-900 text-white hover:bg-black dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white rounded-xl text-xs font-bold inline-flex items-center space-x-1.5 transition shadow-sm hover:scale-[1.02]"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>{t('createKey')}</span>
-          </button>
-        </form>
-
-        {/* Display Generated Key Notice */}
-        {generatedKey && (
-          <div className="bg-amber-50 dark:bg-slate-950 border border-amber-300 dark:border-amber-600/60 rounded-xl p-4 text-xs space-y-2 shadow-sm">
-            <span className="text-amber-800 dark:text-amber-400 font-bold block">
-              {t('newKeyWarning')}
-            </span>
-            <div className="flex items-center space-x-2">
-              <input
-                type="text"
-                readOnly
-                value={generatedKey}
-                className="flex-1 bg-white dark:bg-slate-900 border border-amber-300 dark:border-slate-700 font-mono font-bold text-slate-900 dark:text-white rounded-lg px-3 py-2 select-all shadow-inner"
-              />
+          {/* Action Buttons */}
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+            {aiProvider !== 'none' ? (
               <button
                 type="button"
-                onClick={() => handleCopy(generatedKey)}
-                className="px-3.5 py-2 bg-amber-200 dark:bg-amber-900/60 hover:bg-amber-300 dark:hover:bg-amber-800/60 text-amber-900 dark:text-amber-200 rounded-lg font-bold flex items-center space-x-1 shadow-sm transition"
+                onClick={handleTestAiConnection}
+                disabled={aiTesting}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-xl text-xs font-semibold inline-flex items-center space-x-2 transition disabled:opacity-50"
               >
-                {copied ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
-                <span>{copied ? 'Copied' : 'Copy'}</span>
+                {aiTesting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Activity className="w-3.5 h-3.5 text-sky-500" />}
+                <span>{aiTesting ? 'Bezig met testen...' : 'Test Verbinding'}</span>
+              </button>
+            ) : <div />}
+
+            <div className="flex items-center space-x-2">
+              {aiSavedSuccess && (
+                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center space-x-1">
+                  <Check className="w-3.5 h-3.5" />
+                  <span>Instellingen opgeslagen</span>
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={handleSaveAiSettings}
+                disabled={aiSaving}
+                className="px-5 py-2 bg-slate-900 text-white hover:bg-black dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white rounded-xl text-xs font-bold transition disabled:opacity-50 shadow-sm"
+              >
+                {aiSaving ? 'Opslaan...' : 'Wijzigingen Opslaan'}
               </button>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* List API Keys */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead>
-              <tr className="border-b border-slate-100 dark:border-slate-800 text-slate-500 dark:text-slate-400 font-bold">
-                <th className="py-2.5 px-3">{lang === 'nl' ? 'Label' : 'Name'}</th>
-                <th className="py-2.5 px-3">Prefix</th>
-                <th className="py-2.5 px-3">{t('date')}</th>
-                <th className="py-2.5 px-3">{lang === 'nl' ? 'Laatst gebruikt' : 'Last used'}</th>
-                <th className="py-2.5 px-3 text-right">{t('actions')}</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+      {/* TAB 3: GEBRUIKERS & TOEGANG */}
+      {activeTab === 'users' && (
+        <div className="space-y-6">
+          {/* Reverse Proxy / No-Auth Toggle */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div>
+                <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center space-x-2">
+                  <ShieldCheck className="w-4 h-4 text-sky-500" />
+                  <span>Pangolin / Beveiligingsmodus</span>
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Configureer of inloggen vereist is of dat VehicleVault achter een reverse proxy (Pangolin / Authelia) draait.
+                </p>
+              </div>
+
+              <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full border flex items-center space-x-1.5 self-start sm:self-center ${
+                disableAuth
+                  ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-800/60'
+                  : 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-800/60'
+              }`}>
+                {disableAuth ? <Unlock className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
+                <span>{disableAuth ? 'Geen Inlog Vereist (No-Auth)' : 'Beveiligd (Inloggen Vereist)'}</span>
+              </span>
+            </div>
+
+            {securityMessage && (
+              <div className="p-3 bg-sky-50 dark:bg-sky-950/50 border border-sky-200 dark:border-sky-800/80 text-sky-800 dark:text-sky-300 rounded-xl text-xs font-medium">
+                {securityMessage}
+              </div>
+            )}
+
+            <div className="flex items-center justify-between p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800">
+              <div className="space-y-0.5 pr-4">
+                <span className="text-xs font-bold text-slate-900 dark:text-white block">
+                  Inloggen Uitschakelen (voor beveiligd thuisnetwerk / LAN)
+                </span>
+                <span className="text-[11px] text-slate-500 dark:text-slate-400 block">
+                  Wanneer ingeschakeld, kan iedereen op het netwerk zonder wachtwoord direct de applicatie gebruiken.
+                </span>
+              </div>
+
+              <button
+                type="button"
+                disabled={securityLoading || isEnvEnforced}
+                onClick={() => handleToggleDisableAuth(!disableAuth)}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                  disableAuth ? 'bg-amber-500' : 'bg-slate-300 dark:bg-slate-700'
+                } ${isEnvEnforced ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                    disableAuth ? 'translate-x-5' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
+
+          {/* Users List & Roles Management */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center space-x-2">
+                  <Users className="w-4 h-4 text-emerald-500" />
+                  <span>Gebruikersbeheer &amp; Chauffeur-Rollen</span>
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Wijs rollen toe aan gebruikers. Chauffeurs krijgen een vereenvoudigde interface om snel te tanken.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={loadUsers}
+                className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500 transition"
+                title="Vernieuwen"
+              >
+                <RefreshCw className="w-4 h-4" />
+              </button>
+            </div>
+
+            {usersLoading ? (
+              <div className="py-6 text-center text-xs text-slate-400">Gebruikers laden...</div>
+            ) : usersList.length === 0 ? (
+              <div className="py-6 text-center text-xs text-slate-400">
+                Geen gebruikerslijst beschikbaar (alleen zichtbaar voor beheerders).
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs text-left">
+                  <thead className="bg-slate-50 dark:bg-slate-950 text-slate-500 font-bold border-b border-slate-200 dark:border-slate-800 text-[10px] uppercase">
+                    <tr>
+                      <th className="py-2.5 px-3">E-mailadres / Pangolin Gebruiker</th>
+                      <th className="py-2.5 px-3">Rol &amp; Toegang</th>
+                      <th className="py-2.5 px-3">Geregistreerd</th>
+                      <th className="py-2.5 px-3 text-right">Actie</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
+                    {usersList.map((u) => (
+                      <tr key={u.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
+                        <td className="py-3 px-3">
+                          <span className="font-bold text-slate-900 dark:text-white block">{u.email}</span>
+                          <span className="text-[10px] text-slate-400 font-mono">{u.id}</span>
+                        </td>
+                        <td className="py-3 px-3">
+                          <select
+                            value={u.role}
+                            onChange={(e) => handleUpdateRole(u.id, e.target.value)}
+                            className="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-2.5 py-1 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:border-sky-500"
+                          >
+                            <option value="admin">👑 Beheerder (Admin)</option>
+                            <option value="driver">🚗 Chauffeur (Snel Tanken)</option>
+                            <option value="user">👤 Standaard Gebruiker</option>
+                          </select>
+                        </td>
+                        <td className="py-3 px-3 text-slate-500 dark:text-slate-400">
+                          {formatDisplayDate(u.created_at)}
+                        </td>
+                        <td className="py-3 px-3 text-right">
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteUser(u.id, u.email)}
+                            className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                            title="Gebruiker Verwijderen"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* API Keys Management */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center space-x-2">
+              <KeyRound className="w-4 h-4 text-sky-500" />
+              <span>Persoonlijke API-Sleutels (Home Assistant / Scripts)</span>
+            </h2>
+
+            {generatedKey && (
+              <div className="p-4 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl space-y-2">
+                <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300 block">
+                  Kopieer je nieuwe API-sleutel nu!
+                </span>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value={generatedKey}
+                    className="flex-1 bg-white dark:bg-slate-900 border border-emerald-300 dark:border-emerald-700 rounded-lg px-3 py-1.5 text-xs font-mono text-slate-900 dark:text-white"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => copyToClipboard(generatedKey)}
+                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition flex items-center space-x-1"
+                  >
+                    {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>{copied ? 'Gekopieerd' : 'Kopiëren'}</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <form onSubmit={handleCreateKey} className="flex gap-2">
+              <input
+                type="text"
+                required
+                placeholder="Naam sleutel (bijv. Home Assistant, Backup Script)"
+                value={newKeyName}
+                onChange={(e) => setNewKeyName(e.target.value)}
+                className="flex-1 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-sky-500"
+              />
+              <button
+                type="submit"
+                className="px-4 py-2 bg-slate-900 text-white hover:bg-black dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white rounded-xl text-xs font-bold transition flex items-center space-x-1.5"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Aanmaken</span>
+              </button>
+            </form>
+
+            <div className="divide-y divide-slate-100 dark:divide-slate-800/60 pt-2">
               {apiKeys.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="py-6 text-center text-slate-400 font-medium">
-                    {t('noKeysFound')}
-                  </td>
-                </tr>
+                <p className="text-xs text-slate-400 py-3 text-center">Nog geen API-sleutels aangemaakt.</p>
               ) : (
                 apiKeys.map((k) => (
-                  <tr key={k.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/20">
-                    <td className="py-3 px-3 font-bold text-slate-900 dark:text-slate-200">{k.name}</td>
-                    <td className="py-3 px-3 font-mono font-semibold text-slate-600 dark:text-slate-400">{k.prefix}••••••••</td>
-                    <td className="py-3 px-3 text-slate-500">{formatDisplayDate(k.created_at)}</td>
-                    <td className="py-3 px-3 text-slate-500">
-                      {k.last_used_at ? formatDisplayDate(k.last_used_at) : (lang === 'nl' ? 'Nooit' : 'Never')}
-                    </td>
-                    <td className="py-3 px-3 text-right">
-                      <button
-                        onClick={() => handleDeleteKey(k.id)}
-                        className="text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 p-1 rounded transition"
-                        title={t('delete')}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
+                  <div key={k.id} className="py-2.5 flex items-center justify-between text-xs">
+                    <div>
+                      <span className="font-bold text-slate-900 dark:text-white block">{k.name}</span>
+                      <span className="font-mono text-slate-400 text-[11px]">{k.prefix}••••••••</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteKey(k.id)}
+                      className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 ))
               )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Inloggen & Toegangsbeveiliging (Pangolin & Reverse Proxy) Card */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 space-y-4 shadow-sm transition-colors">
-        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-          <div className="flex items-center space-x-2.5">
-            <div className="w-8 h-8 rounded-lg bg-sky-50 dark:bg-sky-950/60 flex items-center justify-center text-sky-600 dark:text-sky-400">
-              <ShieldCheck className="w-4 h-4" />
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 4: NOTIFICATIES & INTEGRATIES */}
+      {activeTab === 'notifications' && (
+        <div className="space-y-6">
+          {/* Notifications Provider Configuration */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-5">
             <div>
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                {lang === 'nl' ? 'Inloggen & Toegang (Pangolin & Reverse Proxy)' : 'Authentication & Access (Pangolin & Reverse Proxy)'}
-              </h3>
-              <p className="text-[11px] text-slate-500">
-                {lang === 'nl' ? 'Toegangsbeheer voor privé-netwerken en zero-trust proxies' : 'Access control for private networks and zero-trust proxies'}
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center space-x-2">
+                <Bell className="w-4 h-4 text-purple-500" />
+                <span>Notificatiesysteem (APK &amp; Onderhoud Meldingen)</span>
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Ontvang automatische herinneringen op je telefoon wanneer een APK bijna verloopt (&lt; 30d, &lt; 7d) of een onderhoudsbeurt nodig is.
               </p>
             </div>
-          </div>
-          {disableAuth ? (
-            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-              {lang === 'nl' ? 'Inloggen Uitgeschakeld' : 'Auth Disabled'}
-            </span>
-          ) : (
-            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-              {lang === 'nl' ? 'Inloggen Actief' : 'Login Required'}
-            </span>
-          )}
-        </div>
 
-        <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-          {lang === 'nl'
-            ? 'Gebruik je VehicleVault achter een reverse proxy zoals Pangolin, Authelia, Authentik of Cloudflare Access, of draait het binnen een vertrouwd lokaal thuisnetwerk? Schakel inloggen uit om direct zonder wachtwoord toegang te krijgen als beheerder.'
-            : 'Running VehicleVault behind a reverse proxy like Pangolin, Authelia, Authentik, or Cloudflare Access, or in a trusted local home network? Disable authentication to automatically access VehicleVault as admin without entering a password.'}
-        </p>
-
-        {isEnvEnforced && (
-          <div className="p-3 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60 rounded-xl text-xs text-indigo-800 dark:text-indigo-300">
-            <strong>Docker omgevingsvariabele:</strong> Inloggen is permanent geconfigureerd via de container-omgeving (<code className="font-mono bg-indigo-100 dark:bg-indigo-900/60 px-1 py-0.5 rounded">DISABLE_AUTH=true</code>).
-          </div>
-        )}
-
-        <div className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-xl">
-          <div className="flex items-center space-x-3">
-            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${disableAuth ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/80 dark:text-emerald-300' : 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300'}`}>
-              {disableAuth ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+            {/* Provider Buttons */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+              {[
+                { id: 'none', label: 'Uitgeschakeld' },
+                { id: 'ntfy', label: 'Ntfy.sh / Self-Hosted' },
+                { id: 'gotify', label: 'Gotify' },
+                { id: 'webhook', label: 'Aangepaste Webhook' },
+              ].map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => setNotifProvider(p.id as any)}
+                  className={`p-3 rounded-xl border text-xs font-bold transition text-center ${
+                    notifProvider === p.id
+                      ? 'border-purple-500 bg-purple-50/60 dark:bg-purple-950/40 text-slate-900 dark:text-white ring-1 ring-purple-500'
+                      : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                  }`}
+                >
+                  {p.label}
+                </button>
+              ))}
             </div>
+
+            {/* Provider Specific Inputs */}
+            {notifProvider === 'ntfy' && (
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/50 border border-slate-200/80 dark:border-slate-800/80 space-y-3 text-xs">
+                <div>
+                  <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                    Ntfy Topic of Volledige URL *
+                  </label>
+                  <input
+                    type="text"
+                    value={ntfyUrl}
+                    onChange={(e) => setNtfyUrl(e.target.value)}
+                    placeholder="https://ntfy.sh/mijn-geheime-auto-notificaties"
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                    Authenticatie Token (Optioneel voor privé ntfy servers)
+                  </label>
+                  <input
+                    type="password"
+                    value={ntfyToken}
+                    onChange={(e) => setNtfyToken(e.target.value)}
+                    placeholder="tk_..."
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 font-mono"
+                  />
+                </div>
+              </div>
+            )}
+
+            {notifProvider === 'gotify' && (
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/50 border border-slate-200/80 dark:border-slate-800/80 space-y-3 text-xs">
+                <div>
+                  <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                    Gotify Server URL *
+                  </label>
+                  <input
+                    type="text"
+                    value={gotifyUrl}
+                    onChange={(e) => setGotifyUrl(e.target.value)}
+                    placeholder="https://gotify.mijnnetwerk.nl"
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                    Gotify App Token *
+                  </label>
+                  <input
+                    type="password"
+                    value={gotifyToken}
+                    onChange={(e) => setGotifyToken(e.target.value)}
+                    placeholder="A..."
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 font-mono"
+                  />
+                </div>
+              </div>
+            )}
+
+            {notifProvider === 'webhook' && (
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/50 border border-slate-200/80 dark:border-slate-800/80 space-y-3 text-xs">
+                <div>
+                  <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                    Webhook URL (POST) *
+                  </label>
+                  <input
+                    type="text"
+                    value={webhookUrl}
+                    onChange={(e) => setWebhookUrl(e.target.value)}
+                    placeholder="https://webhook.site/..."
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 font-mono"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Notification Triggers */}
+            {notifProvider !== 'none' && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs pt-2">
+                <label className="flex items-center space-x-2.5 p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={notifApk}
+                    onChange={(e) => setNotifApk(e.target.checked)}
+                    className="rounded border-slate-300 text-purple-600 focus:ring-purple-500"
+                  />
+                  <span className="font-semibold text-slate-800 dark:text-slate-200">
+                    APK Herinneringen (30d en 7d voor verloop)
+                  </span>
+                </label>
+
+                <label className="flex items-center space-x-2.5 p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={notifMaintenance}
+                    onChange={(e) => setNotifMaintenance(e.target.checked)}
+                    className="rounded border-slate-300 text-purple-600 focus:ring-purple-500"
+                  />
+                  <span className="font-semibold text-slate-800 dark:text-slate-200">
+                    Onderhoud Overschreden Herinneringen
+                  </span>
+                </label>
+              </div>
+            )}
+
+            {/* Test Result Message */}
+            {notifTestResult && (
+              <div
+                className={`p-3.5 rounded-xl border flex items-start space-x-2.5 text-xs font-medium ${
+                  notifTestResult.success
+                    ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300'
+                    : 'bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300'
+                }`}
+              >
+                {notifTestResult.success ? (
+                  <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-emerald-500" />
+                ) : (
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-500" />
+                )}
+                <span>{notifTestResult.message}</span>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+              {notifProvider !== 'none' ? (
+                <button
+                  type="button"
+                  onClick={handleTestNotification}
+                  disabled={notifTesting}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-xl text-xs font-semibold inline-flex items-center space-x-2 transition disabled:opacity-50"
+                >
+                  {notifTesting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Radio className="w-3.5 h-3.5 text-purple-500" />}
+                  <span>{notifTesting ? 'Verzenden...' : 'Test Notificatie Verzenden'}</span>
+                </button>
+              ) : <div />}
+
+              <div className="flex items-center space-x-2">
+                {notifSaveSuccess && (
+                  <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center space-x-1">
+                    <Check className="w-3.5 h-3.5" />
+                    <span>Opgeslagen</span>
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={handleSaveNotifications}
+                  disabled={notifSaving}
+                  className="px-5 py-2 bg-slate-900 text-white hover:bg-black dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white rounded-xl text-xs font-bold transition disabled:opacity-50 shadow-sm"
+                >
+                  {notifSaving ? 'Opslaan...' : 'Notificaties Opslaan'}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Home Assistant REST Integration Guide */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center space-x-2">
+                  <Terminal className="w-4 h-4 text-sky-500" />
+                  <span>Home Assistant REST Sensor Integratie</span>
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Koppel VehicleVault direct in Home Assistant om kilometerstanden, APK status en verbruik in je dashboards weer te geven.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(haYamlConfig);
+                  setHaCopied(true);
+                  setTimeout(() => setHaCopied(false), 2000);
+                }}
+                className="px-3 py-1.5 bg-sky-500 hover:bg-sky-400 text-white rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow-sm"
+              >
+                {haCopied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>{haCopied ? 'YAML Gekopieerd!' : 'Kopieer YAML'}</span>
+              </button>
+            </div>
+
+            <div className="relative">
+              <pre className="p-4 rounded-xl bg-slate-950 text-slate-200 font-mono text-[11px] overflow-x-auto leading-relaxed border border-slate-800">
+                {haYamlConfig}
+              </pre>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 5: DATABASE & BACKUPS */}
+      {activeTab === 'backup' && (
+        <div className="space-y-6">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-5">
             <div>
-              <div className="text-xs font-bold text-slate-900 dark:text-white">
-                {lang === 'nl' ? 'Inloggen uitschakelen (Directe toegang)' : 'Disable Login (Direct Access)'}
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center space-x-2">
+                <Database className="w-4 h-4 text-rose-500" />
+                <span>1-Klik Database &amp; Bestanden Backup</span>
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Download een compleet ZIP-archief met de SQLite database en alle geüploade tankbonnen en facturen.
+              </p>
+            </div>
+
+            {/* Storage Stats Bar */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+              <div className="p-3 bg-slate-50 dark:bg-slate-950/60 rounded-xl border border-slate-200 dark:border-slate-800">
+                <span className="text-[10px] text-slate-400 uppercase font-bold block">Database Grootte</span>
+                <span className="font-mono font-bold text-slate-800 dark:text-slate-200 mt-1 block">
+                  {storageStats?.databaseSizeFormatted || '—'}
+                </span>
               </div>
-              <div className="text-[11px] text-slate-500">
-                {lang === 'nl' ? 'Geen wachtwoord- of loginscherm meer tonen' : 'Bypass login screen and authentication checks'}
+              <div className="p-3 bg-slate-50 dark:bg-slate-950/60 rounded-xl border border-slate-200 dark:border-slate-800">
+                <span className="text-[10px] text-slate-400 uppercase font-bold block">Geüploade Bestanden</span>
+                <span className="font-mono font-bold text-slate-800 dark:text-slate-200 mt-1 block">
+                  {storageStats?.totalUploadsFormatted || '—'}
+                </span>
+              </div>
+              <div className="p-3 bg-slate-50 dark:bg-slate-950/60 rounded-xl border border-slate-200 dark:border-slate-800">
+                <span className="text-[10px] text-slate-400 uppercase font-bold block">Opslagpad</span>
+                <span className="font-mono font-bold text-slate-800 dark:text-slate-200 mt-1 block truncate">
+                  {storageStats?.dataDir || '/data'}
+                </span>
+              </div>
+            </div>
+
+            {/* Restore Notification Feedback */}
+            {restoreMessage && (
+              <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 rounded-xl text-xs font-semibold flex items-center space-x-2">
+                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-500" />
+                <span>{restoreMessage}</span>
+              </div>
+            )}
+
+            {restoreError && (
+              <div className="p-3.5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300 rounded-xl text-xs font-semibold flex items-center space-x-2">
+                <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
+                <span>{restoreError}</span>
+              </div>
+            )}
+
+            {/* Download & Restore Action Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 flex flex-col justify-between space-y-4">
+                <div>
+                  <h3 className="font-bold text-xs text-slate-900 dark:text-white flex items-center space-x-2">
+                    <Download className="w-4 h-4 text-emerald-500" />
+                    <span>Backup Exporteren</span>
+                  </h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                    Creëert een consistent ZIP-bestand van <span className="font-mono">vehiclevault.db</span> (via SQLite WAL checkpoint) en de mappen <span className="font-mono">receipts/</span> en <span className="font-mono">invoices/</span>.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleDownloadBackup}
+                  className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center space-x-2 shadow-sm"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Download Volledige Backup (.zip)</span>
+                </button>
+              </div>
+
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 flex flex-col justify-between space-y-4">
+                <div>
+                  <h3 className="font-bold text-xs text-slate-900 dark:text-white flex items-center space-x-2">
+                    <Upload className="w-4 h-4 text-sky-500" />
+                    <span>Backup Terugzetten</span>
+                  </h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                    Herstel VehicleVault vanaf een eerder gedownload ZIP-archief. Er wordt voor de veiligheid automatisch een <span className="font-mono">.bak</span> kopie gemaakt.
+                  </p>
+                </div>
+
+                <label className={`w-full py-2.5 px-4 bg-slate-900 text-white hover:bg-black dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white rounded-xl text-xs font-bold transition flex items-center justify-center space-x-2 cursor-pointer shadow-sm ${
+                  restoringBackup ? 'opacity-50 cursor-not-allowed' : ''
+                }`}>
+                  {restoringBackup ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                  <span>{restoringBackup ? 'Bezig met herstellen...' : 'Selecteer ZIP Backup Bestand'}</span>
+                  <input
+                    type="file"
+                    accept=".zip"
+                    disabled={restoringBackup}
+                    onChange={handleRestoreFile}
+                    className="hidden"
+                  />
+                </label>
               </div>
             </div>
           </div>
-
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input
-              type="checkbox"
-              disabled={isEnvEnforced || securityLoading}
-              checked={disableAuth}
-              onChange={(e) => handleToggleDisableAuth(e.target.checked)}
-              className="sr-only peer"
-            />
-            <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-emerald-600 peer-disabled:opacity-50"></div>
-          </label>
         </div>
-
-        {securityMessage && (
-          <div className="flex items-center space-x-2 text-xs text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 p-3 rounded-xl font-medium">
-            <CheckCircle2 className="w-4 h-4 shrink-0" />
-            <span>{securityMessage}</span>
-          </div>
-        )}
-      </div>
-
-      {/* System Health Status */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 flex items-center justify-between text-xs shadow-sm transition-colors">
-        <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
-            <Activity className="w-4 h-4" />
-          </div>
-          <div>
-            <div className="font-bold text-slate-900 dark:text-white">{lang === 'nl' ? 'Systeemstatus & Database' : 'System Status & Database'}</div>
-            <div className="text-slate-500 text-[11px] font-medium">
-              Database: {health?.database === 'connected' ? 'Connected (SQLite WAL Mode)' : 'Connected'} • Runtime: Node.js {health?.version || 'v24'}
-            </div>
-          </div>
-        </div>
-        <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/60 dark:border-emerald-800/50 dark:text-emerald-300 font-black text-[10px] uppercase tracking-wider">
-          {lang === 'nl' ? 'Operationeel' : 'Operational'}
-        </span>
-      </div>
+      )}
     </div>
   );
 };

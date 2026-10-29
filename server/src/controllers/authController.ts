@@ -266,4 +266,88 @@ export class AuthController {
       res.status(500).json({ error: 'API key verwijderen mislukt' });
     }
   }
+
+  public static async listUsers(_req: Request, res: Response): Promise<void> {
+    try {
+      const users = db.query<any>(
+        'SELECT id, email, role, created_at, updated_at FROM users ORDER BY created_at ASC'
+      );
+      res.json({ users });
+    } catch (err: any) {
+      console.error('List users error:', err);
+      res.status(500).json({ error: 'Gebruikerslijst ophalen mislukt' });
+    }
+  }
+
+  public static async updateUserRole(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { role } = req.body;
+
+      const validRoles = ['admin', 'driver', 'user'];
+      if (!role || !validRoles.includes(role)) {
+        res.status(400).json({ error: `Ongeldige rol. Kies uit: ${validRoles.join(', ')}` });
+        return;
+      }
+
+      const targetUser = db.get<any>('SELECT id, email, role FROM users WHERE id = ?', [id]);
+      if (!targetUser) {
+        res.status(404).json({ error: 'Gebruiker niet gevonden' });
+        return;
+      }
+
+      // If demoting an admin, ensure there is at least one other admin remaining
+      if (targetUser.role === 'admin' && role !== 'admin') {
+        const adminCount = db.get<{ count: number }>('SELECT count(*) as count FROM users WHERE role = ?', ['admin'])?.count || 0;
+        if (adminCount <= 1) {
+          res.status(400).json({ error: 'Kan rol niet wijzigen: Er moet minimaal één actieve beheerder blijven.' });
+          return;
+        }
+      }
+
+      const now = new Date().toISOString();
+      db.run('UPDATE users SET role = ?, updated_at = ? WHERE id = ?', [role, now, id]);
+
+      res.json({
+        success: true,
+        user: { id: targetUser.id, email: targetUser.email, role, updated_at: now },
+      });
+    } catch (err: any) {
+      console.error('Update user role error:', err);
+      res.status(500).json({ error: err?.message || 'Rol bijwerken mislukt' });
+    }
+  }
+
+  public static async deleteUser(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const targetUser = db.get<any>('SELECT id, email, role FROM users WHERE id = ?', [id]);
+      if (!targetUser) {
+        res.status(404).json({ error: 'Gebruiker niet gevonden' });
+        return;
+      }
+
+      if (targetUser.role === 'admin') {
+        const adminCount = db.get<{ count: number }>('SELECT count(*) as count FROM users WHERE role = ?', ['admin'])?.count || 0;
+        if (adminCount <= 1) {
+          res.status(400).json({ error: 'De laatste beheerder kan niet worden verwijderd.' });
+          return;
+        }
+      }
+
+      if (req.user?.userId === id) {
+        res.status(400).json({ error: 'U kunt uw eigen ingelogde account niet verwijderen.' });
+        return;
+      }
+
+      db.run('DELETE FROM refresh_tokens WHERE user_id = ?', [id]);
+      db.run('DELETE FROM api_keys WHERE user_id = ?', [id]);
+      db.run('DELETE FROM users WHERE id = ?', [id]);
+
+      res.json({ success: true, message: 'Gebruiker succesvol verwijderd' });
+    } catch (err: any) {
+      console.error('Delete user error:', err);
+      res.status(500).json({ error: err?.message || 'Gebruiker verwijderen mislukt' });
+    }
+  }
 }

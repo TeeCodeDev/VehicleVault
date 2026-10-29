@@ -24,6 +24,7 @@ import { IntervalProgressBar } from '../components/IntervalProgressBar.js';
 import { DatePicker } from '../components/DatePicker.js';
 import { useLanguage } from '../context/LanguageContext.js';
 import { formatDisplayDate } from '../utils/format.js';
+import { compressImage } from '../utils/imageCompressor.js';
 
 interface ContextType {
   vehicles: Vehicle[];
@@ -129,8 +130,9 @@ export const Maintenance: React.FC = () => {
     try {
       let uploadedInvoicePath: string | null = null;
       if (invoiceFile) {
+        const compressedInvoice = await compressImage(invoiceFile);
         const formData = new FormData();
-        formData.append('invoice', invoiceFile);
+        formData.append('invoice', compressedInvoice);
         const uploadRes = await apiFetch<{ fileName: string }>('/api/maintenance/upload-invoice', {
           method: 'POST',
           body: formData,

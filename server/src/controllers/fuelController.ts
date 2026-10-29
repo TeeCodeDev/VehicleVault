@@ -9,8 +9,11 @@ const fuelSchema = z.object({
   vehicle_id: z.string().uuid(),
   date: z.string(),
   odometer: z.number().positive(),
-  liters: z.number().positive(),
-  price_per_liter: z.number().positive(),
+  energy_type: z.enum(['fuel', 'electric']).default('fuel'),
+  liters: z.number().nonnegative().default(0),
+  price_per_liter: z.number().nonnegative().default(0),
+  kwh: z.number().nonnegative().optional().nullable(),
+  price_per_kwh: z.number().nonnegative().optional().nullable(),
   total_cost: z.number().positive().optional(),
   is_full_tank: z.boolean().default(true),
   missed_previous: z.boolean().default(false),
@@ -30,8 +33,11 @@ export class FuelController {
       return;
     }
 
-    // Verify ownership
-    const vehicle = db.get('SELECT id FROM vehicles WHERE id = ? AND user_id = ?', [vehicleId, req.user?.userId]);
+    const isShared = req.user?.role === 'admin' || req.user?.role === 'driver';
+    const vehicle = db.get<any>(
+      `SELECT id FROM vehicles WHERE id = ? ${isShared ? '' : 'AND user_id = ?'}`,
+      isShared ? [vehicleId] : [vehicleId, req.user?.userId]
+    );
     if (!vehicle) {
       res.status(404).json({ error: 'Vehicle not found' });
       return;
@@ -53,11 +59,12 @@ export class FuelController {
     }
 
     const data = parse.data;
+    const isShared = req.user?.role === 'admin' || req.user?.role === 'driver';
 
-    // Verify vehicle belongs to user
+    // Verify vehicle belongs to user or shared instance
     const vehicle = db.get<{ initial_odometer: number }>(
-      'SELECT initial_odometer FROM vehicles WHERE id = ? AND user_id = ?',
-      [data.vehicle_id, req.user?.userId]
+      `SELECT initial_odometer FROM vehicles WHERE id = ? ${isShared ? '' : 'AND user_id = ?'}`,
+      isShared ? [data.vehicle_id] : [data.vehicle_id, req.user?.userId]
     );
     if (!vehicle) {
       res.status(404).json({ error: 'Vehicle not found' });
@@ -78,15 +85,23 @@ export class FuelController {
       warnings.push(`Large odometer delta (${data.odometer - highestOdo} km since last entry). Consider checking "Missed Previous Fill-up".`);
     }
 
-    const calculatedCost = data.total_cost || Math.round(data.liters * data.price_per_liter * 100) / 100;
+    let calculatedCost = data.total_cost;
+    if (!calculatedCost) {
+      if (data.energy_type === 'electric') {
+        calculatedCost = Math.round((data.kwh || 0) * (data.price_per_kwh || 0) * 100) / 100;
+      } else {
+        calculatedCost = Math.round(data.liters * data.price_per_liter * 100) / 100;
+      }
+    }
     const id = crypto.randomUUID();
 
     db.run(
       `INSERT INTO fuel_entries (
         id, vehicle_id, date, odometer, liters, price_per_liter, total_cost,
         is_full_tank, missed_previous, notes, receipt_path,
-        station_name, station_address, latitude, longitude, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        station_name, station_address, latitude, longitude,
+        energy_type, kwh, price_per_kwh, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         data.vehicle_id,
@@ -103,6 +118,9 @@ export class FuelController {
         data.station_address || null,
         data.latitude !== undefined ? data.latitude : null,
         data.longitude !== undefined ? data.longitude : null,
+        data.energy_type || 'fuel',
+        data.kwh !== undefined ? data.kwh : null,
+        data.price_per_kwh !== undefined ? data.price_per_kwh : null,
         new Date().toISOString(),
       ]
     );
@@ -116,11 +134,12 @@ export class FuelController {
 
   public static async delete(req: Request, res: Response): Promise<void> {
     const { id } = req.params;
+    const isShared = req.user?.role === 'admin' || req.user?.role === 'driver';
     const entry = db.get<any>(
       `SELECT f.id FROM fuel_entries f
        JOIN vehicles v ON v.id = f.vehicle_id
-       WHERE f.id = ? AND v.user_id = ?`,
-      [id, req.user?.userId]
+       WHERE f.id = ? ${isShared ? '' : 'AND v.user_id = ?'}`,
+      isShared ? [id] : [id, req.user?.userId]
     );
 
     if (!entry) {
@@ -135,12 +154,13 @@ export class FuelController {
   public static async update(req: Request, res: Response): Promise<void> {
     const { id } = req.params;
     const data = req.body;
+    const isShared = req.user?.role === 'admin' || req.user?.role === 'driver';
 
     const existing = db.get<{ id: string; vehicle_id: string }>(
       `SELECT f.id, f.vehicle_id FROM fuel_entries f
        JOIN vehicles v ON v.id = f.vehicle_id
-       WHERE f.id = ? AND v.user_id = ?`,
-      [id, req.user?.userId]
+       WHERE f.id = ? ${isShared ? '' : 'AND v.user_id = ?'}`,
+      isShared ? [id] : [id, req.user?.userId]
     );
 
     if (!existing) {
@@ -148,7 +168,14 @@ export class FuelController {
       return;
     }
 
-    const calculatedCost = data.total_cost || Math.round(data.liters * data.price_per_liter * 100) / 100;
+    let calculatedCost = data.total_cost;
+    if (!calculatedCost) {
+      if (data.energy_type === 'electric') {
+        calculatedCost = Math.round((data.kwh || 0) * (data.price_per_kwh || 0) * 100) / 100;
+      } else {
+        calculatedCost = Math.round(data.liters * data.price_per_liter * 100) / 100;
+      }
+    }
 
     db.run(
       `UPDATE fuel_entries SET
@@ -164,7 +191,10 @@ export class FuelController {
         station_name = ?,
         station_address = ?,
         latitude = ?,
-        longitude = ?
+        longitude = ?,
+        energy_type = COALESCE(?, energy_type),
+        kwh = ?,
+        price_per_kwh = ?
        WHERE id = ?`,
       [
         data.date,
@@ -180,6 +210,9 @@ export class FuelController {
         data.station_address !== undefined ? data.station_address : null,
         data.latitude !== undefined ? data.latitude : null,
         data.longitude !== undefined ? data.longitude : null,
+        data.energy_type || null,
+        data.kwh !== undefined ? data.kwh : null,
+        data.price_per_kwh !== undefined ? data.price_per_kwh : null,
         id,
       ]
     );

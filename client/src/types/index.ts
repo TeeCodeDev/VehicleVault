@@ -36,6 +36,9 @@ export interface FuelEntry {
   vehicle_id: string;
   date: string;
   odometer: number;
+  energy_type?: 'fuel' | 'electric';
+  kwh?: number | null;
+  price_per_kwh?: number | null;
   liters: number;
   price_per_liter: number;
   total_cost: number;

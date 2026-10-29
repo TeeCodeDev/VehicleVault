@@ -19,6 +19,7 @@ import { StatusBadge } from '../components/StatusBadge.js';
 import { DatePicker } from '../components/DatePicker.js';
 import { useLanguage } from '../context/LanguageContext.js';
 import { formatDisplayDate } from '../utils/format.js';
+import { compressImage } from '../utils/imageCompressor.js';
 
 interface ContextType {
   vehicles: Vehicle[];
@@ -164,8 +165,9 @@ export const Vehicles: React.FC = () => {
 
       // If a vehicle photo was chosen, upload it now
       if (imageFile && vehicleId) {
+        const compressedImage = await compressImage(imageFile, 1200, 1200, 0.85);
         const formData = new FormData();
-        formData.append('image', imageFile);
+        formData.append('image', compressedImage);
         await apiFetch(`/api/vehicles/${vehicleId}/image`, {
           method: 'POST',
           body: formData,

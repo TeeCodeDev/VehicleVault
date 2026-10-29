@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import {
   Fuel,
+  Zap,
   Camera,
   AlertTriangle,
   Trash2,
@@ -27,6 +28,7 @@ import { DatePicker } from '../components/DatePicker.js';
 import { useLanguage } from '../context/LanguageContext.js';
 import { addToOfflineQueue } from '../utils/offlineQueue.js';
 import { formatDisplayDate } from '../utils/format.js';
+import { compressImage } from '../utils/imageCompressor.js';
 
 interface ContextType {
   vehicles: Vehicle[];
@@ -43,8 +45,11 @@ export const FuelLog: React.FC = () => {
   // Form State
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [odometer, setOdometer] = useState<string>('');
+  const [energyType, setEnergyType] = useState<'fuel' | 'electric'>('fuel');
   const [liters, setLiters] = useState<string>('');
   const [pricePerLiter, setPricePerLiter] = useState<string>('');
+  const [kwh, setKwh] = useState<string>('');
+  const [pricePerKwh, setPricePerKwh] = useState<string>('');
   const [totalCost, setTotalCost] = useState<string>('');
   const [isFullTank, setIsFullTank] = useState(true);
   const [missedPrevious, setMissedPrevious] = useState(false);
@@ -75,8 +80,11 @@ export const FuelLog: React.FC = () => {
   const [editingEntry, setEditingEntry] = useState<FuelEntry | null>(null);
   const [editDate, setEditDate] = useState('');
   const [editOdometer, setEditOdometer] = useState('');
+  const [editEnergyType, setEditEnergyType] = useState<'fuel' | 'electric'>('fuel');
   const [editLiters, setEditLiters] = useState('');
   const [editPricePerLiter, setEditPricePerLiter] = useState('');
+  const [editKwh, setEditKwh] = useState('');
+  const [editPricePerKwh, setEditPricePerKwh] = useState('');
   const [editTotalCost, setEditTotalCost] = useState('');
   const [editIsFullTank, setEditIsFullTank] = useState(true);
   const [editMissedPrevious, setEditMissedPrevious] = useState(false);
@@ -132,12 +140,37 @@ export const FuelLog: React.FC = () => {
     }
   };
 
+  const handleKwhChange = (val: string) => {
+    setKwh(val);
+    const k = parseFloat(val);
+    const p = parseFloat(pricePerKwh);
+    if (!isNaN(k) && !isNaN(p) && k > 0 && p > 0) {
+      setTotalCost((k * p).toFixed(2));
+    }
+  };
+
+  const handlePricePerKwhChange = (val: string) => {
+    setPricePerKwh(val);
+    const k = parseFloat(kwh);
+    const p = parseFloat(val);
+    if (!isNaN(k) && !isNaN(p) && k > 0 && p > 0) {
+      setTotalCost((k * p).toFixed(2));
+    }
+  };
+
   const handleTotalChange = (val: string) => {
     setTotalCost(val);
     const tVal = parseFloat(val);
-    const l = parseFloat(liters);
-    if (!isNaN(tVal) && !isNaN(l) && l > 0) {
-      setPricePerLiter((tVal / l).toFixed(3));
+    if (energyType === 'electric') {
+      const k = parseFloat(kwh);
+      if (!isNaN(tVal) && !isNaN(k) && k > 0) {
+        setPricePerKwh((tVal / k).toFixed(3));
+      }
+    } else {
+      const l = parseFloat(liters);
+      if (!isNaN(tVal) && !isNaN(l) && l > 0) {
+        setPricePerLiter((tVal / l).toFixed(3));
+      }
     }
   };
 
@@ -321,8 +354,9 @@ export const FuelLog: React.FC = () => {
 
       if (receiptFile) {
         setUploadingReceipt(true);
+        const compressed = await compressImage(receiptFile);
         const formData = new FormData();
-        formData.append('receipt', receiptFile);
+        formData.append('receipt', compressed);
         const uploadRes = await apiFetch<{ fileName: string }>('/api/fuel/upload-receipt', {
           method: 'POST',
           body: formData,
@@ -336,8 +370,11 @@ export const FuelLog: React.FC = () => {
           vehicle_id: selectedVehicle.id,
           date,
           odometer: parseFloat(odometer),
-          liters: parseFloat(liters),
-          price_per_liter: parseFloat(pricePerLiter),
+          energy_type: energyType,
+          liters: energyType === 'fuel' ? parseFloat(liters || '0') : 0,
+          price_per_liter: energyType === 'fuel' ? parseFloat(pricePerLiter || '0') : 0,
+          kwh: energyType === 'electric' ? parseFloat(kwh || '0') : null,
+          price_per_kwh: energyType === 'electric' ? parseFloat(pricePerKwh || '0') : null,
           total_cost: parseFloat(totalCost),
           is_full_tank: isFullTank,
           missed_previous: missedPrevious,
@@ -353,6 +390,8 @@ export const FuelLog: React.FC = () => {
       // Reset fields
       setLiters('');
       setPricePerLiter('');
+      setKwh('');
+      setPricePerKwh('');
       setTotalCost('');
       setNotes('');
       setStationName('');
@@ -417,8 +456,11 @@ export const FuelLog: React.FC = () => {
     setEditingEntry(entry);
     setEditDate(entry.date);
     setEditOdometer(String(entry.odometer));
-    setEditLiters(String(entry.liters));
-    setEditPricePerLiter(String(entry.price_per_liter));
+    setEditEnergyType((entry.energy_type as any) || 'fuel');
+    setEditLiters(String(entry.liters || ''));
+    setEditPricePerLiter(String(entry.price_per_liter || ''));
+    setEditKwh(entry.kwh ? String(entry.kwh) : '');
+    setEditPricePerKwh(entry.price_per_kwh ? String(entry.price_per_kwh) : '');
     setEditTotalCost(String(entry.total_cost));
     setEditIsFullTank(Boolean(entry.is_full_tank));
     setEditMissedPrevious(Boolean(entry.missed_previous));
@@ -454,6 +496,24 @@ export const FuelLog: React.FC = () => {
     }
   };
 
+  const handleEditKwhChange = (val: string) => {
+    setEditKwh(val);
+    const k = parseFloat(val);
+    const p = parseFloat(editPricePerKwh);
+    if (!isNaN(k) && !isNaN(p) && k > 0 && p > 0) {
+      setEditTotalCost((Math.round(k * p * 100) / 100).toFixed(2));
+    }
+  };
+
+  const handleEditPricePerKwhChange = (val: string) => {
+    setEditPricePerKwh(val);
+    const k = parseFloat(editKwh);
+    const p = parseFloat(val);
+    if (!isNaN(k) && !isNaN(p) && k > 0 && p > 0) {
+      setEditTotalCost((Math.round(k * p * 100) / 100).toFixed(2));
+    }
+  };
+
   const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingEntry || !selectedVehicle) return;
@@ -463,8 +523,9 @@ export const FuelLog: React.FC = () => {
       let finalReceiptPath = editReceiptPath;
 
       if (editReceiptFile) {
+        const compressed = await compressImage(editReceiptFile);
         const formData = new FormData();
-        formData.append('receipt', editReceiptFile);
+        formData.append('receipt', compressed);
         const uploadRes = await apiFetch<{ fileName: string }>('/api/fuel/upload-receipt', {
           method: 'POST',
           body: formData,
@@ -477,8 +538,11 @@ export const FuelLog: React.FC = () => {
         body: JSON.stringify({
           date: editDate,
           odometer: parseFloat(editOdometer),
-          liters: parseFloat(editLiters),
-          price_per_liter: parseFloat(editPricePerLiter),
+          energy_type: editEnergyType,
+          liters: editEnergyType === 'fuel' ? parseFloat(editLiters || '0') : 0,
+          price_per_liter: editEnergyType === 'fuel' ? parseFloat(editPricePerLiter || '0') : 0,
+          kwh: editEnergyType === 'electric' ? parseFloat(editKwh || '0') : null,
+          price_per_kwh: editEnergyType === 'electric' ? parseFloat(editPricePerKwh || '0') : null,
           total_cost: parseFloat(editTotalCost),
           is_full_tank: editIsFullTank,
           missed_previous: editMissedPrevious,
@@ -486,8 +550,8 @@ export const FuelLog: React.FC = () => {
           receipt_path: finalReceiptPath || null,
           station_name: editStationName || null,
           station_address: editStationAddress || null,
-          latitude: editLatitude ?? null,
-          longitude: editLongitude ?? null,
+          latitude: editLatitude,
+          longitude: editLongitude,
         }),
       });
 
@@ -530,6 +594,34 @@ export const FuelLog: React.FC = () => {
 
       {/* Quick Fuel Entry Form */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-sm transition-colors">
+        {/* Energy Type Switcher (Brandstof vs Laadbeurt) */}
+        <div className="flex items-center space-x-2 bg-slate-100 dark:bg-slate-950 p-1 rounded-xl w-fit mb-4 border border-slate-200/70 dark:border-slate-800">
+          <button
+            type="button"
+            onClick={() => setEnergyType('fuel')}
+            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+              energyType === 'fuel'
+                ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm'
+                : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'
+            }`}
+          >
+            <Fuel className="w-3.5 h-3.5 text-amber-500" />
+            <span>{lang === 'nl' ? 'Brandstof (Liters)' : 'Fuel (Liters)'}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setEnergyType('electric')}
+            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+              energyType === 'electric'
+                ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm'
+                : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'
+            }`}
+          >
+            <Zap className="w-3.5 h-3.5 text-cyan-500" />
+            <span>{lang === 'nl' ? 'Laadbeurt (kWh)' : 'Charging (kWh)'}</span>
+          </button>
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
           {warningMessage && (
             <div className="flex items-center space-x-2 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/50 text-amber-800 dark:text-amber-300 p-3 rounded-xl font-medium">
@@ -560,34 +652,70 @@ export const FuelLog: React.FC = () => {
                 className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-1.5 text-slate-900 dark:text-white font-mono focus:outline-none focus:border-sky-500 shadow-sm"
               />
             </div>
-            <div>
-              <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
-                {t('liters')} (L) *
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                required
-                value={liters}
-                onChange={(e) => handleLitersChange(e.target.value)}
-                placeholder={lang === 'nl' ? 'bijv. 45.20' : 'e.g. 45.20'}
-                className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-1.5 text-slate-900 dark:text-white focus:outline-none focus:border-sky-500 shadow-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
-                {t('pricePerLiter')} (€/L) *
-              </label>
-              <input
-                type="number"
-                step="0.001"
-                required
-                value={pricePerLiter}
-                onChange={(e) => handlePriceChange(e.target.value)}
-                placeholder={lang === 'nl' ? 'bijv. 1.949' : 'e.g. 1.949'}
-                className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-1.5 text-slate-900 dark:text-white focus:outline-none focus:border-sky-500 shadow-sm"
-              />
-            </div>
+
+            {energyType === 'fuel' ? (
+              <>
+                <div>
+                  <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
+                    {t('liters')} (L) *
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    value={liters}
+                    onChange={(e) => handleLitersChange(e.target.value)}
+                    placeholder={lang === 'nl' ? 'bijv. 45.20' : 'e.g. 45.20'}
+                    className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-1.5 text-slate-900 dark:text-white focus:outline-none focus:border-sky-500 shadow-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
+                    {t('pricePerLiter')} (€/L) *
+                  </label>
+                  <input
+                    type="number"
+                    step="0.001"
+                    required
+                    value={pricePerLiter}
+                    onChange={(e) => handlePriceChange(e.target.value)}
+                    placeholder={lang === 'nl' ? 'bijv. 1.949' : 'e.g. 1.949'}
+                    className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-1.5 text-slate-900 dark:text-white focus:outline-none focus:border-sky-500 shadow-sm"
+                  />
+                </div>
+              </>
+            ) : (
+              <>
+                <div>
+                  <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
+                    {lang === 'nl' ? 'Stroom geladen (kWh) *' : 'Energy charged (kWh) *'}
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    value={kwh}
+                    onChange={(e) => handleKwhChange(e.target.value)}
+                    placeholder={lang === 'nl' ? 'bijv. 38.50' : 'e.g. 38.50'}
+                    className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-1.5 text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 shadow-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
+                    {lang === 'nl' ? 'Tarief (€/kWh) *' : 'Rate (€/kWh) *'}
+                  </label>
+                  <input
+                    type="number"
+                    step="0.001"
+                    required
+                    value={pricePerKwh}
+                    onChange={(e) => handlePricePerKwhChange(e.target.value)}
+                    placeholder={lang === 'nl' ? 'bijv. 0.350' : 'e.g. 0.350'}
+                    className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-1.5 text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 shadow-sm"
+                  />
+                </div>
+              </>
+            )}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 items-end">
@@ -924,8 +1052,23 @@ export const FuelLog: React.FC = () => {
                       <td className="py-3 px-4 font-mono font-bold text-slate-800 dark:text-slate-300">
                         {f.odometer.toLocaleString()} km
                       </td>
-                      <td className="py-3 px-4 font-semibold">{f.liters.toFixed(2)} L</td>
-                      <td className="py-3 px-4">€ {f.price_per_liter.toFixed(3)}</td>
+                      <td className="py-3 px-4 font-semibold">
+                        {f.energy_type === 'electric' ? (
+                          <span className="inline-flex items-center space-x-1 text-cyan-600 dark:text-cyan-400 font-bold bg-cyan-50 dark:bg-cyan-950/60 px-2 py-0.5 rounded-md border border-cyan-200 dark:border-cyan-800/60">
+                            <Zap className="w-3 h-3 text-cyan-500" />
+                            <span>{(f.kwh || 0).toFixed(2)} kWh</span>
+                          </span>
+                        ) : (
+                          <span>{f.liters.toFixed(2)} L</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4">
+                        {f.energy_type === 'electric' ? (
+                          <span>€ {(f.price_per_kwh || 0).toFixed(3)}/kWh</span>
+                        ) : (
+                          <span>€ {f.price_per_liter.toFixed(3)}/L</span>
+                        )}
+                      </td>
                       <td className="py-3 px-4 font-black text-slate-900 dark:text-white text-sm">
                         € {f.total_cost.toFixed(2)}
                       </td>
@@ -1032,31 +1175,90 @@ export const FuelLog: React.FC = () => {
                 </div>
               </div>
 
-              {/* Liters & Price per Liter */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">{t('liters')} (L)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    required
-                    value={editLiters}
-                    onChange={(e) => handleEditLitersChange(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-sky-500"
-                  />
-                </div>
-                <div>
-                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">{t('pricePerLiter')} (€)</label>
-                  <input
-                    type="number"
-                    step="0.001"
-                    required
-                    value={editPricePerLiter}
-                    onChange={(e) => handleEditPriceChange(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-sky-500"
-                  />
-                </div>
+              {/* Energy Type Switcher in Edit Modal */}
+              <div className="flex items-center space-x-2 bg-slate-100 dark:bg-slate-950 p-1 rounded-xl w-fit border border-slate-200 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setEditEnergyType('fuel')}
+                  className={`flex items-center space-x-1 px-3 py-1 rounded-lg text-xs font-bold transition ${
+                    editEnergyType === 'fuel'
+                      ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm'
+                      : 'text-slate-500'
+                  }`}
+                >
+                  <Fuel className="w-3 h-3 text-amber-500" />
+                  <span>{lang === 'nl' ? 'Brandstof' : 'Fuel'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditEnergyType('electric')}
+                  className={`flex items-center space-x-1 px-3 py-1 rounded-lg text-xs font-bold transition ${
+                    editEnergyType === 'electric'
+                      ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm'
+                      : 'text-slate-500'
+                  }`}
+                >
+                  <Zap className="w-3 h-3 text-cyan-500" />
+                  <span>{lang === 'nl' ? 'Laadbeurt (kWh)' : 'Charging'}</span>
+                </button>
               </div>
+
+              {/* Liters & Price per Liter OR kWh & Price per kWh */}
+              {editEnergyType === 'fuel' ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">{t('liters')} (L)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      required
+                      value={editLiters}
+                      onChange={(e) => handleEditLitersChange(e.target.value)}
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-sky-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">{t('pricePerLiter')} (€)</label>
+                    <input
+                      type="number"
+                      step="0.001"
+                      required
+                      value={editPricePerLiter}
+                      onChange={(e) => handleEditPriceChange(e.target.value)}
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-sky-500"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                      {lang === 'nl' ? 'Stroom (kWh)' : 'Energy (kWh)'}
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      required
+                      value={editKwh}
+                      onChange={(e) => handleEditKwhChange(e.target.value)}
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                      {lang === 'nl' ? 'Tarief (€/kWh)' : 'Rate (€/kWh)'}
+                    </label>
+                    <input
+                      type="number"
+                      step="0.001"
+                      required
+                      value={editPricePerKwh}
+                      onChange={(e) => handleEditPricePerKwhChange(e.target.value)}
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* Total Cost */}
               <div>
