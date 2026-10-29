@@ -41,6 +41,7 @@ import { FuelExportService } from '../services/fuelExportService.js';
 import { getVehicleAccess } from '../utils/vehicleAccess.js';
 import { ShowcaseService } from '../services/showcaseService.js';
 import { ShowcaseZipService } from '../services/showcaseZipService.js';
+import { AuthController } from '../controllers/authController.js';
 
 describe('VehicleVault Comprehensive Test Suite', () => {
   let testUserId: string;
@@ -1243,6 +1244,41 @@ Date,Odometer,Fuel_amount,Price,Total_cost,Notes
       const expiresDate = new Date(refresh.expiresAt);
       const daysAhead = Math.round((expiresDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
       assert.ok(daysAhead >= 88 && daysAhead <= 91);
+    });
+
+    it('should aggregate last login and last activity per user including dormant detection', async () => {
+      const dummyId = crypto.randomUUID();
+      const testEmail = `audit_${dummyId.slice(0, 8)}@example.com`;
+      const now = new Date().toISOString();
+      const loginTime = '2026-10-29T10:00:00.000Z';
+      const changeTime = '2026-10-29T11:30:00.000Z';
+
+      try {
+        db.run(
+          `INSERT INTO users (id, email, password_hash, role, last_login_at, last_active_at, created_at, updated_at)
+           VALUES (?, ?, 'hash', 'user', ?, ?, ?, ?)`,
+          [dummyId, testEmail, loginTime, changeTime, now, now]
+        );
+
+        let responseData: any = null;
+        const fakeRes: any = {
+          json: (data: any) => { responseData = data; }
+        };
+
+        await AuthController.listUsers({} as any, fakeRes);
+        assert.ok(responseData);
+        assert.ok(Array.isArray(responseData.users));
+
+        const found = responseData.users.find((u: any) => u.id === dummyId);
+        assert.ok(found);
+        assert.equal(found.email, testEmail);
+        assert.equal(found.last_login_at, loginTime);
+        assert.equal(found.last_active_at, changeTime);
+        assert.equal(found.is_dormant, false);
+      } finally {
+        // Clean up
+        db.run('DELETE FROM users WHERE id = ?', [dummyId]);
+      }
     });
   });
 

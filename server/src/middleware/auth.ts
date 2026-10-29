@@ -103,6 +103,12 @@ export function getProxyUser(req: Request): AuthenticatedUser | null {
       [newUserId, email, 'proxy_auth_placeholder', role, now, now]
     );
     user = { id: newUserId, email, role };
+  } else {
+    // Record proxy user login & activity
+    try {
+      const now = new Date().toISOString();
+      db.run('UPDATE users SET last_login_at = ?, last_active_at = ? WHERE id = ?', [now, now, user.id]);
+    } catch {}
   }
 
   return {
@@ -186,6 +192,13 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
     role: payload.role,
     isApiKey: false,
   };
+
+  // Track modification activity
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method) && req.user?.userId) {
+    try {
+      db.run('UPDATE users SET last_active_at = ? WHERE id = ?', [new Date().toISOString(), req.user.userId]);
+    } catch {}
+  }
 
   next();
 }

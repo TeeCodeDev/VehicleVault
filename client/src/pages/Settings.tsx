@@ -43,6 +43,9 @@ import {
   FolderLock,
   LineChart,
   Layers,
+  Clock,
+  LogIn,
+  Edit3,
 } from 'lucide-react';
 import { ApiKeyItem, Vehicle } from '../types/index.js';
 import { useOutletContext, useSearchParams } from 'react-router-dom';
@@ -51,7 +54,7 @@ import { useTheme, ACCENT_COLOR_OPTIONS } from '../context/ThemeContext.js';
 import { useLanguage } from '../context/LanguageContext.js';
 import { useAuth } from '../context/AuthContext.js';
 import { useModules } from '../context/ModuleContext.js';
-import { formatDisplayDate } from '../utils/format.js';
+import { formatDisplayDate, formatDisplayDateTime, formatRelativeTime } from '../utils/format.js';
 
 export const Settings: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -346,7 +349,15 @@ export const Settings: React.FC = () => {
   };
 
   const handleDeleteUser = async (userId: string, userEmail: string) => {
-    if (!confirm(`Weet je zeker dat je gebruiker "${userEmail}" wilt verwijderen?`)) return;
+    const user = usersList.find((x) => x.id === userId);
+    const lastActiveText = user?.last_active_at
+      ? `Laatst actief: ${formatDisplayDate(user.last_active_at)} (${formatRelativeTime(user.last_active_at)})`
+      : 'Nooit ingelogd';
+    const warningVehicles = (user?.vehicle_count || 0) > 0
+      ? `\n\n⚠️ LET OP: Deze gebruiker bezit nog ${user.vehicle_count} voertuig(en)! Deze worden ook definitief verwijderd.`
+      : '';
+
+    if (!confirm(`Weet je zeker dat je gebruiker "${userEmail}" wilt verwijderen?\n(${lastActiveText})${warningVehicles}`)) return;
     try {
       await apiFetch(`/api/auth/users/${userId}`, { method: 'DELETE' });
       await loadUsers();
@@ -1490,6 +1501,7 @@ rest:
                     <tr>
                       <th className="py-2.5 px-3">E-mailadres / Pangolin Gebruiker</th>
                       <th className="py-2.5 px-3">Rol &amp; Toegang</th>
+                      <th className="py-2.5 px-3">Laatste Activiteit &amp; Inlog</th>
                       <th className="py-2.5 px-3">Geregistreerd</th>
                       <th className="py-2.5 px-3 text-right">Actie</th>
                     </tr>
@@ -1498,8 +1510,30 @@ rest:
                     {usersList.map((u) => (
                       <tr key={u.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
                         <td className="py-3 px-3">
-                          <span className="font-bold text-slate-900 dark:text-white block">{u.email}</span>
-                          <span className="text-[10px] text-slate-400 font-mono">{u.id}</span>
+                          <div className="flex items-center space-x-2">
+                            <span className="font-bold text-slate-900 dark:text-white block">{u.email}</span>
+                            {u.is_dormant && (
+                              <span
+                                className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400 border border-amber-200 dark:border-amber-800 shrink-0"
+                                title="Geen recente activiteit geregistreerd in de afgelopen 60 dagen"
+                              >
+                                Inactief
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                            <span className="text-[10px] text-slate-400 font-mono">{u.id}</span>
+                            {u.vehicle_count > 0 && (
+                              <span className="text-[10px] text-slate-600 dark:text-slate-300 font-medium bg-slate-100 dark:bg-slate-800 px-1.5 py-0.2 rounded">
+                                🚗 {u.vehicle_count} {u.vehicle_count === 1 ? 'voertuig' : 'voertuigen'}
+                              </span>
+                            )}
+                            {u.shared_vehicle_count > 0 && (
+                              <span className="text-[10px] text-slate-600 dark:text-slate-300 font-medium bg-slate-100 dark:bg-slate-800 px-1.5 py-0.2 rounded">
+                                🔑 {u.shared_vehicle_count} gedeeld
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="py-3 px-3">
                           <select
@@ -1511,6 +1545,42 @@ rest:
                             <option value="driver">🚗 Chauffeur (Snel Tanken)</option>
                             <option value="user">👤 Standaard Gebruiker</option>
                           </select>
+                        </td>
+                        <td className="py-3 px-3">
+                          {u.last_active_at ? (
+                            <div>
+                              <div className="font-bold text-slate-800 dark:text-slate-200 flex items-center space-x-1.5">
+                                <Activity className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                                <span>{formatDisplayDateTime(u.last_active_at)}</span>
+                                <span className="text-[10px] font-normal text-slate-400">({formatRelativeTime(u.last_active_at)})</span>
+                              </div>
+                              <div className="text-[10px] text-slate-400 flex items-center space-x-2 mt-0.5">
+                                {u.last_change_at && (
+                                  <span
+                                    className="flex items-center space-x-1 text-emerald-600 dark:text-emerald-400 font-medium"
+                                    title={`Laatste wijziging (tankbeurt/voertuig/rit): ${formatDisplayDateTime(u.last_change_at)}`}
+                                  >
+                                    <Edit3 className="w-2.5 h-2.5" />
+                                    <span>Gewijzigd {formatRelativeTime(u.last_change_at)}</span>
+                                  </span>
+                                )}
+                                {u.last_login_at && (
+                                  <span
+                                    className="flex items-center space-x-1 text-sky-600 dark:text-sky-400 font-medium"
+                                    title={`Laatste inlog/sessie: ${formatDisplayDateTime(u.last_login_at)}`}
+                                  >
+                                    <LogIn className="w-2.5 h-2.5" />
+                                    <span>Inlog {formatRelativeTime(u.last_login_at)}</span>
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="text-slate-400 dark:text-slate-500 flex items-center space-x-1.5">
+                              <Clock className="w-3.5 h-3.5 text-slate-300 dark:text-slate-600 shrink-0" />
+                              <span className="italic">Nog niet ingelogd</span>
+                            </div>
+                          )}
                         </td>
                         <td className="py-3 px-3 text-slate-500 dark:text-slate-400">
                           {formatDisplayDate(u.created_at)}

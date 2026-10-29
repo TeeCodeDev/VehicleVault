@@ -75,3 +75,4 @@ export function formatLicensePlate(plate?: string | null): string {
   // Fallback 2-2-2
   return `${clean.slice(0, 2)}-${clean.slice(2, 4)}-${clean.slice(4, 6)}`;
 }
+

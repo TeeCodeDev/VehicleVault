@@ -112,6 +112,9 @@ export class AuthController {
         [crypto.randomUUID(), user.id, refreshHash, expiresAt, now]
       );
 
+      // Track last login and active timestamp
+      db.run('UPDATE users SET last_login_at = ?, last_active_at = ? WHERE id = ?', [now, now, user.id]);
+
       res.cookie('refresh_token', refreshToken, {
         httpOnly: true,
         secure: isSecureRequest(req),
@@ -156,6 +159,10 @@ export class AuthController {
         email: tokenRecord.email,
         role: tokenRecord.role,
       });
+
+      // Update last login and active timestamp on session refresh
+      const now = new Date().toISOString();
+      db.run('UPDATE users SET last_login_at = ?, last_active_at = ? WHERE id = ?', [now, now, tokenRecord.user_id]);
 
       res.json({
         accessToken,
@@ -337,9 +344,73 @@ export class AuthController {
 
   public static async listUsers(_req: Request, res: Response): Promise<void> {
     try {
-      const users = db.query<any>(
-        'SELECT id, email, role, created_at, updated_at FROM users ORDER BY created_at ASC'
-      );
+      const rows = db.query<any>(`
+        SELECT
+          u.id,
+          u.email,
+          u.role,
+          u.created_at,
+          u.updated_at,
+          u.last_login_at,
+          u.last_active_at,
+          (SELECT MAX(created_at) FROM refresh_tokens WHERE user_id = u.id) AS last_token_at,
+          (SELECT MAX(last_used_at) FROM api_keys WHERE user_id = u.id) AS last_api_key_at,
+          (SELECT MAX(updated_at) FROM vehicles WHERE user_id = u.id) AS last_vehicle_mod_at,
+          (SELECT MAX(fe.created_at) FROM fuel_entries fe JOIN vehicles v ON fe.vehicle_id = v.id WHERE v.user_id = u.id) AS last_fuel_at,
+          (SELECT MAX(sr.created_at) FROM service_records sr JOIN vehicles v ON sr.vehicle_id = v.id WHERE v.user_id = u.id) AS last_service_at,
+          (SELECT MAX(t.created_at) FROM trips t JOIN vehicles v ON t.vehicle_id = v.id WHERE v.user_id = u.id) AS last_trip_at,
+          (SELECT COUNT(*) FROM vehicles WHERE user_id = u.id) AS vehicle_count,
+          (SELECT COUNT(*) FROM vehicle_shares WHERE user_id = u.id) AS shared_vehicle_count
+        FROM users u
+        ORDER BY u.created_at ASC
+      `);
+
+      const now = Date.now();
+      const users = rows.map((r) => {
+        // Collect candidate timestamps
+        const loginCandidates = [r.last_login_at, r.last_token_at].filter(Boolean);
+        const changeCandidates = [r.last_vehicle_mod_at, r.last_fuel_at, r.last_service_at, r.last_trip_at].filter(Boolean);
+        const allActivityCandidates = [
+          r.last_active_at,
+          ...loginCandidates,
+          ...changeCandidates,
+          r.last_api_key_at,
+        ].filter(Boolean);
+
+        const getLatest = (arr: string[]) => {
+          if (arr.length === 0) return null;
+          return arr.reduce((max, cur) => (new Date(cur).getTime() > new Date(max).getTime() ? cur : max));
+        };
+
+        const lastLogin = getLatest(loginCandidates);
+        const lastChange = getLatest(changeCandidates);
+        const lastActive = getLatest(allActivityCandidates);
+
+        // Determine dormant status (inactive >= 60 days, or registered >= 14 days ago without activity)
+        let isDormant = false;
+        if (lastActive) {
+          const diffDays = Math.floor((now - new Date(lastActive).getTime()) / (1000 * 60 * 60 * 24));
+          if (diffDays >= 60) isDormant = true;
+        } else if (r.created_at) {
+          const createdDays = Math.floor((now - new Date(r.created_at).getTime()) / (1000 * 60 * 60 * 24));
+          if (createdDays >= 14) isDormant = true;
+        }
+
+        return {
+          id: r.id,
+          email: r.email,
+          role: r.role,
+          created_at: r.created_at,
+          updated_at: r.updated_at,
+          last_login_at: lastLogin,
+          last_change_at: lastChange,
+          last_active_at: lastActive,
+          vehicle_count: r.vehicle_count || 0,
+          shared_vehicle_count: r.shared_vehicle_count || 0,
+          is_dormant: isDormant,
+        };
+      });
+
       res.json({ users });
     } catch (err: any) {
       console.error('List users error:', err);

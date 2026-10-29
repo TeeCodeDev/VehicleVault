@@ -18,6 +18,8 @@ export function initializeDatabase(): void {
       email TEXT UNIQUE NOT NULL,
       password_hash TEXT NOT NULL,
       role TEXT NOT NULL DEFAULT 'user',
+      last_login_at TEXT,
+      last_active_at TEXT,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     );
@@ -77,6 +79,13 @@ export function initializeDatabase(): void {
   `);
 
   // Safely migrate existing database tables if missing new columns
+  if (!columnExists('users', 'last_login_at')) {
+    db.exec('ALTER TABLE users ADD COLUMN last_login_at TEXT;');
+  }
+  if (!columnExists('users', 'last_active_at')) {
+    db.exec('ALTER TABLE users ADD COLUMN last_active_at TEXT;');
+  }
+
   if (!columnExists('vehicles', 'image_path')) {
     db.exec('ALTER TABLE vehicles ADD COLUMN image_path TEXT;');
   }

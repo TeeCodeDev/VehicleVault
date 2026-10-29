@@ -115,3 +115,4 @@ export const LicensePlateBadge: React.FC<LicensePlateBadgeProps> = ({
     </span>
   );
 };
+
