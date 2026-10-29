@@ -6,7 +6,7 @@ import { DATA_PATHS } from '../config/env.js';
 
 export class ShowcaseZipService {
   /**
-   * Generates a complete, standalone static website ZIP package matching auto.romanas.nl.
+   * Generates a complete, standalone static website ZIP package.
    */
   public static async generateZip(showcase: CompiledShowcase): Promise<Buffer> {
     const zip = new AdmZip();

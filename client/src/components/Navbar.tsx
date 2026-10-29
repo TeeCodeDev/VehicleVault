@@ -8,6 +8,7 @@ import {
   ChevronDown,
   Check,
   Plus,
+  ExternalLink,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.js';
 import { useTheme } from '../context/ThemeContext.js';
@@ -125,8 +126,9 @@ export const Navbar: React.FC<NavbarProps> = ({
       <div className="flex-1 h-full flex items-center justify-between px-3 md:px-5 min-w-0">
         {/* Prominent Vehicle Selector */}
         {vehicles.length > 0 && activeVehicle ? (
-          <div className="relative" ref={dropdownRef}>
-            <button
+          <div className="flex items-center space-x-2.5 min-w-0">
+            <div className="relative" ref={dropdownRef}>
+              <button
               type="button"
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
               className={`flex items-center space-x-2 sm:space-x-3 px-2.5 sm:px-3 py-1.5 rounded-xl border transition shadow-xs text-left group ${
@@ -256,6 +258,26 @@ export const Navbar: React.FC<NavbarProps> = ({
                   </NavLink>
                 </div>
               </div>
+            )}
+            </div>
+
+            {/* If the vehicle has an active public showcase, display live indicator */}
+            {activeVehicle.is_showcase_active && activeVehicle.showcase_slug && (
+              <a
+                href={`/showcase/${activeVehicle.showcase_slug}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl text-xs font-black bg-emerald-50 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 shadow-2xs hover:bg-emerald-100 dark:hover:bg-emerald-900/50 hover:scale-[1.02] transition group shrink-0"
+                title="De openbare verkooppagina van dit voertuig staat LIVE. Klik om te bekijken."
+              >
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                </span>
+                <span className="hidden sm:inline">Verkoop Live</span>
+                <span className="sm:hidden">Live</span>
+                <ExternalLink className="w-3.5 h-3.5 opacity-70 group-hover:opacity-100" />
+              </a>
             )}
           </div>
         ) : (

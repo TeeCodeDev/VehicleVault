@@ -42,6 +42,15 @@ export const Layout: React.FC = () => {
 
   useEffect(() => {
     fetchVehicles();
+    const handleRefresh = () => {
+      fetchVehicles();
+    };
+    window.addEventListener('vehicle:refresh', handleRefresh);
+    window.addEventListener('showcase:changed', handleRefresh);
+    return () => {
+      window.removeEventListener('vehicle:refresh', handleRefresh);
+      window.removeEventListener('showcase:changed', handleRefresh);
+    };
   }, []);
 
   const handleSelectVehicle = (id: string) => {

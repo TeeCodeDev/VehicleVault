@@ -1191,7 +1191,7 @@ Date,Odometer,Fuel_amount,Price,Total_cost,Notes
     });
   });
 
-  describe('Showcase & Digital Sales Dossier Engine (auto.romanas.nl standard)', () => {
+  describe('Showcase & Digital Sales Dossier Engine (Digital Sales Dossier standard)', () => {
     it('should auto-populate a comprehensive showcase dossier with RDW specs and stats', async () => {
       const showcase = ShowcaseService.getOrInitShowcase(testVehicleId);
       assert.ok(showcase);

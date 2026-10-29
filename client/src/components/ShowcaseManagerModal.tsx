@@ -37,6 +37,7 @@ export const ShowcaseManagerModal: React.FC<ShowcaseManagerModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [togglingActive, setTogglingActive] = useState(false);
 
   // Showcase state
   const [showcase, setShowcase] = useState<any>(null);
@@ -122,10 +123,33 @@ export const ShowcaseManagerModal: React.FC<ShowcaseManagerModalProps> = ({
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
       if (onVehicleUpdated) onVehicleUpdated();
+      window.dispatchEvent(new CustomEvent('showcase:changed'));
+      window.dispatchEvent(new CustomEvent('vehicle:refresh'));
     } catch (err: any) {
       setError(err?.message || 'Opslaan mislukt');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleToggleActive = async () => {
+    setTogglingActive(true);
+    setError(null);
+    const newStatus = !isActive;
+    try {
+      const res = await apiFetch<{ showcase: any }>(`/api/vehicles/${vehicleId}/showcase`, {
+        method: 'PUT',
+        body: JSON.stringify({ is_active: newStatus }),
+      });
+      setIsActive(newStatus);
+      setShowcase(res.showcase);
+      if (onVehicleUpdated) onVehicleUpdated();
+      window.dispatchEvent(new CustomEvent('showcase:changed'));
+      window.dispatchEvent(new CustomEvent('vehicle:refresh'));
+    } catch (err: any) {
+      setError(err?.message || 'Status wijzigen mislukt');
+    } finally {
+      setTogglingActive(false);
     }
   };
 
@@ -290,27 +314,41 @@ export const ShowcaseManagerModal: React.FC<ShowcaseManagerModalProps> = ({
 
           {/* TAB 1: Publieke Link & Verkoop */}
           {activeTab === 'link' && (
-            <div className="space-y-6">
+            <div className="space-y-5">
               {/* Online / Offline Status Banner */}
-              <div className="bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 p-4.5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex items-center space-x-3">
+              <div
+                className={`p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 border transition ${
+                  isActive
+                    ? 'bg-emerald-50/70 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/80'
+                    : 'bg-slate-50 dark:bg-slate-950/70 border-slate-200 dark:border-slate-800'
+                }`}
+              >
+                <div className="flex items-center space-x-3.5">
                   <div
-                    className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                    className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 shadow-2xs ${
                       isActive
-                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/80 dark:text-emerald-400'
-                        : 'bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                        ? 'bg-emerald-600 text-white'
+                        : 'bg-slate-200 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
                     }`}
                   >
                     {isActive ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
                   </div>
                   <div>
-                    <h4 className="text-sm font-bold text-slate-900 dark:text-white">
-                      Status: {isActive ? 'Openbaar Online' : 'Uitgeschakeld (Privé)'}
-                    </h4>
+                    <div className="flex items-center space-x-2">
+                      <h4 className="text-sm font-black text-slate-900 dark:text-white">
+                        Status: {isActive ? 'Openbaar Online' : 'Uitgeschakeld (Privé)'}
+                      </h4>
+                      {isActive && (
+                        <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                          <span>Zichtbaar</span>
+                        </span>
+                      )}
+                    </div>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                       {isActive
                         ? 'Iedereen met de unieke link kan dit verkoopdossier zonder inlogaccount bekijken.'
-                        : 'De pagina is momenteel niet toegankelijk voor bezoekers.'}
+                        : 'De pagina is momenteel niet toegankelijk voor bezoekers (geeft 404).'}
                     </p>
                   </div>
                 </div>
@@ -318,62 +356,86 @@ export const ShowcaseManagerModal: React.FC<ShowcaseManagerModalProps> = ({
                 <div className="flex items-center space-x-2 shrink-0">
                   <button
                     type="button"
-                    onClick={() => setIsActive(!isActive)}
-                    className={`px-4 py-2 rounded-xl text-xs font-bold transition shadow-xs ${
+                    onClick={handleToggleActive}
+                    disabled={togglingActive || loading}
+                    className={`h-10 px-4 rounded-xl text-xs font-bold transition shadow-xs flex items-center space-x-1.5 ${
                       isActive
-                        ? 'bg-red-50 text-red-700 hover:bg-red-100 dark:bg-red-950/60 dark:text-red-300'
-                        : 'bg-emerald-600 text-white hover:bg-emerald-700'
+                        ? 'bg-red-50 text-red-700 hover:bg-red-100 dark:bg-red-950/60 dark:text-red-300 border border-red-200 dark:border-red-900/50'
+                        : 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-600/20'
                     }`}
                   >
-                    {isActive ? 'Deactiveren' : 'Online Zetten'}
+                    {togglingActive ? (
+                      <span>Bezig...</span>
+                    ) : isActive ? (
+                      <>
+                        <EyeOff className="w-3.5 h-3.5" />
+                        <span>Offline Halen</span>
+                      </>
+                    ) : (
+                      <>
+                        <Eye className="w-3.5 h-3.5" />
+                        <span>Nu Live Zetten</span>
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
 
               {/* Shareable Link Box */}
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <label className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
-                  Openbare Verkooppagina Link
+                  Openbare Verkooppagina Link & Unieke URL
                 </label>
-                <div className="flex items-center space-x-2">
-                  <div className="flex-1 bg-slate-100 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-700 dark:text-slate-200 font-mono truncate">
-                    {publicUrl}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                  <div className="flex-1 flex items-center bg-slate-50 dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-accent-500/20 focus-within:border-accent-500 h-10 transition">
+                    <span className="px-3 text-xs text-slate-400 dark:text-slate-500 font-mono select-none shrink-0 border-r border-slate-200 dark:border-slate-700 bg-slate-100/70 dark:bg-slate-800 h-full flex items-center">
+                      {typeof window !== 'undefined' ? `${window.location.origin}/showcase/` : '/showcase/'}
+                    </span>
+                    <input
+                      type="text"
+                      value={publicSlug}
+                      onChange={(e) => setPublicSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-_]/g, ''))}
+                      placeholder="unieke-naam"
+                      className="flex-1 h-full px-3 text-xs font-mono font-bold text-slate-900 dark:text-white bg-transparent outline-none min-w-0"
+                    />
                   </div>
-                  <button
-                    type="button"
-                    onClick={handleCopyLink}
-                    className="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold inline-flex items-center space-x-1.5 transition border border-slate-200 dark:border-slate-700 shrink-0"
-                  >
-                    {copiedLink ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
-                    <span>{copiedLink ? 'Gekopieerd!' : 'Kopiëren'}</span>
-                  </button>
-                  <a
-                    href={publicUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-3.5 py-2.5 bg-accent-600 hover:bg-accent-700 text-white rounded-xl text-xs font-bold inline-flex items-center space-x-1.5 transition shrink-0 shadow-xs"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                    <span>Bekijken</span>
-                  </a>
+                  <div className="flex items-center space-x-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={handleCopyLink}
+                      className="h-10 px-4 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold inline-flex items-center space-x-1.5 transition border border-slate-200 dark:border-slate-700 shrink-0"
+                    >
+                      {copiedLink ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
+                      <span>{copiedLink ? 'Gekopieerd!' : 'Kopiëren'}</span>
+                    </button>
+                    <a
+                      href={publicUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="h-10 px-4 bg-accent-600 hover:bg-accent-700 text-white rounded-xl text-xs font-bold inline-flex items-center space-x-1.5 transition shrink-0 shadow-xs"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                      <span>Bekijken</span>
+                    </a>
+                  </div>
                 </div>
               </div>
 
               {/* 1-Click Standalone Website ZIP Download */}
-              <div className="bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/60 rounded-2xl p-4.5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/60 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                   <h4 className="text-sm font-bold text-blue-950 dark:text-blue-100 flex items-center space-x-2">
                     <Download className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                     <span>Standalone Website Exporteren (ZIP)</span>
                   </h4>
                   <p className="text-xs text-blue-800/80 dark:text-blue-300 mt-1 max-w-xl leading-relaxed">
-                    Download een kant-en-klaar HTML/CSS/JS pakket inclusief alle foto's (zoals <code>auto.romanas.nl</code>). Direct geschikt om op een eigen domein, hosting of dealerportal te uploaden.
+                    Download een kant-en-klaar HTML/CSS/JS pakket inclusief alle foto's. Direct geschikt om op een eigen domein, hosting of dealerportal te uploaden.
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={handleDownloadZip}
-                  className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold inline-flex items-center space-x-2 transition shrink-0 shadow-xs hover:scale-105"
+                  className="h-10 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold inline-flex items-center space-x-2 transition shrink-0 shadow-xs hover:scale-[1.02]"
                 >
                   <Download className="w-4 h-4" />
                   <span>Download ZIP Pakket</span>
@@ -381,7 +443,7 @@ export const ShowcaseManagerModal: React.FC<ShowcaseManagerModalProps> = ({
               </div>
 
               {/* Pricing & Contact Form */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
                 <div>
                   <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1.5">
                     Prijslabel
@@ -389,7 +451,7 @@ export const ShowcaseManagerModal: React.FC<ShowcaseManagerModalProps> = ({
                   <select
                     value={priceLabel}
                     onChange={(e) => setPriceLabel(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white"
+                    className="w-full h-10 bg-slate-50 dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 text-xs text-slate-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-accent-500/20 focus:border-accent-500 transition"
                   >
                     <option value="Vraagprijs">Vraagprijs</option>
                     <option value="Bieden vanaf">Bieden vanaf</option>
@@ -408,7 +470,7 @@ export const ShowcaseManagerModal: React.FC<ShowcaseManagerModalProps> = ({
                     value={askingPrice}
                     onChange={(e) => setAskingPrice(e.target.value)}
                     placeholder="bijv. 8950 (leeg laten voor op aanvraag)"
-                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white font-mono"
+                    className="w-full h-10 bg-slate-50 dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:ring-2 focus:ring-accent-500/20 focus:border-accent-500 transition"
                   />
                 </div>
 
@@ -421,7 +483,7 @@ export const ShowcaseManagerModal: React.FC<ShowcaseManagerModalProps> = ({
                     value={contactWhatsapp}
                     onChange={(e) => setContactWhatsapp(e.target.value)}
                     placeholder="bijv. +31612345678"
-                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white"
+                    className="w-full h-10 bg-slate-50 dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-accent-500/20 focus:border-accent-500 transition"
                   />
                 </div>
 
@@ -434,7 +496,7 @@ export const ShowcaseManagerModal: React.FC<ShowcaseManagerModalProps> = ({
                     value={contactPhone}
                     onChange={(e) => setContactPhone(e.target.value)}
                     placeholder="bijv. 06-12345678"
-                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white"
+                    className="w-full h-10 bg-slate-50 dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-accent-500/20 focus:border-accent-500 transition"
                   />
                 </div>
 
@@ -447,7 +509,7 @@ export const ShowcaseManagerModal: React.FC<ShowcaseManagerModalProps> = ({
                     value={contactEmail}
                     onChange={(e) => setContactEmail(e.target.value)}
                     placeholder="bijv. koper@domein.nl"
-                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white"
+                    className="w-full h-10 bg-slate-50 dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-accent-500/20 focus:border-accent-500 transition"
                   />
                 </div>
 
@@ -460,7 +522,7 @@ export const ShowcaseManagerModal: React.FC<ShowcaseManagerModalProps> = ({
                     value={contactLocation}
                     onChange={(e) => setContactLocation(e.target.value)}
                     placeholder="bijv. Groningen / Nederland"
-                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white"
+                    className="w-full h-10 bg-slate-50 dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-accent-500/20 focus:border-accent-500 transition"
                   />
                 </div>
               </div>
@@ -593,7 +655,7 @@ export const ShowcaseManagerModal: React.FC<ShowcaseManagerModalProps> = ({
           {activeTab === 'content' && (
             <div className="space-y-4">
               <div>
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1.5">
                   Paginatitel
                 </label>
                 <input
@@ -601,12 +663,12 @@ export const ShowcaseManagerModal: React.FC<ShowcaseManagerModalProps> = ({
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="bijv. Toyota Auris 1.8 Hybrid Lease Plus"
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white font-bold"
+                  className="w-full h-10 bg-slate-50 dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 text-xs text-slate-900 dark:text-white font-bold focus:outline-none focus:ring-2 focus:ring-accent-500/20 focus:border-accent-500 transition"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1.5">
                   Korte Samenvatting / Subtitel
                 </label>
                 <textarea
@@ -614,12 +676,12 @@ export const ShowcaseManagerModal: React.FC<ShowcaseManagerModalProps> = ({
                   value={subtitle}
                   onChange={(e) => setSubtitle(e.target.value)}
                   placeholder="Korte pakkende omschrijving van de staat en uitvoering van de auto..."
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-3 text-xs text-slate-900 dark:text-white"
+                  className="w-full bg-slate-50 dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 rounded-xl p-3.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-accent-500/20 focus:border-accent-500 transition"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1.5">
                   Eerlijke Transparantie & Gebruikssporen (Bouwt vertrouwen op bij kopers)
                 </label>
                 <textarea
@@ -627,7 +689,7 @@ export const ShowcaseManagerModal: React.FC<ShowcaseManagerModalProps> = ({
                   value={transparencyNotes}
                   onChange={(e) => setTransparencyNotes(e.target.value)}
                   placeholder="Vermeld hier eerlijk eventuele lichte gebruikerssporen, de staat van onderhoud en dat facturen ter inzage liggen..."
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-3 text-xs text-slate-900 dark:text-white"
+                  className="w-full bg-slate-50 dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 rounded-xl p-3.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-accent-500/20 focus:border-accent-500 transition"
                 />
               </div>
             </div>
@@ -641,7 +703,7 @@ export const ShowcaseManagerModal: React.FC<ShowcaseManagerModalProps> = ({
               href={publicUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-xs font-bold text-blue-600 hover:text-blue-700 dark:text-blue-400 inline-flex items-center space-x-1"
+              className="text-xs font-bold text-accent-600 hover:text-accent-700 dark:text-accent-400 inline-flex items-center space-x-1.5 hover:underline"
             >
               <span>Live Verkooppagina Openen</span>
               <ExternalLink className="w-3.5 h-3.5" />
@@ -652,7 +714,7 @@ export const ShowcaseManagerModal: React.FC<ShowcaseManagerModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-semibold transition"
+              className="h-10 px-4 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold transition"
             >
               Sluiten
             </button>
@@ -660,9 +722,16 @@ export const ShowcaseManagerModal: React.FC<ShowcaseManagerModalProps> = ({
               type="button"
               onClick={handleSaveShowcase}
               disabled={loading}
-              className="px-4 py-2 bg-accent-600 hover:bg-accent-700 text-white rounded-xl text-xs font-bold transition shadow-xs"
+              className="h-10 px-5 bg-accent-600 hover:bg-accent-700 text-white rounded-xl text-xs font-bold transition shadow-xs flex items-center space-x-2"
             >
-              {loading ? 'Opslaan...' : 'Wijzigingen Opslaan'}
+              {loading ? (
+                <span>Opslaan...</span>
+              ) : (
+                <>
+                  <Check className="w-4 h-4 stroke-[2.5]" />
+                  <span>Wijzigingen Opslaan</span>
+                </>
+              )}
             </button>
           </div>
         </div>

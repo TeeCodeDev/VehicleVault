@@ -296,7 +296,7 @@ export const Dashboard: React.FC = () => {
               <button
                 onClick={() => setIsShowcaseModalOpen(true)}
                 className="px-3.5 py-2 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:hover:bg-amber-900/60 text-amber-800 dark:text-amber-300 rounded-xl text-xs font-bold inline-flex items-center space-x-1.5 transition border border-amber-200 dark:border-amber-800/60 shadow-2xs hover:scale-[1.02]"
-                title="Verkooppagina & Digitaal Voertuigpaspoort (zoals auto.romanas.nl)"
+                title="Verkooppagina & Digitaal Voertuigpaspoort"
               >
                 <Sparkles className="w-3.5 h-3.5 text-amber-500" />
                 <span>Verkooppagina & Showcase</span>

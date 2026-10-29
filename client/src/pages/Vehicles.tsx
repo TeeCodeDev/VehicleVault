@@ -470,7 +470,7 @@ export const Vehicles: React.FC = () => {
                         setIsShowcaseModalOpen(true);
                       }}
                       className="p-1.5 text-slate-500 hover:text-amber-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition"
-                      title="Verkooppagina & Showcase Dossier (auto.romanas.nl)"
+                      title="Verkooppagina & Showcase Dossier"
                     >
                       <Sparkles className="w-4 h-4 text-amber-500" />
                     </button>

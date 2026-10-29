@@ -30,6 +30,8 @@ export interface Vehicle {
   is_owner?: boolean;
   access_role?: 'owner' | 'editor' | 'viewer';
   owner_email?: string;
+  is_showcase_active?: boolean;
+  showcase_slug?: string;
   created_at: string;
   updated_at: string;
 }

@@ -9,10 +9,11 @@ export class ShowcaseController {
    */
   public static async get(req: Request, res: Response): Promise<void> {
     const { id } = req.params;
-    const userId = (req as any).user?.id;
+    const userId = req.user?.userId || (req as any).user?.id;
+    const isAdmin = req.user?.role === 'admin';
 
     const access = getVehicleAccess(id, userId);
-    if (!access.hasAccess) {
+    if (!access.hasAccess && !isAdmin) {
       res.status(403).json({ error: 'Geen toegang tot dit voertuig' });
       return;
     }
@@ -35,10 +36,11 @@ export class ShowcaseController {
    */
   public static async update(req: Request, res: Response): Promise<void> {
     const { id } = req.params;
-    const userId = (req as any).user?.id;
+    const userId = req.user?.userId || (req as any).user?.id;
+    const isAdmin = req.user?.role === 'admin';
 
     const access = getVehicleAccess(id, userId);
-    if (!access.hasAccess || access.role === 'viewer') {
+    if ((!access.hasAccess || access.role === 'viewer') && !isAdmin) {
       res.status(403).json({ error: 'Geen bewerkrechten voor dit voertuig' });
       return;
     }
@@ -61,10 +63,11 @@ export class ShowcaseController {
    */
   public static async exportZip(req: Request, res: Response): Promise<void> {
     const { id } = req.params;
-    const userId = (req as any).user?.id;
+    const userId = req.user?.userId || (req as any).user?.id;
+    const isAdmin = req.user?.role === 'admin';
 
     const access = getVehicleAccess(id, userId);
-    if (!access.hasAccess) {
+    if (!access.hasAccess && !isAdmin) {
       res.status(403).json({ error: 'Geen toegang tot dit voertuig' });
       return;
     }

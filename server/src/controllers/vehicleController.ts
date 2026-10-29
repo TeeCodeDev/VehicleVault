@@ -35,10 +35,13 @@ export class VehicleController {
           u.email as owner_email,
           CASE WHEN v.user_id = ? THEN 1 ELSE 0 END as is_owner,
           CASE WHEN v.user_id = ? THEN 'owner' ELSE COALESCE(vs.role, 'editor') END as access_role,
-          MAX(COALESCE(f.max_f, 0), COALESCE(s.max_s, 0), v.initial_odometer) as current_odometer
+          MAX(COALESCE(f.max_f, 0), COALESCE(s.max_s, 0), v.initial_odometer) as current_odometer,
+          sc.is_active as is_showcase_active,
+          sc.public_slug as showcase_slug
         FROM vehicles v
         LEFT JOIN users u ON u.id = v.user_id
         LEFT JOIN vehicle_shares vs ON vs.vehicle_id = v.id AND vs.user_id = ?
+        LEFT JOIN vehicle_showcases sc ON sc.vehicle_id = v.id
         LEFT JOIN (SELECT vehicle_id, MAX(odometer) as max_f FROM fuel_entries GROUP BY vehicle_id) f ON f.vehicle_id = v.id
         LEFT JOIN (SELECT vehicle_id, MAX(odometer) as max_s FROM service_records GROUP BY vehicle_id) s ON s.vehicle_id = v.id
         WHERE (${showAll ? '1=1' : '(v.user_id = ? OR vs.user_id = ?)'})
@@ -62,6 +65,8 @@ export class VehicleController {
         return {
           ...v,
           is_owner: Boolean(v.is_owner),
+          is_showcase_active: v.is_showcase_active === 1,
+          showcase_slug: v.showcase_slug || undefined,
           apk_status: apk,
         };
       });
@@ -89,10 +94,13 @@ export class VehicleController {
           u.email as owner_email,
           CASE WHEN v.user_id = ? THEN 1 ELSE 0 END as is_owner,
           CASE WHEN v.user_id = ? THEN 'owner' ELSE COALESCE(vs.role, 'editor') END as access_role,
-          MAX(COALESCE(f.max_f, 0), COALESCE(s.max_s, 0), v.initial_odometer) as current_odometer
+          MAX(COALESCE(f.max_f, 0), COALESCE(s.max_s, 0), v.initial_odometer) as current_odometer,
+          sc.is_active as is_showcase_active,
+          sc.public_slug as showcase_slug
          FROM vehicles v
          LEFT JOIN users u ON u.id = v.user_id
          LEFT JOIN vehicle_shares vs ON vs.vehicle_id = v.id AND vs.user_id = ?
+         LEFT JOIN vehicle_showcases sc ON sc.vehicle_id = v.id
          LEFT JOIN (SELECT vehicle_id, MAX(odometer) as max_f FROM fuel_entries GROUP BY vehicle_id) f ON f.vehicle_id = v.id
          LEFT JOIN (SELECT vehicle_id, MAX(odometer) as max_s FROM service_records GROUP BY vehicle_id) s ON s.vehicle_id = v.id
          WHERE v.id = ?
@@ -109,6 +117,8 @@ export class VehicleController {
         vehicle: {
           ...vehicle,
           is_owner: Boolean(vehicle.is_owner),
+          is_showcase_active: vehicle.is_showcase_active === 1,
+          showcase_slug: vehicle.showcase_slug || undefined,
           apk_status: RdwService.evaluateApkStatus(vehicle.apk_expiration_date),
         },
       });

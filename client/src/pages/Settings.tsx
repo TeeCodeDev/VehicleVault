@@ -2258,7 +2258,7 @@ rest:
                   required
                   value={newUserEmail}
                   onChange={(e) => setNewUserEmail(e.target.value)}
-                  placeholder="bijv. test@romanas.nl of naam@domein.nl"
+                  placeholder="bijv. gebruiker@voorbeeld.nl of naam@domein.nl"
                   className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-sky-500"
                 />
                 <p className="text-[10px] text-slate-400 mt-1">
