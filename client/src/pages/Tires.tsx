@@ -849,14 +849,9 @@ export const Tires: React.FC = () => {
                 </div>
 
                 <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                      Snelheidsindex
-                    </label>
-                    <span className="text-[10px] text-slate-400 font-normal" title="92 = draagvermogen (630 kg), V = snelheid (tot 240 km/u)">
-                      (Load &amp; Speed)
-                    </span>
-                  </div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Snelheidsindex
+                  </label>
                   <input
                     type="text"
                     placeholder="bijv. 92V of 91H"
@@ -864,28 +859,6 @@ export const Tires: React.FC = () => {
                     onChange={(e) => setSpeedIndex(e.target.value.toUpperCase())}
                     className="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500 font-mono font-bold uppercase"
                   />
-                </div>
-              </div>
-
-              {/* Informative helper for Snelheidsindex / Draagkracht */}
-              <div className="bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200/70 dark:border-amber-800/40 rounded-xl p-2.5 text-[11px] text-slate-600 dark:text-slate-300 flex items-start space-x-2">
-                <Info className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-                <div className="leading-tight">
-                  <span className="font-bold text-slate-800 dark:text-slate-200">Tip over '92V': </span>
-                  <strong>92</strong> is het draagvermogen (max. 630 kg per band) en <strong>V</strong> is de snelheidsindex (geschikt tot 240 km/u).
-                  <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-                    <span className="text-[10px] text-slate-400 font-medium">Veelvoorkomend:</span>
-                    {['91H', '91V', '92V', '94W', '98Y'].map((idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => setSpeedIndex(idx)}
-                        className="px-1.5 py-0.5 text-[10px] font-mono font-bold bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-md hover:border-amber-500 hover:text-amber-600 transition"
-                      >
-                        {idx}
-                      </button>
-                    ))}
-                  </div>
                 </div>
               </div>
 
