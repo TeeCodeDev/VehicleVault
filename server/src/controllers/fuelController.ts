@@ -1,7 +1,10 @@
 import crypto from 'node:crypto';
+import path from 'node:path';
+import fs from 'node:fs';
 import { Request, Response } from 'express';
 import { z } from 'zod';
 import { db } from '../db/database.js';
+import { DATA_PATHS } from '../config/env.js';
 import { OcrService } from '../services/ocrService.js';
 import { StationService } from '../services/stationService.js';
 import { FuelExportService } from '../services/fuelExportService.js';
@@ -238,6 +241,45 @@ export class FuelController {
       });
     } catch (err: any) {
       res.status(500).json({ error: `OCR error: ${err?.message || 'Processing failed'}` });
+    }
+  }
+
+  public static async rescanReceipt(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { receiptPath: bodyReceiptPath } = req.body || {};
+
+      let receiptFileName = bodyReceiptPath;
+      if (!receiptFileName && id) {
+        const entry = db.get<any>('SELECT receipt_path, vehicle_id FROM fuel_entries WHERE id = ?', [id]);
+        if (!entry) {
+          res.status(404).json({ error: 'Tankbeurt niet gevonden' });
+          return;
+        }
+        receiptFileName = entry.receipt_path;
+      }
+
+      if (!receiptFileName || typeof receiptFileName !== 'string') {
+        res.status(400).json({ error: 'Geen bonbestand gekoppeld aan deze tankbeurt' });
+        return;
+      }
+
+      const safeFileName = path.basename(receiptFileName.trim());
+      const fullPath = path.join(DATA_PATHS.receipts, safeFileName);
+
+      if (!fs.existsSync(fullPath)) {
+        res.status(404).json({ error: 'Het tankbonbestand kon niet worden gevonden op de server' });
+        return;
+      }
+
+      const result = await OcrService.processReceipt(fullPath);
+      res.json({
+        receiptPath: safeFileName,
+        extracted: result,
+      });
+    } catch (err: any) {
+      console.error('Rescan receipt error:', err);
+      res.status(500).json({ error: `OCR / AI scan fout: ${err?.message || 'Uitlezen mislukt'}` });
     }
   }
 

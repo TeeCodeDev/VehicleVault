@@ -42,6 +42,8 @@ import { getVehicleAccess } from '../utils/vehicleAccess.js';
 import { ShowcaseService } from '../services/showcaseService.js';
 import { ShowcaseZipService } from '../services/showcaseZipService.js';
 import { AuthController } from '../controllers/authController.js';
+import { FuelController } from '../controllers/fuelController.js';
+import { DATA_PATHS } from '../config/env.js';
 import { EmailService } from '../services/emailService.js';
 
 describe('VehicleVault Comprehensive Test Suite', () => {
@@ -628,6 +630,101 @@ Date,Odometer,Fuel_amount,Price,Total_cost,Notes
 
       // Preferred recommended model must be first
       assert.equal(filtered[0], 'gemini-3.8-flash');
+    });
+
+    it('should validate and handle receipt rescan requests via FuelController.rescanReceipt', async () => {
+      // 1. Missing receipt returns 400
+      let statusCode = 200;
+      let jsonPayload: any = null;
+      const mockRes: any = {
+        status: (code: number) => {
+          statusCode = code;
+          return mockRes;
+        },
+        json: (data: any) => {
+          jsonPayload = data;
+          return mockRes;
+        },
+      };
+
+      await FuelController.rescanReceipt({ params: {}, body: {} } as any, mockRes);
+      assert.equal(statusCode, 400);
+      assert.ok(jsonPayload.error);
+
+      // 2. Non-existent receipt file returns 404
+      statusCode = 200;
+      await FuelController.rescanReceipt({ params: {}, body: { receiptPath: 'nonexistent-receipt-9999.jpg' } } as any, mockRes);
+      assert.equal(statusCode, 404);
+      assert.ok(jsonPayload.error.includes('kon niet worden gevonden'));
+
+      // 3. Existing receipt file is parsed safely
+      const dummyFileName = `test-receipt-${Date.now()}.jpg`;
+      const dummyFilePath = path.join(DATA_PATHS.receipts, dummyFileName);
+      fs.writeFileSync(dummyFilePath, 'dummy test receipt content');
+
+      const origProcessReceipt = OcrService.processReceipt;
+      OcrService.processReceipt = async () => ({
+        date: '2026-10-29',
+        liters: 45.0,
+        pricePerLiter: 1.959,
+        totalCost: 88.16,
+        station: 'Fieten Olie',
+        rawText: 'Mock receipt',
+        confidence: 95,
+        engine: 'tesseract',
+      });
+
+      try {
+        statusCode = 200;
+        jsonPayload = null;
+        await FuelController.rescanReceipt({ params: {}, body: { receiptPath: dummyFileName } } as any, mockRes);
+        assert.equal(statusCode, 200);
+        assert.equal(jsonPayload.receiptPath, dummyFileName);
+        assert.equal(jsonPayload.extracted.liters, 45.0);
+        assert.equal(jsonPayload.extracted.station, 'Fieten Olie');
+      } finally {
+        OcrService.processReceipt = origProcessReceipt;
+        if (fs.existsSync(dummyFilePath)) {
+          fs.unlinkSync(dummyFilePath);
+        }
+      }
+
+      // 4. Test loading receipt_path from database fuel_entries via id param
+      const fuelId = crypto.randomUUID();
+      const dbReceiptName = `db-receipt-${Date.now()}.jpg`;
+      const dbReceiptPath = path.join(DATA_PATHS.receipts, dbReceiptName);
+      fs.writeFileSync(dbReceiptPath, 'dummy');
+      db.run(
+        `INSERT INTO fuel_entries (id, vehicle_id, date, odometer, liters, price_per_liter, total_cost, is_full_tank, missed_previous, receipt_path, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [fuelId, testVehicleId, '2026-10-29', 70000, 40, 2.0, 80, 1, 0, dbReceiptName, new Date().toISOString()]
+      );
+
+      OcrService.processReceipt = async () => ({
+        date: '2026-10-29',
+        liters: 40.0,
+        pricePerLiter: 2.0,
+        totalCost: 80.0,
+        station: 'Shell',
+        rawText: 'Mock',
+        confidence: 98,
+        engine: 'gemini',
+      });
+
+      try {
+        statusCode = 200;
+        jsonPayload = null;
+        await FuelController.rescanReceipt({ params: { id: fuelId }, body: {} } as any, mockRes);
+        assert.equal(statusCode, 200);
+        assert.equal(jsonPayload.receiptPath, dbReceiptName);
+        assert.equal(jsonPayload.extracted.station, 'Shell');
+      } finally {
+        OcrService.processReceipt = origProcessReceipt;
+        db.run('DELETE FROM fuel_entries WHERE id = ?', [fuelId]);
+        if (fs.existsSync(dbReceiptPath)) {
+          fs.unlinkSync(dbReceiptPath);
+        }
+      }
     });
   });
 

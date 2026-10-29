@@ -21,6 +21,8 @@ import {
   ChevronDown,
   ChevronUp,
   FileSpreadsheet,
+  Sparkles,
+  CheckCircle2,
 } from 'lucide-react';
 import { Vehicle, FuelEntry, GasStation } from '../types/index.js';
 import { apiFetch } from '../api/client.js';
@@ -97,6 +99,10 @@ export const FuelLog: React.FC = () => {
   const [editReceiptPath, setEditReceiptPath] = useState<string | null>(null);
   const [editReceiptFile, setEditReceiptFile] = useState<File | null>(null);
   const [savingEdit, setSavingEdit] = useState(false);
+  const [isEditOcrOpen, setIsEditOcrOpen] = useState(false);
+  const [rescanningEdit, setRescanningEdit] = useState(false);
+  const [scanFeedback, setScanFeedback] = useState<string | null>(null);
+  const [scanError, setScanError] = useState<string | null>(null);
 
   // Export State
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
@@ -522,7 +528,7 @@ export const FuelLog: React.FC = () => {
     }
   };
 
-  const handleOpenEditModal = (entry: FuelEntry) => {
+  const handleOpenEditModal = (entry: FuelEntry, autoRescan: boolean = false) => {
     setEditingEntry(entry);
     setEditDate(entry.date);
     setEditOdometer(String(entry.odometer));
@@ -541,11 +547,172 @@ export const FuelLog: React.FC = () => {
     setEditLongitude(entry.longitude ?? null);
     setEditReceiptPath(entry.receipt_path || null);
     setEditReceiptFile(null);
+    setScanFeedback(null);
+    setScanError(null);
+
+    if (autoRescan && entry.receipt_path) {
+      handleRescanExistingReceipt(entry.id, entry.receipt_path);
+    }
   };
 
   const handleCloseEditModal = () => {
     setEditingEntry(null);
     setEditReceiptFile(null);
+    setScanFeedback(null);
+    setScanError(null);
+  };
+
+  const handleEditOcrExtracted = (data: {
+    date?: string | null;
+    liters: number | null;
+    pricePerLiter: number | null;
+    totalCost: number | null;
+    receiptPath: string;
+    station?: string | null;
+    stationAddress?: string | null;
+    fuelType?: string | null;
+  }) => {
+    if (data.date) setEditDate(data.date);
+    if (data.liters) setEditLiters(String(data.liters));
+    if (data.pricePerLiter) setEditPricePerLiter(String(data.pricePerLiter));
+    if (data.totalCost) setEditTotalCost(String(data.totalCost));
+    setEditReceiptPath(data.receiptPath);
+    setEditReceiptFile(null);
+
+    if (data.station) {
+      setEditStationName(data.station);
+    }
+    if (data.stationAddress) {
+      setEditStationAddress(data.stationAddress);
+    }
+    if (data.station || data.fuelType) {
+      const parts = [data.station, data.fuelType].filter(Boolean);
+      if (parts.length > 0 && !editNotes) {
+        setEditNotes(parts.join(' • '));
+      }
+    }
+    setScanFeedback(
+      lang === 'nl'
+        ? 'Bon succesvol uitgelezen via AI! Controleer de velden hieronder.'
+        : 'Receipt data successfully extracted via AI! Please verify fields below.'
+    );
+  };
+
+  const handleRescanExistingReceipt = async (entryId?: string, targetReceiptPath?: string) => {
+    const id = entryId || editingEntry?.id;
+    const rPath = targetReceiptPath || editReceiptPath;
+    if (!rPath) return;
+
+    setRescanningEdit(true);
+    setScanFeedback(null);
+    setScanError(null);
+    try {
+      const endpoint = id ? `/api/fuel/${id}/rescan-receipt` : '/api/fuel/rescan-receipt';
+      const res = await apiFetch<{
+        receiptPath: string;
+        extracted: {
+          date?: string | null;
+          liters: number | null;
+          pricePerLiter: number | null;
+          totalCost: number | null;
+          station?: string | null;
+          stationAddress?: string | null;
+          fuelType?: string | null;
+          confidence?: number;
+          engine?: string;
+        };
+      }>(endpoint, {
+        method: 'POST',
+        body: JSON.stringify({ receiptPath: rPath }),
+      });
+
+      const data = res.extracted;
+      if (data) {
+        if (data.date) setEditDate(data.date);
+        if (data.liters) setEditLiters(String(data.liters));
+        if (data.pricePerLiter) setEditPricePerLiter(String(data.pricePerLiter));
+        if (data.totalCost) setEditTotalCost(String(data.totalCost));
+        if (data.station) setEditStationName(data.station);
+        if (data.stationAddress) setEditStationAddress(data.stationAddress);
+        if (data.station || data.fuelType) {
+          const parts = [data.station, data.fuelType].filter(Boolean);
+          if (parts.length > 0 && !editNotes) {
+            setEditNotes(parts.join(' • '));
+          }
+        }
+        const engineLabel = data.engine ? ` via ${data.engine.toUpperCase()}` : '';
+        setScanFeedback(
+          lang === 'nl'
+            ? `Bestaande bon succesvol opnieuw uitgelezen${engineLabel}! Controleer de waarden hieronder.`
+            : `Receipt successfully re-scanned${engineLabel}! Please verify values below.`
+        );
+      }
+    } catch (err: any) {
+      setScanError(err?.message || (lang === 'nl' ? 'Uitlezen van de bon is mislukt' : 'Failed to scan receipt'));
+    } finally {
+      setRescanningEdit(false);
+    }
+  };
+
+  const handleScanSelectedEditFile = async () => {
+    if (!editReceiptFile) return;
+    setRescanningEdit(true);
+    setScanFeedback(null);
+    setScanError(null);
+    try {
+      const compressed = await compressImage(editReceiptFile);
+      const formData = new FormData();
+      formData.append('receipt', compressed);
+
+      const res = await apiFetch<{
+        receiptPath: string;
+        extracted: {
+          date?: string | null;
+          liters: number | null;
+          pricePerLiter: number | null;
+          totalCost: number | null;
+          station?: string | null;
+          stationAddress?: string | null;
+          fuelType?: string | null;
+          confidence?: number;
+          engine?: string;
+        };
+      }>('/api/fuel/ocr', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (res.receiptPath) {
+        setEditReceiptPath(res.receiptPath);
+        setEditReceiptFile(null);
+      }
+
+      const data = res.extracted;
+      if (data) {
+        if (data.date) setEditDate(data.date);
+        if (data.liters) setEditLiters(String(data.liters));
+        if (data.pricePerLiter) setEditPricePerLiter(String(data.pricePerLiter));
+        if (data.totalCost) setEditTotalCost(String(data.totalCost));
+        if (data.station) setEditStationName(data.station);
+        if (data.stationAddress) setEditStationAddress(data.stationAddress);
+        if (data.station || data.fuelType) {
+          const parts = [data.station, data.fuelType].filter(Boolean);
+          if (parts.length > 0 && !editNotes) {
+            setEditNotes(parts.join(' • '));
+          }
+        }
+        const engineLabel = data.engine ? ` via ${data.engine.toUpperCase()}` : '';
+        setScanFeedback(
+          lang === 'nl'
+            ? `Bon succesvol geüpload en uitgelezen${engineLabel}!`
+            : `Receipt uploaded and scanned successfully${engineLabel}!`
+        );
+      }
+    } catch (err: any) {
+      setScanError(err?.message || (lang === 'nl' ? 'Scannen van geselecteerde bon mislukt' : 'Failed to scan selected receipt'));
+    } finally {
+      setRescanningEdit(false);
+    }
   };
 
   const handleEditLitersChange = (val: string) => {
@@ -1234,25 +1401,56 @@ export const FuelLog: React.FC = () => {
                       </td>
                       <td className="py-3 px-4">
                         {f.receipt_path ? (
-                          <a
-                            href={`/uploads/receipts/${f.receipt_path}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-sky-600 dark:text-sky-400 hover:underline inline-flex items-center space-x-1 font-semibold"
-                          >
-                            {f.receipt_path.toLowerCase().endsWith('.pdf') ? (
-                              <FileText className="w-3.5 h-3.5" />
-                            ) : (
-                              <Image className="w-3.5 h-3.5" />
-                            )}
-                            <span>{t('view')}</span>
-                          </a>
+                          <div className="flex items-center space-x-2">
+                            <a
+                              href={`/uploads/receipts/${f.receipt_path}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-sky-600 dark:text-sky-400 hover:underline inline-flex items-center space-x-1 font-semibold"
+                            >
+                              {f.receipt_path.toLowerCase().endsWith('.pdf') ? (
+                                <FileText className="w-3.5 h-3.5" />
+                              ) : (
+                                <Image className="w-3.5 h-3.5" />
+                              )}
+                              <span>{t('view')}</span>
+                            </a>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEditModal(f, true)}
+                              className="p-1 rounded-md text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/60 border border-amber-200 dark:border-amber-800/50 transition inline-flex items-center shadow-xs"
+                              title={lang === 'nl' ? 'Bon opnieuw uitlezen met AI / OCR' : 'Rescan receipt with AI / OCR'}
+                            >
+                              <Sparkles className="w-3 h-3 text-amber-500" />
+                            </button>
+                          </div>
                         ) : (
-                          <span className="text-slate-400">—</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleOpenEditModal(f);
+                              setIsEditOcrOpen(true);
+                            }}
+                            className="text-slate-500 hover:text-amber-600 dark:text-slate-400 dark:hover:text-amber-400 inline-flex items-center space-x-1 text-[11px] font-medium transition hover:underline"
+                            title={lang === 'nl' ? 'Bon scannen en toevoegen aan deze tankbeurt' : 'Scan and attach receipt to this entry'}
+                          >
+                            <Camera className="w-3.5 h-3.5 text-amber-500" />
+                            <span>{lang === 'nl' ? 'Bon toevoegen' : 'Add receipt'}</span>
+                          </button>
                         )}
                       </td>
                       <td className="py-3 px-4 text-right">
                         <div className="flex items-center justify-end space-x-1">
+                          {f.receipt_path && (
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEditModal(f, true)}
+                              className="text-slate-400 hover:text-amber-500 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                              title={lang === 'nl' ? 'Bon opnieuw uitlezen met AI / OCR' : 'Rescan receipt with AI / OCR'}
+                            >
+                              <Sparkles className="w-4 h-4 text-amber-500" />
+                            </button>
+                          )}
                           <button
                             type="button"
                             onClick={() => handleOpenEditModal(f)}
@@ -1294,16 +1492,50 @@ export const FuelLog: React.FC = () => {
                   <p className="text-[11px] text-slate-500">{formatDisplayDate(editingEntry.date)} • {editingEntry.odometer.toLocaleString()} km</p>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={handleCloseEditModal}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <div className="flex items-center space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setIsEditOcrOpen(true)}
+                  className="px-2.5 py-1.5 bg-amber-50 dark:bg-amber-950/50 hover:bg-amber-100 dark:hover:bg-amber-900/60 border border-amber-200 dark:border-amber-800/60 rounded-xl text-amber-700 dark:text-amber-300 font-bold text-xs inline-flex items-center space-x-1.5 transition shadow-sm"
+                  title="Scan een nieuwe bon met camera of bestand via AI"
+                >
+                  <Camera className="w-3.5 h-3.5 text-amber-500" />
+                  <span>{lang === 'nl' ? 'Bon Scannen (AI)' : 'Scan Receipt (AI)'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCloseEditModal}
+                  className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
             <form onSubmit={handleSaveEdit} className="space-y-4 text-xs">
+              {scanFeedback && (
+                <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50 text-emerald-800 dark:text-emerald-300 text-xs flex items-center justify-between shadow-sm">
+                  <div className="flex items-center space-x-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <span>{scanFeedback}</span>
+                  </div>
+                  <button type="button" onClick={() => setScanFeedback(null)} className="text-emerald-600 dark:text-emerald-400 p-0.5">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+
+              {scanError && (
+                <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/50 text-rose-800 dark:text-rose-300 text-xs flex items-center justify-between shadow-sm">
+                  <div className="flex items-center space-x-2">
+                    <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
+                    <span>{scanError}</span>
+                  </div>
+                  <button type="button" onClick={() => setScanError(null)} className="text-rose-600 dark:text-rose-400 p-0.5">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
               {/* Date & Odometer */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
@@ -1480,54 +1712,140 @@ export const FuelLog: React.FC = () => {
               </div>
 
               {/* Receipt File */}
-              <div className="p-3 bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-xl space-y-2">
-                <label className="font-bold text-slate-700 dark:text-slate-300 block">
-                  {lang === 'nl' ? 'Tankbon / Factuur' : 'Receipt / Invoice'}
-                </label>
+              <div className="p-3 bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-xl space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block">
+                    {lang === 'nl' ? 'Tankbon / Factuur' : 'Receipt / Invoice'}
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setIsEditOcrOpen(true)}
+                    className="text-amber-600 dark:text-amber-400 hover:underline text-[11px] font-bold inline-flex items-center space-x-1"
+                  >
+                    <Sparkles className="w-3 h-3 text-amber-500" />
+                    <span>{lang === 'nl' ? 'Nieuwe bon scannen (AI)' : 'Scan receipt with AI'}</span>
+                  </button>
+                </div>
+
                 {editReceiptPath && !editReceiptFile && (
-                  <div className="flex items-center justify-between p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg">
-                    <div className="flex items-center space-x-2 truncate">
-                      <FileText className="w-4 h-4 text-sky-500 shrink-0" />
-                      <a
-                        href={`/uploads/receipts/${editReceiptPath}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-sky-600 dark:text-sky-400 hover:underline truncate"
-                      >
-                        {editReceiptPath}
-                      </a>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm">
+                      <div className="flex items-center space-x-2 truncate">
+                        <FileText className="w-4 h-4 text-sky-500 shrink-0" />
+                        <a
+                          href={`/uploads/receipts/${editReceiptPath}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-sky-600 dark:text-sky-400 hover:underline truncate font-semibold text-xs"
+                        >
+                          {editReceiptPath}
+                        </a>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <a
+                          href={`/uploads/receipts/${editReceiptPath}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="px-2 py-1 text-[11px] font-semibold text-sky-600 dark:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-950/50 rounded"
+                        >
+                          {lang === 'nl' ? 'Bekijken' : 'View'}
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => setEditReceiptPath(null)}
+                          className="text-rose-500 hover:text-rose-700 p-1 rounded"
+                          title={t('removeReceipt')}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
+
                     <button
                       type="button"
-                      onClick={() => setEditReceiptPath(null)}
-                      className="text-rose-500 hover:text-rose-700 p-1"
-                      title={t('removeReceipt')}
+                      onClick={() => handleRescanExistingReceipt()}
+                      disabled={rescanningEdit}
+                      className="w-full py-2 px-3 bg-gradient-to-r from-amber-500/10 via-sky-500/10 to-emerald-500/10 hover:from-amber-500/20 hover:via-sky-500/20 hover:to-emerald-500/20 text-slate-800 dark:text-slate-100 border border-amber-300/60 dark:border-amber-700/60 rounded-xl text-xs font-bold inline-flex items-center justify-center space-x-2 transition shadow-sm disabled:opacity-50"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      {rescanningEdit ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-500" />
+                      ) : (
+                        <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                      )}
+                      <span>
+                        {rescanningEdit
+                          ? (lang === 'nl' ? 'Bon wordt geanalyseerd door AI / OCR...' : 'Analyzing receipt...')
+                          : (lang === 'nl' ? '⚡ Bestaande bon opnieuw uitlezen met AI / OCR' : '⚡ Re-scan existing receipt with AI / OCR')}
+                      </span>
                     </button>
                   </div>
                 )}
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="file"
-                    accept="image/*,application/pdf"
-                    onChange={(e) => {
-                      if (e.target.files && e.target.files[0]) {
-                        setEditReceiptFile(e.target.files[0]);
-                      }
-                    }}
-                    className="text-xs text-slate-500 file:mr-2 file:py-1 file:px-2.5 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-slate-200 dark:file:bg-slate-800 file:text-slate-700 dark:file:text-slate-300 hover:file:bg-slate-300 cursor-pointer"
-                  />
-                  {editReceiptFile && (
+
+                {editReceiptFile && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg">
+                      <div className="flex items-center space-x-2 truncate">
+                        <Paperclip className="w-4 h-4 text-emerald-500 shrink-0" />
+                        <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
+                          {editReceiptFile.name}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setEditReceiptFile(null)}
+                        className="text-slate-400 hover:text-rose-500 p-1"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+
                     <button
                       type="button"
-                      onClick={() => setEditReceiptFile(null)}
-                      className="text-slate-400 hover:text-slate-600 p-1"
+                      onClick={handleScanSelectedEditFile}
+                      disabled={rescanningEdit}
+                      className="w-full py-2 px-3 bg-sky-50 dark:bg-sky-950/60 hover:bg-sky-100 dark:hover:bg-sky-900/60 text-sky-700 dark:text-sky-300 border border-sky-300 dark:border-sky-800 rounded-xl text-xs font-bold inline-flex items-center justify-center space-x-2 transition shadow-sm disabled:opacity-50"
                     >
-                      <X className="w-4 h-4" />
+                      {rescanningEdit ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-sky-500" />
+                      ) : (
+                        <Sparkles className="w-3.5 h-3.5 text-sky-500" />
+                      )}
+                      <span>
+                        {rescanningEdit
+                          ? (lang === 'nl' ? 'Geselecteerde bon wordt uitgelezen...' : 'Reading receipt...')
+                          : (lang === 'nl' ? 'Geselecteerde bon direct scannen met AI' : 'Scan selected receipt with AI')}
+                      </span>
                     </button>
-                  )}
-                </div>
+                  </div>
+                )}
+
+                {!editReceiptFile && (
+                  <div className="flex items-center space-x-2 pt-1">
+                    <label className="cursor-pointer inline-flex items-center space-x-1.5 px-3 py-1.5 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-800 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-300 transition shadow-sm">
+                      <Paperclip className="w-3.5 h-3.5 text-slate-500" />
+                      <span>{editReceiptPath ? (lang === 'nl' ? 'Vervang bonbestand' : 'Replace file') : t('attachReceipt')}</span>
+                      <input
+                        type="file"
+                        accept="image/*,application/pdf"
+                        className="hidden"
+                        onChange={(e) => {
+                          if (e.target.files && e.target.files[0]) {
+                            setEditReceiptFile(e.target.files[0]);
+                          }
+                        }}
+                      />
+                    </label>
+
+                    <button
+                      type="button"
+                      onClick={() => setIsEditOcrOpen(true)}
+                      className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/40 border border-amber-200 dark:border-amber-800/50 rounded-lg text-xs font-semibold text-amber-700 dark:text-amber-300 transition shadow-sm"
+                    >
+                      <Camera className="w-3.5 h-3.5 text-amber-500" />
+                      <span>{lang === 'nl' ? 'Camera / AI Scanner' : 'Camera / AI Scanner'}</span>
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Actions */}
@@ -1557,6 +1875,12 @@ export const FuelLog: React.FC = () => {
         isOpen={isOcrOpen}
         onClose={() => setIsOcrOpen(false)}
         onExtracted={handleOcrExtracted}
+      />
+
+      <ReceiptScannerModal
+        isOpen={isEditOcrOpen}
+        onClose={() => setIsEditOcrOpen(false)}
+        onExtracted={handleEditOcrExtracted}
       />
     </div>
   );
