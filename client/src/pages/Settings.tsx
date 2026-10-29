@@ -739,87 +739,102 @@ rest:
       {activeTab === 'general' && (
         <div className="space-y-6">
           {/* Appearance & Language */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-5">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
             <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center space-x-2">
               <Sun className="w-4 h-4 text-amber-500" />
               <span>{lang === 'nl' ? 'Weergave & Taal' : 'Appearance & Language'}</span>
             </h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Theme Selector */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                  {lang === 'nl' ? 'Thema' : 'Theme'}
-                </label>
-                <div className="grid grid-cols-3 gap-2">
+            <div className="space-y-3 pt-1">
+              {/* Theme Selector Row */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/50 border border-slate-200/70 dark:border-slate-800/80">
+                <div>
+                  <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center space-x-1.5">
+                    <Sun className="w-3.5 h-3.5 text-amber-500" />
+                    <span>{lang === 'nl' ? 'Kleurthema' : 'Theme'}</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    {lang === 'nl' ? 'Kies voor een lichte, donkere of automatische weergave.' : 'Choose between light, dark, or automatic system appearance.'}
+                  </p>
+                </div>
+
+                <div className="inline-flex p-1 bg-slate-200/70 dark:bg-slate-800/80 rounded-xl space-x-1 shrink-0 self-start sm:self-auto shadow-inner">
                   <button
                     type="button"
                     onClick={() => setTheme('light')}
-                    className={`flex items-center justify-center space-x-1.5 p-2.5 rounded-xl border text-xs font-semibold transition ${
+                    className={`inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
                       theme === 'light'
-                        ? 'border-sky-500 bg-sky-50 text-sky-700 dark:bg-sky-950 dark:text-sky-300'
-                        : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                        ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
-                    <Sun className="w-3.5 h-3.5" />
+                    <Sun className="w-3.5 h-3.5 text-amber-500" />
                     <span>{t('themeLight')}</span>
                   </button>
+
                   <button
                     type="button"
                     onClick={() => setTheme('dark')}
-                    className={`flex items-center justify-center space-x-1.5 p-2.5 rounded-xl border text-xs font-semibold transition ${
+                    className={`inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
                       theme === 'dark'
-                        ? 'border-sky-500 bg-sky-50 text-sky-700 dark:bg-sky-950 dark:text-sky-300'
-                        : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                        ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
-                    <Moon className="w-3.5 h-3.5" />
+                    <Moon className="w-3.5 h-3.5 text-indigo-400" />
                     <span>{t('themeDark')}</span>
                   </button>
+
                   <button
                     type="button"
                     onClick={() => setTheme('system')}
-                    className={`flex items-center justify-center space-x-1.5 p-2.5 rounded-xl border text-xs font-semibold transition ${
+                    className={`inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
                       theme === 'system'
-                        ? 'border-sky-500 bg-sky-50 text-sky-700 dark:bg-sky-950 dark:text-sky-300'
-                        : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                        ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
-                    <Laptop className="w-3.5 h-3.5" />
+                    <Laptop className="w-3.5 h-3.5 text-sky-400" />
                     <span>{t('themeSystem')}</span>
                   </button>
                 </div>
               </div>
 
-              {/* Language Selector */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                  {lang === 'nl' ? 'Taal' : 'Language'}
-                </label>
-                <div className="grid grid-cols-2 gap-2">
+              {/* Language Selector Row */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/50 border border-slate-200/70 dark:border-slate-800/80">
+                <div>
+                  <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center space-x-1.5">
+                    <Globe className="w-3.5 h-3.5 text-sky-500" />
+                    <span>{lang === 'nl' ? 'Interfacetaal' : 'Interface Language'}</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    {lang === 'nl' ? 'Stel de taal in voor alle menu’s, overzichten en labels.' : 'Set the interface language for all menus, overviews, and labels.'}
+                  </p>
+                </div>
+
+                <div className="inline-flex p-1 bg-slate-200/70 dark:bg-slate-800/80 rounded-xl space-x-1 shrink-0 self-start sm:self-auto shadow-inner">
                   <button
                     type="button"
                     onClick={() => setLang('nl')}
-                    className={`flex items-center justify-center space-x-2 p-2.5 rounded-xl border text-xs font-semibold transition ${
+                    className={`inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition ${
                       lang === 'nl'
-                        ? 'border-sky-500 bg-sky-50 text-sky-700 dark:bg-sky-950 dark:text-sky-300'
-                        : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                        ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
-                    <Globe className="w-3.5 h-3.5" />
-                    <span>Nederlands</span>
+                    <span>🇳🇱 Nederlands</span>
                   </button>
+
                   <button
                     type="button"
                     onClick={() => setLang('en')}
-                    className={`flex items-center justify-center space-x-2 p-2.5 rounded-xl border text-xs font-semibold transition ${
+                    className={`inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition ${
                       lang === 'en'
-                        ? 'border-sky-500 bg-sky-50 text-sky-700 dark:bg-sky-950 dark:text-sky-300'
-                        : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                        ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
-                    <Globe className="w-3.5 h-3.5" />
-                    <span>English</span>
+                    <span>🇬🇧 English</span>
                   </button>
                 </div>
               </div>
