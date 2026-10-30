@@ -15,8 +15,6 @@ import {
   UploadCloud,
   MapPin,
   Languages,
-  ChevronDown,
-  ChevronUp,
   CheckCircle2,
   Building2,
 } from 'lucide-react';
@@ -51,11 +49,9 @@ export const Maintenance: React.FC = () => {
   // Modals
   const [isLogServiceOpen, setIsLogServiceOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<ServiceRecord | null>(null);
+  const [selectedRecordForDetails, setSelectedRecordForDetails] = useState<ServiceRecord | null>(null);
   const [isAddIntervalOpen, setIsAddIntervalOpen] = useState(false);
   const [isEditIntervalOpen, setIsEditIntervalOpen] = useState(false);
-
-  // Expanded line items in table
-  const [expandedRecordIds, setExpandedRecordIds] = useState<Record<string, boolean>>({});
 
   // Log Service Form State
   const [serviceItem, setServiceItem] = useState('');
@@ -69,7 +65,7 @@ export const Maintenance: React.FC = () => {
   const [garageAddress, setGarageAddress] = useState('');
   const [extractedLineItems, setExtractedLineItems] = useState<InvoiceLineItem[]>([]);
   const [serviceNotes, setServiceNotes] = useState('');
-  const [matchedIntervalId, setMatchedIntervalId] = useState<string>('');
+  const [matchedIntervalIds, setMatchedIntervalIds] = useState<string[]>([]);
   const [excludeFromTco, setExcludeFromTco] = useState(false);
   const [invoiceFile, setInvoiceFile] = useState<File | null>(null);
   const [uploadedInvoiceFileName, setUploadedInvoiceFileName] = useState<string | null>(null);
@@ -224,6 +220,68 @@ export const Maintenance: React.FC = () => {
     }
   };
 
+  const autoMatchIntervals = (
+    title: string,
+    items: InvoiceLineItem[],
+    notesText: string,
+    availableIntervals: MaintenanceInterval[]
+  ): string[] => {
+    const corpus = [
+      title || '',
+      notesText || '',
+      ...items.map((it) => `${it.translatedDescription || ''} ${it.originalDescription || ''}`),
+    ]
+      .join(' ')
+      .toLowerCase();
+
+    if (!corpus.trim()) return [];
+
+    const matched: string[] = [];
+    for (const interval of availableIntervals) {
+      const catName = (interval.customName || interval.categoryName || '').toLowerCase();
+      let isMatch = false;
+
+      if (catName.includes('olie') || catName.includes('oil')) {
+        isMatch =
+          /\b(motorolie|oliefilter|oelfilter|ölfilter|motoröl|engine oil|oil filter|5w-?30|5w-?40|0w-?20|0w-?30|10w-?40)\b/i.test(
+            corpus
+          );
+      } else if (catName.includes('remvloeistof') || catName.includes('brake fluid')) {
+        isMatch = /\b(remvloeistof|bremsflüssigkeit|brake fluid|dot\s?4|dot\s?5)\b/i.test(corpus);
+      } else if (catName.includes('lucht') || catName.includes('interieur') || catName.includes('cabin') || catName.includes('air')) {
+        isMatch =
+          /\b(luchtfilter|interieurfilter|pollenfilter|innenraumfilter|staubfilter|air filter|cabin filter)\b/i.test(
+            corpus
+          );
+      } else if (catName.includes('bougie') || catName.includes('spark')) {
+        isMatch = /\b(bougie|bougies|zündkerze|zündkerzen|spark plug)\b/i.test(corpus);
+      } else if (catName.includes('transmissie') || catName.includes('transmission') || catName.includes('versnellingsbak')) {
+        isMatch = /\b(transmissie|versnellingsbak|automaatolie|getriebeöl|transmission fluid|dsg|atf)\b/i.test(corpus);
+      } else if (catName.includes('inspectie') || catName.includes('inspection') || catName.includes('maatwerk')) {
+        isMatch = /\b(onderhoudsbeurt|inspectie|grote beurt|kleine beurt|wartung|inspektion|servicebeurt|annual service)\b/i.test(
+          corpus
+        );
+      } else if (catName.includes('ketting') || catName.includes('chain')) {
+        isMatch = /\b(kettingset|ketting|tandwiel|kettensatz|chain|sprocket)\b/i.test(corpus);
+      } else if (catName.includes('banden') || catName.includes('tire')) {
+        isMatch = /\b(bandenwissel|nieuwe banden|zomerband|winterband|4-seizoenen|all-season|reifen)\b/i.test(corpus);
+      } else if (catName.length >= 4 && corpus.includes(catName)) {
+        isMatch = true;
+      }
+
+      if (isMatch) {
+        matched.push(interval.id);
+      }
+    }
+    return matched;
+  };
+
+  const toggleMatchedInterval = (intervalId: string) => {
+    setMatchedIntervalIds((prev) =>
+      prev.includes(intervalId) ? prev.filter((id) => id !== intervalId) : [...prev, intervalId]
+    );
+  };
+
   const openNewServiceModal = () => {
     setEditingRecord(null);
     setServiceItem('');
@@ -238,7 +296,7 @@ export const Maintenance: React.FC = () => {
     setGarageAddress('');
     setExtractedLineItems([]);
     setServiceNotes('');
-    setMatchedIntervalId('');
+    setMatchedIntervalIds([]);
     setExcludeFromTco(false);
     setInvoiceFile(null);
     setUploadedInvoiceFileName(null);
@@ -264,9 +322,25 @@ export const Maintenance: React.FC = () => {
         parsedItems = JSON.parse(rec.line_items);
       } catch {}
     }
-    setExtractedLineItems(Array.isArray(parsedItems) ? parsedItems : []);
+    const validItems = Array.isArray(parsedItems) ? parsedItems : [];
+    setExtractedLineItems(validItems);
     setServiceNotes(rec.notes || '');
-    setMatchedIntervalId(rec.maintenance_interval_id || '');
+
+    let savedIntervalIds: string[] = [];
+    if (rec.maintenance_interval_ids) {
+      try {
+        const parsedIds = JSON.parse(rec.maintenance_interval_ids);
+        if (Array.isArray(parsedIds)) savedIntervalIds = parsedIds.filter(Boolean);
+      } catch {}
+    }
+    if (savedIntervalIds.length === 0 && rec.maintenance_interval_id) {
+      savedIntervalIds = [rec.maintenance_interval_id];
+    }
+    if (savedIntervalIds.length === 0) {
+      savedIntervalIds = autoMatchIntervals(rec.service_item, validItems, rec.notes || '', intervals);
+    }
+    setMatchedIntervalIds(savedIntervalIds);
+
     setExcludeFromTco(isPreOwnershipRecord(rec, selectedVehicle));
     setInvoiceFile(null);
     setUploadedInvoiceFileName(rec.invoice_path || null);
@@ -342,11 +416,21 @@ export const Maintenance: React.FC = () => {
         } else if (ext.partsCost !== null || ext.laborCost !== null) {
           setServiceCost(((ext.partsCost || 0) + (ext.laborCost || 0)).toFixed(2));
         }
-        if (Array.isArray(ext.lineItems) && ext.lineItems.length > 0) {
-          setExtractedLineItems(ext.lineItems);
+        const nextItems = Array.isArray(ext.lineItems) ? ext.lineItems : [];
+        if (nextItems.length > 0) {
+          setExtractedLineItems(nextItems);
         }
         if (ext.translatedNotes) {
           setServiceNotes(ext.translatedNotes);
+        }
+        const autoMatched = autoMatchIntervals(
+          ext.serviceTitle || serviceItem,
+          nextItems,
+          ext.translatedNotes || serviceNotes,
+          intervals
+        );
+        if (autoMatched.length > 0) {
+          setMatchedIntervalIds(autoMatched);
         }
       }
     } catch (err: any) {
@@ -414,7 +498,8 @@ export const Maintenance: React.FC = () => {
         notes: serviceNotes || null,
         invoice_path: finalInvoicePath || null,
         exclude_from_tco: excludeFromTco ? 1 : 0,
-        maintenance_interval_id: matchedIntervalId || undefined,
+        maintenance_interval_id: matchedIntervalIds[0] || undefined,
+        maintenance_interval_ids: matchedIntervalIds,
       };
 
       if (editingRecord) {
@@ -538,10 +623,6 @@ export const Maintenance: React.FC = () => {
         alert(err?.message || 'Delete failed');
       }
     }
-  };
-
-  const toggleExpandRecord = (id: string) => {
-    setExpandedRecordIds((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
   if (!selectedVehicle) {
@@ -737,7 +818,6 @@ export const Maintenance: React.FC = () => {
                       lineItems = JSON.parse(r.line_items);
                     } catch {}
                   }
-                  const isExpanded = Boolean(expandedRecordIds[r.id]);
 
                   return (
                     <tr key={r.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition align-top">
@@ -754,64 +834,21 @@ export const Maintenance: React.FC = () => {
                           <div className="mt-1.5">
                             <button
                               type="button"
-                              onClick={() => toggleExpandRecord(r.id)}
-                              className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-md bg-sky-50 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300 border border-sky-200/70 dark:border-sky-800/50 text-[10px] font-bold hover:bg-sky-100 transition"
+                              onClick={() => setSelectedRecordForDetails(r)}
+                              className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-sky-50 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300 border border-sky-200/80 dark:border-sky-800/60 text-[11px] font-bold hover:bg-sky-100 dark:hover:bg-sky-900/50 transition shadow-2xs"
                             >
-                              <Languages className="w-3 h-3 text-sky-500" />
+                              <Languages className="w-3.5 h-3.5 text-sky-500" />
                               <span>
                                 {lang === 'nl'
-                                  ? `${lineItems.length} uitgelezen & vertaalde onderdelen`
-                                  : `${lineItems.length} extracted & translated items`}
+                                  ? `Bekijk ${lineItems.length} uitgelezen & vertaalde onderdelen`
+                                  : `View ${lineItems.length} extracted & translated items`}
                               </span>
-                              {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                             </button>
-
-                            {isExpanded && (
-                              <div className="mt-2 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200/80 dark:border-slate-800 space-y-1.5">
-                                {lineItems.map((item, idx) => (
-                                  <div
-                                    key={idx}
-                                    className="flex items-start justify-between gap-2 text-[11px] pb-1.5 last:pb-0 border-b last:border-b-0 border-slate-200/50 dark:border-slate-800/60"
-                                  >
-                                    <div>
-                                      <div className="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                                        <span
-                                          className={`px-1.5 py-0.2 rounded text-[9px] font-bold uppercase ${
-                                            item.category === 'labor'
-                                              ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
-                                              : 'bg-sky-100 text-sky-800 dark:bg-sky-950/60 dark:text-sky-300'
-                                          }`}
-                                        >
-                                          {item.category === 'labor'
-                                            ? (lang === 'nl' ? 'Arbeid' : 'Labor')
-                                            : (lang === 'nl' ? 'Onderdeel' : 'Part')}
-                                        </span>
-                                        <span>{item.translatedDescription}</span>
-                                        {item.quantity && (
-                                          <span className="text-[10px] text-slate-400 font-mono">({item.quantity})</span>
-                                        )}
-                                      </div>
-                                      {item.originalDescription &&
-                                        item.originalDescription.toLowerCase() !== item.translatedDescription.toLowerCase() && (
-                                          <div className="text-[10px] text-slate-400 italic mt-0.5">
-                                            Origineel: "{item.originalDescription}"
-                                          </div>
-                                        )}
-                                    </div>
-                                    {item.totalPrice !== null && (
-                                      <span className="font-mono font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap">
-                                        € {item.totalPrice.toFixed(2)}
-                                      </span>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            )}
                           </div>
                         )}
 
                         {r.notes && (
-                          <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 whitespace-pre-line line-clamp-3">
+                          <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 whitespace-pre-line line-clamp-2">
                             {r.notes}
                           </div>
                         )}
@@ -1363,23 +1400,79 @@ export const Maintenance: React.FC = () => {
                 </div>
               )}
 
-              <div>
-                <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
-                  {lang === 'nl' ? 'Koppel aan onderhoudsinterval (optioneel resetten)' : 'Link to maintenance interval (optional reset)'}
-                </label>
-                <select
-                  value={matchedIntervalId}
-                  onChange={(e) => setMatchedIntervalId(e.target.value)}
-                  className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-slate-900 dark:text-white font-medium focus:outline-none focus:border-sky-500 shadow-sm"
-                >
-                  <option value="">{lang === 'nl' ? 'Geen (losse reparatie / geen interval resetten)' : 'None (standalone service / no interval reset)'}</option>
-                  {intervals.map((i) => (
-                    <option key={i.id} value={i.id}>
-                      {translateCategory(i.customName || i.categoryName)}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {intervals.length > 0 && (
+                <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800 space-y-2.5">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <label className="block text-slate-800 dark:text-slate-200 font-bold text-xs">
+                        {lang === 'nl'
+                          ? `Onderhoudsintervallen bijwerken (${matchedIntervalIds.length} geselecteerd)`
+                          : `Reset Maintenance Intervals (${matchedIntervalIds.length} selected)`}
+                      </label>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                        {lang === 'nl'
+                          ? 'Vink alle onderdelen aan die tijdens deze beurt zijn ververst of geïnspecteerd.'
+                          : 'Check all intervals that were serviced or replaced during this visit.'}
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      {(extractedLineItems.length > 0 || serviceItem) && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const suggested = autoMatchIntervals(
+                              serviceItem,
+                              extractedLineItems,
+                              serviceNotes,
+                              intervals
+                            );
+                            setMatchedIntervalIds(suggested);
+                          }}
+                          className="inline-flex items-center space-x-1 px-2 py-1 rounded-lg bg-sky-100/80 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 text-[10px] font-bold hover:bg-sky-200/70 transition"
+                        >
+                          <Sparkles className="w-3 h-3 text-sky-500" />
+                          <span>{lang === 'nl' ? 'Auto-herken uit factuur' : 'Auto-detect'}</span>
+                        </button>
+                      )}
+                      {matchedIntervalIds.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setMatchedIntervalIds([])}
+                          className="text-[10px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-semibold"
+                        >
+                          {lang === 'nl' ? 'Wis selectie' : 'Clear'}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {intervals.map((i) => {
+                      const isChecked = matchedIntervalIds.includes(i.id);
+                      return (
+                        <label
+                          key={i.id}
+                          className={`flex items-center space-x-2.5 p-2 rounded-lg border cursor-pointer transition ${
+                            isChecked
+                              ? 'bg-sky-50/90 dark:bg-sky-950/40 border-sky-400 dark:border-sky-700 text-sky-900 dark:text-sky-100 shadow-2xs'
+                              : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-300'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => toggleMatchedInterval(i.id)}
+                            className="rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                          />
+                          <span className="font-semibold text-[11px] truncate">
+                            {translateCategory(i.customName || i.categoryName)}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               <div>
                 <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
@@ -1627,6 +1720,226 @@ export const Maintenance: React.FC = () => {
           </div>
         </div>
       )}
+      {/* Service Record Extracted Line Items & Details Modal */}
+      {selectedRecordForDetails && (
+        <div
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"
+          onClick={() => setSelectedRecordForDetails(null)}
+        >
+          <div
+            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-2xl w-full p-6 shadow-2xl max-h-[90vh] flex flex-col animate-in fade-in-50 zoom-in-95"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-start justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+              <div>
+                <div className="flex items-center flex-wrap gap-2 mb-1">
+                  <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-xs">
+                    {formatDisplayDate(selectedRecordForDetails.date)}
+                  </span>
+                  <span className="px-2 py-0.5 rounded-md bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 font-mono font-bold text-xs">
+                    {selectedRecordForDetails.odometer.toLocaleString()} km
+                  </span>
+                  {isPreOwnershipRecord(selectedRecordForDetails, selectedVehicle) && (
+                    <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/60">
+                      {lang === 'nl' ? 'Vorige eigenaar (buiten TCO)' : 'Pre-ownership (excl. TCO)'}
+                    </span>
+                  )}
+                </div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  {selectedRecordForDetails.service_item}
+                </h3>
+                {selectedRecordForDetails.performing_party === 'garage' && (
+                  <div className="flex flex-wrap items-center gap-3 mt-1.5 text-xs text-slate-600 dark:text-slate-400">
+                    <span className="inline-flex items-center gap-1 font-semibold text-slate-800 dark:text-slate-200">
+                      <Building2 className="w-3.5 h-3.5 text-sky-500" />
+                      <span>{selectedRecordForDetails.garage_name || t('garage')}</span>
+                    </span>
+                    {selectedRecordForDetails.garage_address && (
+                      <a
+                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                          `${selectedRecordForDetails.garage_name ? selectedRecordForDetails.garage_name + ', ' : ''}${selectedRecordForDetails.garage_address}`
+                        )}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-slate-500 hover:text-sky-600 dark:text-slate-400 dark:hover:text-sky-400 transition underline decoration-dotted"
+                      >
+                        <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                        <span>{selectedRecordForDetails.garage_address}</span>
+                      </a>
+                    )}
+                  </div>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedRecordForDetails(null)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Cost Summary Strip */}
+            <div className="grid grid-cols-3 gap-3 my-4">
+              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800">
+                <span className="text-[10px] text-slate-500 uppercase font-bold block">
+                  {lang === 'nl' ? 'Totaalbedrag' : 'Total Cost'}
+                </span>
+                <span className="text-sm font-mono font-bold text-slate-900 dark:text-white">
+                  € {(selectedRecordForDetails.cost || 0).toFixed(2)}
+                </span>
+              </div>
+              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800">
+                <span className="text-[10px] text-slate-500 uppercase font-bold block">
+                  {t('partsCostShort')}
+                </span>
+                <span className="text-sm font-mono font-bold text-sky-600 dark:text-sky-400">
+                  € {(selectedRecordForDetails.parts_cost ?? (selectedRecordForDetails.performing_party === 'self' ? selectedRecordForDetails.cost : 0)).toFixed(2)}
+                </span>
+              </div>
+              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800">
+                <span className="text-[10px] text-slate-500 uppercase font-bold block">
+                  {t('laborCostShort')}
+                </span>
+                <span className="text-sm font-mono font-bold text-amber-600 dark:text-amber-400">
+                  € {(selectedRecordForDetails.labor_cost || 0).toFixed(2)}
+                </span>
+              </div>
+            </div>
+
+            {/* Scrollable Body: Extracted Line Items & Notes */}
+            <div className="flex-1 overflow-y-auto space-y-4 pr-1">
+              {(() => {
+                let modalItems: InvoiceLineItem[] = [];
+                if (selectedRecordForDetails.line_items) {
+                  try {
+                    modalItems = JSON.parse(selectedRecordForDetails.line_items);
+                  } catch {}
+                }
+                if (!Array.isArray(modalItems) || modalItems.length === 0) return null;
+
+                return (
+                  <div className="rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+                    <div className="px-4 py-2.5 bg-sky-50/70 dark:bg-sky-950/40 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                        <Languages className="w-4 h-4 text-sky-500" />
+                        <span>
+                          {lang === 'nl'
+                            ? `Uitgelezen & Vertaalde Factuurregels (${modalItems.length})`
+                            : `Extracted & Translated Invoice Items (${modalItems.length})`}
+                        </span>
+                      </span>
+                    </div>
+                    <div className="divide-y divide-slate-100 dark:divide-slate-800/80 bg-white dark:bg-slate-900">
+                      {modalItems.map((item, idx) => (
+                        <div
+                          key={idx}
+                          className="px-4 py-3 flex items-start justify-between gap-4 hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center flex-wrap gap-2">
+                              <span
+                                className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase shrink-0 ${
+                                  item.category === 'labor'
+                                    ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300'
+                                    : 'bg-sky-100 text-sky-800 dark:bg-sky-950/70 dark:text-sky-300'
+                                }`}
+                              >
+                                {item.category === 'labor'
+                                  ? (lang === 'nl' ? 'Arbeid' : 'Labor')
+                                  : (lang === 'nl' ? 'Onderdeel' : 'Part')}
+                              </span>
+                              <span className="text-xs font-bold text-slate-900 dark:text-white">
+                                {item.translatedDescription}
+                              </span>
+                              {item.quantity && (
+                                <span className="text-xs text-slate-400 font-mono">
+                                  ({item.quantity})
+                                </span>
+                              )}
+                            </div>
+                            {item.originalDescription &&
+                              item.originalDescription.toLowerCase() !==
+                                item.translatedDescription.toLowerCase() && (
+                                <div className="text-[11px] text-slate-400 italic mt-0.5">
+                                  Origineel: "{item.originalDescription}"
+                                </div>
+                              )}
+                          </div>
+                          {item.totalPrice !== null && (
+                            <span className="text-xs font-mono font-bold text-slate-900 dark:text-white whitespace-nowrap shrink-0">
+                              € {item.totalPrice.toFixed(2)}
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {selectedRecordForDetails.notes && (
+                <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800">
+                  <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                    {t('notes')}
+                  </span>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 whitespace-pre-line leading-relaxed">
+                    {selectedRecordForDetails.notes}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Footer Actions */}
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-4 mt-4 border-t border-slate-100 dark:border-slate-800">
+              <div>
+                {selectedRecordForDetails.invoice_path && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const rec = selectedRecordForDetails;
+                      setPreviewDoc({
+                        isOpen: true,
+                        title: `${rec.service_item} — ${rec.garage_name || (lang === 'nl' ? 'Factuur' : 'Invoice')}`,
+                        url: `/uploads/invoices/${rec.invoice_path}`,
+                        date: formatDisplayDate(rec.date),
+                        notes: rec.notes || undefined,
+                      });
+                    }}
+                    className="inline-flex items-center space-x-1.5 px-3 py-2 rounded-xl bg-sky-50 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800/60 hover:bg-sky-100 font-bold text-xs transition"
+                  >
+                    <FileText className="w-3.5 h-3.5 text-rose-500" />
+                    <span>{lang === 'nl' ? 'Originele Factuur Bekijken' : 'View Original Invoice'}</span>
+                  </button>
+                )}
+              </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const rec = selectedRecordForDetails;
+                    setSelectedRecordForDetails(null);
+                    openEditRecordModal(rec);
+                  }}
+                  className="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-semibold text-xs transition"
+                >
+                  <Edit2 className="w-3.5 h-3.5" />
+                  <span>{lang === 'nl' ? 'Beurt Bewerken' : 'Edit Record'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedRecordForDetails(null)}
+                  className="px-4 py-2 rounded-xl bg-accent-600 hover:bg-accent-700 text-white font-bold text-xs transition shadow-sm"
+                >
+                  {lang === 'nl' ? 'Sluiten' : 'Close'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* In-app Document / Invoice Preview Modal */}
       {previewDoc && (
         <DocumentPreviewModal

@@ -139,6 +139,7 @@ export interface ServiceRecord {
   category_id?: string | null;
   category_name?: string | null;
   maintenance_interval_id?: string | null;
+  maintenance_interval_ids?: string | null;
   service_item: string;
   date: string;
   odometer: number;

@@ -101,6 +101,28 @@ export const Vehicles: React.FC = () => {
     setIsModalOpen(true);
   };
 
+  const getDefaultPurchaseDate = (v: Vehicle): string => {
+    if (v.purchase_date && v.purchase_date.trim()) {
+      return v.purchase_date.trim().slice(0, 10);
+    }
+    if (v.rdw_data) {
+      try {
+        const parsed = typeof v.rdw_data === 'string' ? JSON.parse(v.rdw_data) : v.rdw_data;
+        const rawTenaam = parsed?.datum_tenaamstelling || parsed?.raw?.datum_tenaamstelling;
+        if (rawTenaam) {
+          const s = String(rawTenaam).trim();
+          if (/^\d{8}$/.test(s)) {
+            return `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`;
+          }
+          if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
+            return s.slice(0, 10);
+          }
+        }
+      } catch {}
+    }
+    return '';
+  };
+
   const openEditModal = (v: Vehicle) => {
     setEditingVehicle(v);
     setName(v.name);
@@ -112,7 +134,7 @@ export const Vehicles: React.FC = () => {
     setMake(v.make || '');
     setModel(v.model || '');
     setFuelType(v.fuel_type || 'Benzine');
-    setPurchaseDate(v.purchase_date || '');
+    setPurchaseDate(getDefaultPurchaseDate(v));
     setPurchasePrice(String(v.purchase_price || 0));
     setInitialOdometer(String(v.initial_odometer || 0));
     setApkDate(v.apk_expiration_date || '');
@@ -138,6 +160,9 @@ export const Vehicles: React.FC = () => {
         if (data.rdw.datum_eerste_toelating) {
           const y = data.rdw.datum_eerste_toelating.substring(0, 4);
           setYear(y);
+        }
+        if (data.rdw.datum_tenaamstelling && !purchaseDate) {
+          setPurchaseDate(data.rdw.datum_tenaamstelling);
         }
         if (data.rdw.brandstof_omschrijving) {
           setFuelType(data.rdw.brandstof_omschrijving);
@@ -446,6 +471,14 @@ export const Vehicles: React.FC = () => {
                     <span className="text-slate-500">{t('fuelType')}</span>
                     <span className="font-semibold text-slate-800 dark:text-slate-200">{v.fuel_type || '—'}</span>
                   </div>
+                  {getDefaultPurchaseDate(v) && (
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">{t('purchaseDate')}</span>
+                      <span className="font-semibold text-slate-800 dark:text-slate-200">
+                        {formatDisplayDate(getDefaultPurchaseDate(v))}
+                      </span>
+                    </div>
+                  )}
                   {v.purchase_price > 0 && (
                     <div className="flex justify-between border-t border-slate-200 dark:border-slate-800/80 pt-1.5">
                       <span className="text-slate-500">{t('purchasePrice')}</span>
@@ -960,55 +993,60 @@ export const Vehicles: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              {/* Ownership & TCO Baseline Section */}
+              <div className="bg-slate-50 dark:bg-slate-950/70 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 space-y-3">
                 <div>
-                  <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
-                    {lang === 'nl' ? 'Aankoopstand (km)' : t('initialOdometer')}
-                  </label>
-                  <input
-                    type="number"
-                    value={initialOdometer}
-                    onChange={(e) => setInitialOdometer(e.target.value)}
-                    placeholder="bijv. 67799"
-                    className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-sky-500 shadow-sm font-mono"
-                  />
-                  <p className="text-[10px] text-slate-400 mt-1">
-                    {lang === 'nl' ? 'Kilometerstand op het moment van aankoop' : 'Odometer when purchased'}
-                  </p>
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
+                    {lang === 'nl' ? 'Aankoopgegevens & TCO-startpunt' : 'Purchase Details & TCO Baseline'}
+                  </span>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                    {lang === 'nl'
+                      ? 'Bepaalt je bezitsduur en houdt historische facturen van vóór jouw aankoop automatisch buiten je eigen TCO.'
+                      : 'Determines ownership duration and automatically excludes pre-ownership invoices from your TCO.'}
+                  </span>
                 </div>
-                <div>
-                  <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
-                    {t('purchasePrice')} (€)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={purchasePrice}
-                    onChange={(e) => setPurchasePrice(e.target.value)}
-                    placeholder="bijv. 19995"
-                    className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-sky-500 shadow-sm font-mono"
-                  />
-                  <p className="text-[10px] text-slate-400 mt-1">
-                    {lang === 'nl' ? 'Aankoopbedrag van het voertuig' : 'Vehicle purchase price'}
-                  </p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <DatePicker
+                      label={t('purchaseDate')}
+                      value={purchaseDate}
+                      onChange={setPurchaseDate}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
+                      {lang === 'nl' ? 'Aankoopstand (km)' : t('initialOdometer')}
+                    </label>
+                    <input
+                      type="number"
+                      value={initialOdometer}
+                      onChange={(e) => setInitialOdometer(e.target.value)}
+                      placeholder="bijv. 67799"
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-slate-900 dark:text-white focus:outline-none focus:border-sky-500 shadow-sm font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
+                      {t('purchasePrice')} (€)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={purchasePrice}
+                      onChange={(e) => setPurchasePrice(e.target.value)}
+                      placeholder="bijv. 19995"
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-slate-900 dark:text-white focus:outline-none focus:border-sky-500 shadow-sm font-mono"
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <DatePicker
-                    label={t('purchaseDate')}
-                    value={purchaseDate}
-                    onChange={setPurchaseDate}
-                  />
-                </div>
-                <div>
-                  <DatePicker
-                    label={getInspectionTerm(plateCountry, lang).dateLabel}
-                    value={apkDate}
-                    onChange={setApkDate}
-                  />
-                </div>
+              <div>
+                <DatePicker
+                  label={getInspectionTerm(plateCountry, lang).dateLabel}
+                  value={apkDate}
+                  onChange={setApkDate}
+                />
               </div>
 
               <div>

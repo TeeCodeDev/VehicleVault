@@ -1938,5 +1938,33 @@ Date,Odometer,Fuel_amount,Price,Total_cost,Notes
         if (fs.existsSync(fakeDocPath)) fs.unlinkSync(fakeDocPath);
       }
     });
+
+    it('should reset multiple maintenance intervals simultaneously from a single invoice record', () => {
+      const catId = db.get<any>('SELECT id FROM service_categories LIMIT 1')?.id;
+      assert.ok(catId);
+      const int1 = crypto.randomUUID();
+      const int2 = crypto.randomUUID();
+
+      db.run(
+        `INSERT INTO maintenance_intervals (id, vehicle_id, category_id, custom_name, interval_km, interval_months, last_service_date, last_service_odometer, created_at)
+         VALUES (?, ?, ?, 'Motorolie & Oliefilter', 15000, 12, '2026-10-29', 67799, ?),
+                (?, ?, ?, 'Remvloeistof', 40000, 24, '2026-10-29', 67799, ?)`,
+        [int1, testVehicleId, catId, new Date().toISOString(), int2, testVehicleId, catId, new Date().toISOString()]
+      );
+
+      try {
+        MaintenanceController.resetMatchedIntervals(testVehicleId, [int1, int2], '2026-08-17', 66018);
+
+        const updated1 = db.get<any>('SELECT last_service_date, last_service_odometer FROM maintenance_intervals WHERE id = ?', [int1]);
+        const updated2 = db.get<any>('SELECT last_service_date, last_service_odometer FROM maintenance_intervals WHERE id = ?', [int2]);
+
+        assert.equal(updated1.last_service_date, '2026-08-17');
+        assert.equal(updated1.last_service_odometer, 66018);
+        assert.equal(updated2.last_service_date, '2026-08-17');
+        assert.equal(updated2.last_service_odometer, 66018);
+      } finally {
+        db.run('DELETE FROM maintenance_intervals WHERE id IN (?, ?)', [int1, int2]);
+      }
+    });
   });
 });

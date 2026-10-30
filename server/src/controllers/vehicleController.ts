@@ -157,6 +157,7 @@ export class VehicleController {
           if (!data.make && rdw.merk) data.make = rdw.merk;
           if (!data.model && rdw.handelsbenaming) data.model = rdw.handelsbenaming;
           if (!data.fuel_type && rdw.brandstof_omschrijving) data.fuel_type = rdw.brandstof_omschrijving;
+          if (!data.purchase_date && rdw.datum_tenaamstelling) data.purchase_date = rdw.datum_tenaamstelling;
         }
       }
 

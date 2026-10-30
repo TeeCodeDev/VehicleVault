@@ -8,6 +8,7 @@ export interface RdwVehicleData {
   inrichting?: string;
   massa_rijklaar?: string;
   datum_eerste_toelating?: string;
+  datum_tenaamstelling?: string;
   vervaldatum_apk?: string;
   brandstof_omschrijving?: string;
   raw?: any;
@@ -135,6 +136,7 @@ export class RdwService {
         inrichting: item.inrichting,
         massa_rijklaar: item.massa_rijklaar,
         datum_eerste_toelating: formatRdwDate(item.datum_eerste_toelating),
+        datum_tenaamstelling: formatRdwDate(item.datum_tenaamstelling),
         vervaldatum_apk: apkFormatted,
         brandstof_omschrijving: detectedFuel,
         raw: item,

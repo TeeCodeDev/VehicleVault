@@ -23,6 +23,7 @@ const serviceRecordSchema = z.object({
   vehicle_id: z.string().uuid(),
   category_id: z.string().uuid().optional().nullable(),
   maintenance_interval_id: z.string().uuid().optional().nullable(),
+  maintenance_interval_ids: z.array(z.string().uuid()).optional().nullable(),
   service_item: z.string().min(1),
   date: z.string(),
   odometer: z.number().nonnegative(),
@@ -210,6 +211,50 @@ export class MaintenanceController {
     }
   }
 
+  public static resetMatchedIntervals(
+    vehicleId: string,
+    intervalIds: string[],
+    date: string,
+    odometer: number
+  ): void {
+    const uniqueIds = Array.from(new Set(intervalIds.filter(Boolean)));
+    if (uniqueIds.length === 0) return;
+
+    const allVehicleRecords = db.query<any>(
+      'SELECT date, odometer, maintenance_interval_id, maintenance_interval_ids FROM service_records WHERE vehicle_id = ? ORDER BY date DESC, odometer DESC',
+      [vehicleId]
+    );
+
+    for (const intervalId of uniqueIds) {
+      // Find all service records for this vehicle that are linked to this intervalId
+      const linkedRecords = allVehicleRecords.filter((rec) => {
+        if (rec.maintenance_interval_id === intervalId) return true;
+        if (rec.maintenance_interval_ids) {
+          try {
+            const parsed = JSON.parse(rec.maintenance_interval_ids);
+            if (Array.isArray(parsed) && parsed.includes(intervalId)) return true;
+          } catch {}
+        }
+        return false;
+      });
+
+      const newestLinked = linkedRecords[0];
+      const effectiveDate = newestLinked && newestLinked.date > date ? newestLinked.date : date;
+      const effectiveOdo =
+        newestLinked &&
+        (newestLinked.date > date || (newestLinked.date === date && Number(newestLinked.odometer) > odometer))
+          ? Number(newestLinked.odometer)
+          : odometer;
+
+      db.run(
+        `UPDATE maintenance_intervals
+         SET last_service_date = ?, last_service_odometer = ?
+         WHERE id = ? AND vehicle_id = ?`,
+        [effectiveDate, effectiveOdo, intervalId, vehicleId]
+      );
+    }
+  }
+
   public static async createRecord(req: Request, res: Response): Promise<void> {
     const parse = serviceRecordSchema.safeParse(req.body);
     if (!parse.success) {
@@ -228,6 +273,15 @@ export class MaintenanceController {
         : JSON.stringify(data.line_items)
       : null;
 
+    const intervalIds = Array.from(
+      new Set([
+        ...(Array.isArray(data.maintenance_interval_ids) ? data.maintenance_interval_ids : []),
+        ...(data.maintenance_interval_id ? [data.maintenance_interval_id] : []),
+      ])
+    );
+    const primaryIntervalId = intervalIds[0] || null;
+    const intervalIdsJson = intervalIds.length > 0 ? JSON.stringify(intervalIds) : null;
+
     const vehicle = db.get<any>('SELECT * FROM vehicles WHERE id = ?', [data.vehicle_id]);
     const excludeFromTco =
       data.exclude_from_tco !== undefined
@@ -240,15 +294,16 @@ export class MaintenanceController {
 
     db.run(
       `INSERT INTO service_records (
-        id, vehicle_id, category_id, maintenance_interval_id, service_item,
+        id, vehicle_id, category_id, maintenance_interval_id, maintenance_interval_ids, service_item,
         date, odometer, performing_party, cost, parts_cost, labor_cost,
         garage_name, garage_address, line_items, notes, invoice_path, exclude_from_tco, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         data.vehicle_id,
         data.category_id || null,
-        data.maintenance_interval_id || null,
+        primaryIntervalId,
+        intervalIdsJson,
         data.service_item,
         data.date,
         data.odometer,
@@ -279,24 +334,9 @@ export class MaintenanceController {
       );
     }
 
-    // Update interval baseline if matching (and newer than or equal to existing service record)
-    if (data.maintenance_interval_id) {
-      const existingInterval = db.get<any>(
-        'SELECT last_service_date, last_service_odometer FROM maintenance_intervals WHERE id = ?',
-        [data.maintenance_interval_id]
-      );
-      const shouldUpdate =
-        !existingInterval ||
-        ((!existingInterval.last_service_date || data.date >= existingInterval.last_service_date) &&
-          (!existingInterval.last_service_odometer || data.odometer >= existingInterval.last_service_odometer));
-      if (shouldUpdate) {
-        db.run(
-          `UPDATE maintenance_intervals
-           SET last_service_date = ?, last_service_odometer = ?
-           WHERE id = ?`,
-          [data.date, data.odometer, data.maintenance_interval_id]
-        );
-      }
+    // Update all matched intervals
+    if (intervalIds.length > 0) {
+      MaintenanceController.resetMatchedIntervals(data.vehicle_id, intervalIds, data.date, data.odometer);
     }
 
     res.status(201).json({ id, message: 'Service record logged' });
@@ -335,6 +375,26 @@ export class MaintenanceController {
           : null
         : existing.line_items;
 
+    let updatedIntervalIds: string[] = [];
+    if (data.maintenance_interval_ids !== undefined || data.maintenance_interval_id !== undefined) {
+      updatedIntervalIds = Array.from(
+        new Set([
+          ...(Array.isArray(data.maintenance_interval_ids) ? data.maintenance_interval_ids : []),
+          ...(data.maintenance_interval_id ? [data.maintenance_interval_id] : []),
+        ])
+      );
+    } else if (existing.maintenance_interval_ids) {
+      try {
+        const parsed = JSON.parse(existing.maintenance_interval_ids);
+        if (Array.isArray(parsed)) updatedIntervalIds = parsed;
+      } catch {}
+    } else if (existing.maintenance_interval_id) {
+      updatedIntervalIds = [existing.maintenance_interval_id];
+    }
+
+    const primaryIntervalId = updatedIntervalIds[0] || null;
+    const intervalIdsJson = updatedIntervalIds.length > 0 ? JSON.stringify(updatedIntervalIds) : null;
+
     const updatedServiceItem = data.service_item ?? existing.service_item;
     const updatedDate = data.date ?? existing.date;
     const updatedOdometer = data.odometer ?? existing.odometer;
@@ -356,6 +416,8 @@ export class MaintenanceController {
 
     db.run(
       `UPDATE service_records SET
+        maintenance_interval_id = ?,
+        maintenance_interval_ids = ?,
         service_item = ?,
         date = ?,
         odometer = ?,
@@ -371,6 +433,8 @@ export class MaintenanceController {
         exclude_from_tco = ?
        WHERE id = ?`,
       [
+        primaryIntervalId,
+        intervalIdsJson,
         updatedServiceItem,
         updatedDate,
         updatedOdometer,
@@ -397,6 +461,15 @@ export class MaintenanceController {
         updatedDate,
         updatedGarageName,
         updatedNotes
+      );
+    }
+
+    if (updatedIntervalIds.length > 0) {
+      MaintenanceController.resetMatchedIntervals(
+        existing.vehicle_id,
+        updatedIntervalIds,
+        updatedDate,
+        updatedOdometer
       );
     }
 

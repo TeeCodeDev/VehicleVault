@@ -223,6 +223,7 @@ export function initializeDatabase(): void {
       vehicle_id TEXT NOT NULL,
       category_id TEXT,
       maintenance_interval_id TEXT,
+      maintenance_interval_ids TEXT,
       service_item TEXT NOT NULL,
       date TEXT NOT NULL,
       odometer REAL NOT NULL,
@@ -243,6 +244,9 @@ export function initializeDatabase(): void {
     );
   `);
 
+  if (!columnExists('service_records', 'maintenance_interval_ids')) {
+    db.exec('ALTER TABLE service_records ADD COLUMN maintenance_interval_ids TEXT;');
+  }
   if (!columnExists('service_records', 'parts_cost')) {
     db.exec('ALTER TABLE service_records ADD COLUMN parts_cost REAL NOT NULL DEFAULT 0;');
   }
@@ -263,6 +267,9 @@ export function initializeDatabase(): void {
   }
   try {
     db.exec('UPDATE service_records SET parts_cost = cost WHERE parts_cost = 0 AND labor_cost = 0 AND cost > 0;');
+    db.exec(
+      "UPDATE service_records SET maintenance_interval_ids = json_array(maintenance_interval_id) WHERE maintenance_interval_id IS NOT NULL AND maintenance_interval_id != '' AND (maintenance_interval_ids IS NULL OR maintenance_interval_ids = '');"
+    );
   } catch {}
 
   // 9. Vehicle documents (Digitale Handschoenenkast)
