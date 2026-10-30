@@ -1078,7 +1078,7 @@ export const Maintenance: React.FC = () => {
                       type="text"
                       value={garageName}
                       onChange={(e) => setGarageName(e.target.value)}
-                      placeholder={lang === 'nl' ? 'bijv. Autohaus Müller GmbH' : 'e.g. Autohaus Müller GmbH'}
+                      placeholder={lang === 'nl' ? 'Naam van de garage of dealer' : 'Name of garage or dealer'}
                       className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-slate-900 dark:text-white focus:outline-none focus:border-sky-500"
                     />
                   </div>
@@ -1091,7 +1091,7 @@ export const Maintenance: React.FC = () => {
                       type="text"
                       value={garageAddress}
                       onChange={(e) => setGarageAddress(e.target.value)}
-                      placeholder={lang === 'nl' ? 'bijv. Industriestraße 12, 48599 Gronau' : 'e.g. Industriestraße 12, 48599 Gronau'}
+                      placeholder={lang === 'nl' ? 'Straat, huisnummer en woonplaats' : 'Street, number and city'}
                       className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-slate-900 dark:text-white focus:outline-none focus:border-sky-500"
                     />
                   </div>
@@ -1252,7 +1252,7 @@ export const Maintenance: React.FC = () => {
                   rows={3}
                   value={serviceNotes}
                   onChange={(e) => setServiceNotes(e.target.value)}
-                  placeholder={lang === 'nl' ? 'bijv. 5W-30 synthetisch, koperen ring vervangen' : 'e.g. 5W-30 synthetic, replaced copper washer'}
+                  placeholder={lang === 'nl' ? 'Optionele toelichting over de uitgevoerde werkzaamheden...' : 'Optional notes about the performed work...'}
                   className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-sky-500 shadow-sm"
                 />
               </div>
@@ -1321,7 +1321,7 @@ export const Maintenance: React.FC = () => {
                   type="text"
                   value={customName}
                   onChange={(e) => setCustomName(e.target.value)}
-                  placeholder={lang === 'nl' ? 'bijv. Brembo High Performance Remblokken' : 'e.g. Brembo High Performance Brake Pads'}
+                  placeholder={lang === 'nl' ? 'Eigen benaming (optioneel)' : 'Custom name (optional)'}
                   className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-sky-500 shadow-sm"
                 />
               </div>

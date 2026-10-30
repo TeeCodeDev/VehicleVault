@@ -550,7 +550,7 @@ export const ShowcaseManagerModal: React.FC<ShowcaseManagerModalProps> = ({
                     type="text"
                     value={contactLocation}
                     onChange={(e) => setContactLocation(e.target.value)}
-                    placeholder="bijv. Groningen / Nederland"
+                    placeholder="Woonplaats of regio"
                     className="w-full h-10 bg-slate-50 dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-accent-500/20 focus:border-accent-500 transition"
                   />
                 </div>
@@ -691,7 +691,7 @@ export const ShowcaseManagerModal: React.FC<ShowcaseManagerModalProps> = ({
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="bijv. Toyota Auris 1.8 Hybrid Lease Plus"
+                  placeholder="Merk, model en uitvoering"
                   className="w-full h-10 bg-slate-50 dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 text-xs text-slate-900 dark:text-white font-bold focus:outline-none focus:ring-2 focus:ring-accent-500/20 focus:border-accent-500 transition"
                 />
               </div>

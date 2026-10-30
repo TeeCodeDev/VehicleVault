@@ -777,7 +777,7 @@ export const Tires: React.FC = () => {
                   <input
                     type="text"
                     list="tire-brands-list"
-                    placeholder="bijv. Continental of Michelin"
+                    placeholder="Merk van de band"
                     value={brand}
                     onChange={(e) => setBrand(e.target.value)}
                     className="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500 font-medium"
@@ -807,7 +807,7 @@ export const Tires: React.FC = () => {
                   </label>
                   <input
                     type="text"
-                    placeholder="bijv. PremiumContact 7 of Primacy 4"
+                    placeholder="Model of type"
                     value={model}
                     onChange={(e) => setModel(e.target.value)}
                     className="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500 font-medium"

@@ -471,6 +471,24 @@ export function initializeDatabase(): void {
     // Non-fatal migration check
   }
 
+  // Auto-normalize any YYYY-MM-DD dates in vehicle_documents names to DD-MM-YYYY
+  try {
+    const docsWithIsoDate = db.query<{ id: string; name: string }>(
+      "SELECT id, name FROM vehicle_documents WHERE name GLOB '*[12][0-9][0-9][0-9]-[01][0-9]-[0-3][0-9]*'"
+    );
+    for (const d of docsWithIsoDate) {
+      const normalizedName = d.name.replace(
+        /\b(\d{4})-(\d{2})-(\d{2})\b/g,
+        '$3-$2-$1'
+      );
+      if (normalizedName !== d.name) {
+        db.run('UPDATE vehicle_documents SET name = ? WHERE id = ?', [normalizedName, d.id]);
+      }
+    }
+  } catch {
+    // Non-fatal migration check
+  }
+
   // Seed default presets
   seedPresets();
 }

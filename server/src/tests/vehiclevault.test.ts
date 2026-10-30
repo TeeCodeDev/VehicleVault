@@ -1873,6 +1873,7 @@ Date,Odometer,Fuel_amount,Price,Total_cost,Notes
         assert.ok(syncedDoc, 'Expected synced document record in vehicle_documents');
         assert.equal(syncedDoc.category, 'invoice');
         assert.ok(syncedDoc.name.includes('Autohaus Müller GmbH'));
+        assert.ok(syncedDoc.name.includes('(17-08-2026)'));
         assert.ok(syncedDoc.notes.includes('Industriestraße 12'));
       } finally {
         db.run('DELETE FROM vehicle_documents WHERE vehicle_id = ? AND file_path = ?', [testVehicleId, fakeFilename]);

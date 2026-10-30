@@ -207,6 +207,11 @@ export const Documents: React.FC = () => {
     return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
   };
 
+  const formatDocumentTitle = (title: string): string => {
+    if (!title) return '';
+    return title.replace(/\b(\d{4})-(\d{2})-(\d{2})\b/g, '$3-$2-$1');
+  };
+
   const getCategoryBadge = (cat: string) => {
     switch (cat) {
       case 'registration':
@@ -415,9 +420,9 @@ export const Documents: React.FC = () => {
                     <div className="flex items-center space-x-2">
                       <h4
                         className="text-sm font-bold text-slate-900 dark:text-white truncate group-hover:text-sky-600 dark:group-hover:text-sky-400 transition"
-                        title={doc.name}
+                        title={formatDocumentTitle(doc.name)}
                       >
-                        {doc.name}
+                        {formatDocumentTitle(doc.name)}
                       </h4>
                     </div>
 
@@ -455,7 +460,7 @@ export const Documents: React.FC = () => {
                       })()}
 
                       <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500">
-                        {formatFileSize(doc.file_size)} • {formatDisplayDate(doc.created_at)}
+                        {formatFileSize(doc.file_size)}
                       </span>
 
                       {doc.notes && (
@@ -474,10 +479,9 @@ export const Documents: React.FC = () => {
                     onClick={() =>
                       setPreviewDoc({
                         isOpen: true,
-                        title: doc.name,
+                        title: formatDocumentTitle(doc.name),
                         url: downloadUrl,
                         fileSize: doc.file_size,
-                        date: formatDisplayDate(doc.created_at),
                         notes: doc.notes || undefined,
                       })
                     }
@@ -547,9 +551,9 @@ export const Documents: React.FC = () => {
                       <div className="min-w-0 flex-1">
                         <h4
                           className="text-xs font-bold text-slate-900 dark:text-white truncate group-hover:text-sky-600 dark:group-hover:text-sky-400 transition"
-                          title={doc.name}
+                          title={formatDocumentTitle(doc.name)}
                         >
-                          {doc.name}
+                          {formatDocumentTitle(doc.name)}
                         </h4>
                         <div className="flex items-center flex-wrap gap-1 mt-1">
                           <span className={`inline-block px-2 py-0.5 rounded-md text-[10px] font-bold border ${badge.badgeClass}`}>
@@ -603,10 +607,8 @@ export const Documents: React.FC = () => {
                 </div>
 
                 <div className="pt-3 mt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-500">
-                  <div className="space-x-1.5 font-medium">
+                  <div className="font-medium">
                     <span>{formatFileSize(doc.file_size)}</span>
-                    <span>•</span>
-                    <span>{formatDisplayDate(doc.created_at)}</span>
                   </div>
 
                   <div className="flex items-center space-x-1.5">
@@ -615,10 +617,9 @@ export const Documents: React.FC = () => {
                       onClick={() =>
                         setPreviewDoc({
                           isOpen: true,
-                          title: doc.name,
+                          title: formatDocumentTitle(doc.name),
                           url: downloadUrl,
                           fileSize: doc.file_size,
-                          date: formatDisplayDate(doc.created_at),
                           notes: doc.notes || undefined,
                         })
                       }
@@ -722,7 +723,7 @@ export const Documents: React.FC = () => {
                   required
                   value={docName}
                   onChange={(e) => setDocName(e.target.value)}
-                  placeholder={lang === 'nl' ? 'bijv. Kentekenbewijs Deel 1, Polis Univé 2026, APK Rapport' : 'e.g. Registration Part 1, Insurance Policy, Inspection Form'}
+                  placeholder={lang === 'nl' ? 'bijv. Kentekenbewijs, Verzekeringspolis, Keuringsrapport' : 'e.g. Registration Card, Insurance Policy, Inspection Report'}
                   className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-sky-500"
                 />
               </div>

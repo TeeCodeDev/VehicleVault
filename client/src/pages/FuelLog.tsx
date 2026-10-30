@@ -1183,7 +1183,7 @@ export const FuelLog: React.FC = () => {
                       type="text"
                       value={stationName}
                       onChange={(e) => setStationName(e.target.value)}
-                      placeholder={lang === 'nl' ? 'bijv. Fieten Olie, Shell, Tango' : 'e.g. Shell, BP, Esso'}
+                      placeholder={lang === 'nl' ? 'Naam van het tankstation' : 'Name of gas station'}
                       className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-1.5 text-slate-900 dark:text-white focus:outline-none focus:border-sky-500 shadow-sm"
                     />
                   </div>
@@ -1208,7 +1208,7 @@ export const FuelLog: React.FC = () => {
                       type="text"
                       value={stationAddress}
                       onChange={(e) => setStationAddress(e.target.value)}
-                      placeholder={lang === 'nl' ? 'bijv. Stationsplein 1, 3511 CE Utrecht' : 'e.g. Main Street 12, London'}
+                      placeholder={lang === 'nl' ? 'Straat, huisnummer en woonplaats' : 'Street, number and city'}
                       className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-1.5 text-slate-900 dark:text-white focus:outline-none focus:border-sky-500 shadow-sm"
                     />
                   </div>
@@ -1681,7 +1681,7 @@ export const FuelLog: React.FC = () => {
                   <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">{t('station')}</label>
                   <input
                     type="text"
-                    placeholder="bijv. Fieten Olie, Shell"
+                    placeholder={lang === 'nl' ? 'Naam van het tankstation' : 'Name of gas station'}
                     value={editStationName}
                     onChange={(e) => setEditStationName(e.target.value)}
                     className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-sky-500"
@@ -1691,7 +1691,7 @@ export const FuelLog: React.FC = () => {
                   <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">{lang === 'nl' ? 'Adres / Plaats' : 'Address / City'}</label>
                   <input
                     type="text"
-                    placeholder="bijv. Stationsplein 1, Utrecht"
+                    placeholder={lang === 'nl' ? 'Straat, huisnummer en woonplaats' : 'Street, number and city'}
                     value={editStationAddress}
                     onChange={(e) => setEditStationAddress(e.target.value)}
                     className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-sky-500"

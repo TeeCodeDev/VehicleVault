@@ -151,12 +151,26 @@ export class MaintenanceController {
         fs.copyFileSync(srcPath, destPath);
       }
 
-      // Avoid duplicate entry in vehicle_documents
+      const formattedDate = /^\d{4}-\d{2}-\d{2}$/.test(date)
+        ? date.split('-').reverse().join('-')
+        : date;
+
+      const docName = garageName
+        ? `${serviceItem} — ${garageName} (${formattedDate})`
+        : `${serviceItem} (${formattedDate})`;
+
+      // Avoid duplicate entry in vehicle_documents; update existing if already synced
       const existingDoc = db.get<any>(
         'SELECT id FROM vehicle_documents WHERE vehicle_id = ? AND file_path = ?',
         [vehicleId, invoiceFileName]
       );
-      if (existingDoc) return;
+      if (existingDoc) {
+        db.run(
+          'UPDATE vehicle_documents SET name = ?, notes = COALESCE(?, notes) WHERE id = ?',
+          [docName, notes || null, existingDoc.id]
+        );
+        return;
+      }
 
       const veh = db.get<any>('SELECT user_id FROM vehicles WHERE id = ?', [vehicleId]);
       const effectiveUserId = userId || veh?.user_id;
@@ -172,10 +186,6 @@ export class MaintenanceController {
             : ext === '.webp'
               ? 'image/webp'
               : 'image/jpeg';
-
-      const docName = garageName
-        ? `${serviceItem} — ${garageName} (${date})`
-        : `${serviceItem} (${date})`;
 
       db.run(
         `INSERT INTO vehicle_documents (

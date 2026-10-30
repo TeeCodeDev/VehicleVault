@@ -738,7 +738,7 @@ export const Trips: React.FC = () => {
                   <input
                     type="text"
                     required
-                    placeholder="bijv. Thuis, Amsterdam"
+                    placeholder="Vertrekplaats of adres"
                     value={fromLoc}
                     onChange={(e) => setFromLoc(e.target.value)}
                     className="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -749,7 +749,7 @@ export const Trips: React.FC = () => {
                   <input
                     type="text"
                     required
-                    placeholder="bijv. Kantoor, Utrecht"
+                    placeholder="Bestemming of adres"
                     value={toLoc}
                     onChange={(e) => setToLoc(e.target.value)}
                     className="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -842,7 +842,7 @@ export const Trips: React.FC = () => {
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Toelichting / Project / Klant</label>
                 <input
                   type="text"
-                  placeholder="bijv. Klantafspraak Romani B.V."
+                  placeholder="Optionele toelichting of zakelijke afspraak"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   className="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
