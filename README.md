@@ -91,6 +91,7 @@
 - **Fiscal Trip Registration:** Compliant with Dutch Tax Authority (Belastingdienst) requirements.
 - **Classification & Return Trips:** Track Business, Commute, and Private trips with 1-click return trip generation.
 - **Multi-Format Exports:** 1-click export to semicolon-delimited CSV, styled Excel (`.xlsx`) workbooks with formulas, and landscape A4 PDF fiscal dossiers.
+- **Import:** bring in an existing registration from the Belastingdienst sheet (`.xlsx` / `.csv`) with a preview, duplicate detection and support for files that cover several cars.
 
 ### 💸 Recurring Expenses & True TCO Analytics
 - **Recurring Fixed Costs (`Vaste Lasten`):** Track monthly, quarterly, or annual road tax (motorrijtuigenbelasting), insurance, roadside assistance, and subscriptions.

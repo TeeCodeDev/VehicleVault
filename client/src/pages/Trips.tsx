@@ -14,6 +14,7 @@ import {
   ArrowLeftRight,
   Pencil,
   Trash2,
+  Upload,
   Gauge,
   X,
   AlertCircle,
@@ -22,6 +23,7 @@ import { Vehicle, Trip, TripSummary } from '../types/index.js';
 import { apiFetch } from '../api/client.js';
 import { useLanguage } from '../context/LanguageContext.js';
 import { DatePicker } from '../components/DatePicker.js';
+import { TripImportModal } from '../components/TripImportModal.js';
 import { formatDisplayDate } from '../utils/format.js';
 import { formatLicensePlate } from '../utils/licensePlate.js';
 
@@ -269,6 +271,8 @@ export const Trips: React.FC = () => {
     }
   };
 
+  const [isImportOpen, setIsImportOpen] = useState(false);
+
   // Export dropdown state
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
   const [exportingType, setExportingType] = useState<string | null>(null);
@@ -374,6 +378,15 @@ export const Trips: React.FC = () => {
         </div>
 
         <div className="flex items-center space-x-2">
+          <button
+            type="button"
+            onClick={() => setIsImportOpen(true)}
+            className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl text-xs font-bold transition"
+          >
+            <Upload className="w-3.5 h-3.5" />
+            <span>Importeren</span>
+          </button>
+
           {/* Export Dropdown */}
           <div className="relative inline-block text-left" ref={exportMenuRef}>
             <button
@@ -885,6 +898,10 @@ export const Trips: React.FC = () => {
             </form>
           </div>
         </div>
+      )}
+
+      {isImportOpen && (
+        <TripImportModal vehicle={selectedVehicle} onClose={() => setIsImportOpen(false)} onImported={fetchTrips} />
       )}
     </div>
   );

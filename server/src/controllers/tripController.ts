@@ -2,6 +2,9 @@ import { Request, Response } from 'express';
 import crypto from 'node:crypto';
 import { db } from '../db/database.js';
 import { TripExportService } from '../services/tripExportService.js';
+import { TripService } from '../services/tripService.js';
+import { TripImportService, TripImportError, TripColumnMapping } from '../services/tripImportService.js';
+import { getVehicleAccess } from '../utils/vehicleAccess.js';
 
 export class TripController {
   public static async list(req: Request, res: Response): Promise<void> {
@@ -82,31 +85,20 @@ export class TripController {
       const end = Number(endOdometer);
       const dist = distanceKm !== undefined ? Number(distanceKm) : Math.max(0, Math.round((end - start) * 10) / 10);
 
-      const id = crypto.randomUUID();
       const userId = req.user?.userId || '00000000-0000-0000-0000-000000000001';
-      const now = new Date().toISOString();
-
-      db.run(
-        `INSERT INTO trips (
-          id, vehicle_id, user_id, date, start_odometer, end_odometer, distance_km,
-          from_location, to_location, purpose, description, is_return_trip, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          id,
-          vehicleId,
-          userId,
-          date,
-          start,
-          end,
-          dist,
-          fromLocation.trim(),
-          toLocation.trim(),
-          purpose,
-          description?.trim() || null,
-          isReturnTrip ? 1 : 0,
-          now,
-        ]
-      );
+      const id = TripService.insert({
+        vehicleId,
+        userId,
+        date,
+        startOdometer: start,
+        endOdometer: end,
+        distanceKm: dist,
+        fromLocation,
+        toLocation,
+        purpose,
+        description,
+        isReturnTrip,
+      });
 
       // Optionally update vehicle's current odometer if endOdometer is higher
       const vehicle = db.get<{ initial_odometer: number }>('SELECT initial_odometer FROM vehicles WHERE id = ?', [vehicleId]);
@@ -203,6 +195,80 @@ export class TripController {
       res.json({ message: 'Trip deleted' });
     } catch (err: any) {
       res.status(500).json({ error: err?.message || 'Failed to delete trip' });
+    }
+  }
+
+  /** The caller may add trips to this vehicle (owner or editor); answers the request itself when not. */
+  private static canEditVehicle(req: Request, res: Response, vehicleId: unknown): vehicleId is string {
+    if (!vehicleId || typeof vehicleId !== 'string') {
+      res.status(400).json({ error: 'vehicleId is verplicht' });
+      return false;
+    }
+    const access = getVehicleAccess(vehicleId, req.user?.userId);
+    if ((!access.hasAccess || access.role === 'viewer') && req.user?.role !== 'admin') {
+      res.status(access.hasAccess ? 403 : 404).json({
+        error: access.hasAccess ? 'Geen bewerkrechten voor dit voertuig' : 'Voertuig niet gevonden',
+      });
+      return false;
+    }
+    return true;
+  }
+
+  public static async importPreview(req: Request, res: Response): Promise<void> {
+    try {
+      const { vehicleId, defaultPurpose, mapping } = req.body;
+      if (!req.file) {
+        res.status(400).json({ error: 'Kies een .csv- of .xlsx-bestand' });
+        return;
+      }
+      if (!TripController.canEditVehicle(req, res, vehicleId)) return;
+
+      let parsedMapping: TripColumnMapping | undefined;
+      if (mapping) {
+        try {
+          parsedMapping = typeof mapping === 'string' ? JSON.parse(mapping) : mapping;
+        } catch {
+          res.status(400).json({ error: 'Ongeldige kolomkoppeling' });
+          return;
+        }
+      }
+
+      const plate = db.get<{ license_plate: string | null }>('SELECT license_plate FROM vehicles WHERE id = ?', [vehicleId])?.license_plate;
+      const preview = await TripImportService.preview(req.file.buffer, vehicleId, {
+        mapping: parsedMapping,
+        defaultPurpose: ['business', 'commute', 'private'].includes(defaultPurpose) ? defaultPurpose : undefined,
+        vehiclePlate: plate,
+      });
+      res.json(preview);
+    } catch (err: any) {
+      if (err instanceof TripImportError) {
+        res.status(400).json({ error: err.message });
+        return;
+      }
+      console.error('Trip import preview failed:', err);
+      res.status(500).json({ error: 'Het bestand kon niet worden gelezen' });
+    }
+  }
+
+  public static async importExecute(req: Request, res: Response): Promise<void> {
+    try {
+      const { vehicleId, records, skipDuplicates } = req.body;
+      if (!Array.isArray(records) || records.length === 0) {
+        res.status(400).json({ error: 'Geen ritten om te importeren' });
+        return;
+      }
+      if (records.length > 5000) {
+        res.status(400).json({ error: 'Maximaal 5000 ritten per import' });
+        return;
+      }
+      if (!TripController.canEditVehicle(req, res, vehicleId)) return;
+
+      const userId = req.user?.userId || '00000000-0000-0000-0000-000000000001';
+      const result = TripImportService.execute(vehicleId, userId, records, skipDuplicates !== false);
+      res.json({ success: true, ...result });
+    } catch (err: any) {
+      console.error('Trip import failed:', err);
+      res.status(500).json({ error: 'Importeren mislukt; er is niets opgeslagen' });
     }
   }
 

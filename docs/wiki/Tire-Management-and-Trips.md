@@ -32,3 +32,16 @@ Designed for Dutch **Belastingdienst** compliance and business mileage reimburse
   1. **Belastingdienst CSV (`.csv`):** UTF-8 BOM semicolon-delimited export with official Dutch fiscal headers.
   2. **Formatted Excel Workbook (`.xlsx`):** Styled spreadsheet with summary KPIs and formulas.
   3. **Landscape A4 Fiscal PDF Dossier (`.pdf`):** Ready for accountant or tax audit submission.
+
+### Importing an existing trip registration
+
+On **Ritregistratie** choose **Importeren** and pick your kilometer administration as `.xlsx` or `.csv`: the Belastingdienst sheet (*kilometeradministratie*, columns such as *Beginstand kilometerteller*, *Beginadres rit*, *Karakter van de rit*) or a VehicleVault export. For an old `.xls` file, open it in Excel and save it as `.xlsx`.
+
+- **Preview first:** nothing is stored until you confirm. Rows with a problem (for example an end odometer below the start) are shown with the reason and are not imported.
+- **Table finding:** the name and vehicle block above the table is skipped; columns are recognised by their header (footnote markers like `(2)` are ignored). If a header is not recognised you can map the columns by hand.
+- **Odometers decide:** the distance is always `end − start`, whatever the sheet's own total says. Formulas are read at their calculated value.
+- **Blank character:** a trip without a *Karakter* takes it from the previous trip of the same day (a return leg); otherwise it is imported as the type you choose (default **Privé**) and marked in the preview. Blank addresses on private trips stay blank.
+- **Several cars in one file:** a row like `BMW i4 -> WISSELEN LEASEAUTO -> Mercedes EQE (JDT-14-K)` starts a new block. Tick the block(s) that belong to the selected vehicle; the block whose plate matches is preselected.
+- **Notes and 0 km rows** (for example *Auto ingeleverd*) are skipped and listed.
+- **Duplicates:** a trip with the same date and the same start and end odometer on the same vehicle is reported as already present and skipped (switch this off to import it anyway).
+- Only users with edit rights on the vehicle can import. The file is read in memory and is not kept; the name, BSN and other details above the table are never stored.
