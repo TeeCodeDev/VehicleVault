@@ -74,7 +74,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
               </h3>
               <div className="flex items-center space-x-2 text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
                 <span className="font-semibold uppercase tracking-wider px-1.5 py-0.2 rounded bg-slate-200/70 dark:bg-slate-800 text-[10px]">
-                  {isPdf ? 'PDF Document' : isImage ? 'Afbeelding' : 'Bestand'}
+                  {isPdf ? 'PDF Document' : isImage ? (lang === 'nl' ? 'Afbeelding' : 'Image') : (lang === 'nl' ? 'Bestand' : 'File')}
                 </span>
                 {fileSize && (
                   <>

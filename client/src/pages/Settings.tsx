@@ -2475,10 +2475,12 @@ action:
               <div>
                 <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center space-x-2">
                   <KeyRound className="w-4 h-4 text-sky-500" />
-                  <span>Home Assistant API-Sleutel</span>
+                  <span>{lang === 'nl' ? 'Home Assistant API-Sleutel' : 'Home Assistant API Key'}</span>
                 </h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  Gebruik een persoonlijke API-sleutel om Home Assistant veilig toegang te geven tot de sensoren.
+                  {lang === 'nl'
+                    ? 'Gebruik een persoonlijke API-sleutel om Home Assistant veilig toegang te geven tot de sensoren.'
+                    : 'Use a personal API key to allow Home Assistant secure access to sensors and webhook endpoints.'}
                 </p>
               </div>
               <button
@@ -2486,7 +2488,7 @@ action:
                 onClick={() => handleTabClick('users')}
                 className="text-xs text-sky-600 dark:text-sky-400 font-bold hover:underline flex items-center space-x-1"
               >
-                <span>Alle API-sleutels beheren</span>
+                <span>{lang === 'nl' ? 'Alle API-sleutels beheren' : 'Manage all API keys'}</span>
                 <ExternalLink className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -2497,7 +2499,7 @@ action:
                   <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
                   <div>
                     <span className="font-bold text-emerald-900 dark:text-emerald-200 block">
-                      Home Assistant API-sleutel actief ({apiKeys.find((k) => k.name.toLowerCase().includes('home assistant') || k.name.toLowerCase().includes('ha'))?.name})
+                      {lang === 'nl' ? 'Home Assistant API-sleutel actief' : 'Home Assistant API key active'} ({apiKeys.find((k) => k.name.toLowerCase().includes('home assistant') || k.name.toLowerCase().includes('ha'))?.name})
                     </span>
                     <span className="text-slate-500 dark:text-slate-400 font-mono text-[11px]">
                       {apiKeys.find((k) => k.name.toLowerCase().includes('home assistant') || k.name.toLowerCase().includes('ha'))?.prefix}••••••••
@@ -2508,7 +2510,7 @@ action:
             ) : (
               <div className="p-3 bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
                 <span className="text-slate-600 dark:text-slate-300">
-                  Nog geen specifieke sleutel voor Home Assistant aangemaakt.
+                  {lang === 'nl' ? 'Nog geen specifieke sleutel voor Home Assistant aangemaakt.' : 'No dedicated Home Assistant API key created yet.'}
                 </span>
                 <button
                   type="button"
@@ -2519,7 +2521,7 @@ action:
                   className="px-3.5 py-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-xs font-bold transition flex items-center space-x-1 self-start sm:self-auto shrink-0"
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  <span>Sleutel Aanmaken</span>
+                  <span>{lang === 'nl' ? 'Sleutel Aanmaken' : 'Create Key'}</span>
                 </button>
               </div>
             )}
@@ -2534,29 +2536,37 @@ action:
             <div>
               <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center space-x-2">
                 <Database className="w-4 h-4 text-rose-500" />
-                <span>1-Klik Database &amp; Bestanden Backup</span>
+                <span>{lang === 'nl' ? '1-Klik Database & Bestanden Backup' : '1-Click Database & Files Backup'}</span>
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                Download een compleet ZIP-archief met de SQLite database en alle geüploade tankbonnen en facturen.
+                {lang === 'nl'
+                  ? 'Download een compleet ZIP-archief met de SQLite database en alle geüploade tankbonnen en facturen.'
+                  : 'Download a complete ZIP archive containing the SQLite database and all uploaded receipts and invoices.'}
               </p>
             </div>
 
             {/* Storage Stats Bar */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
               <div className="p-3 bg-slate-50 dark:bg-slate-950/60 rounded-xl border border-slate-200 dark:border-slate-800">
-                <span className="text-[10px] text-slate-400 uppercase font-bold block">Database Grootte</span>
+                <span className="text-[10px] text-slate-400 uppercase font-bold block">
+                  {lang === 'nl' ? 'Database Grootte' : 'Database Size'}
+                </span>
                 <span className="font-mono font-bold text-slate-800 dark:text-slate-200 mt-1 block">
                   {storageStats?.databaseSizeFormatted || '—'}
                 </span>
               </div>
               <div className="p-3 bg-slate-50 dark:bg-slate-950/60 rounded-xl border border-slate-200 dark:border-slate-800">
-                <span className="text-[10px] text-slate-400 uppercase font-bold block">Geüploade Bestanden</span>
+                <span className="text-[10px] text-slate-400 uppercase font-bold block">
+                  {lang === 'nl' ? 'Geüploade Bestanden' : 'Uploaded Files'}
+                </span>
                 <span className="font-mono font-bold text-slate-800 dark:text-slate-200 mt-1 block">
                   {storageStats?.totalUploadsFormatted || '—'}
                 </span>
               </div>
               <div className="p-3 bg-slate-50 dark:bg-slate-950/60 rounded-xl border border-slate-200 dark:border-slate-800">
-                <span className="text-[10px] text-slate-400 uppercase font-bold block">Opslagpad</span>
+                <span className="text-[10px] text-slate-400 uppercase font-bold block">
+                  {lang === 'nl' ? 'Opslagpad' : 'Storage Path'}
+                </span>
                 <span className="font-mono font-bold text-slate-800 dark:text-slate-200 mt-1 block truncate">
                   {storageStats?.dataDir || '/data'}
                 </span>
@@ -2584,10 +2594,12 @@ action:
                 <div>
                   <h3 className="font-bold text-xs text-slate-900 dark:text-white flex items-center space-x-2">
                     <Download className="w-4 h-4 text-emerald-500" />
-                    <span>Backup Exporteren</span>
+                    <span>{lang === 'nl' ? 'Backup Exporteren' : 'Export Backup'}</span>
                   </h3>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                    Creëert een consistent ZIP-bestand van <span className="font-mono">vehiclevault.db</span> (via SQLite WAL checkpoint) en de mappen <span className="font-mono">receipts/</span> en <span className="font-mono">invoices/</span>.
+                    {lang === 'nl'
+                      ? <>Creëert een consistent ZIP-bestand van <span className="font-mono">vehiclevault.db</span> (via SQLite WAL checkpoint) en de mappen <span className="font-mono">receipts/</span> en <span className="font-mono">invoices/</span>.</>
+                      : <>Creates a consistent ZIP file containing <span className="font-mono">vehiclevault.db</span> (via SQLite WAL checkpoint) and the <span className="font-mono">receipts/</span> and <span className="font-mono">invoices/</span> directories.</>}
                   </p>
                 </div>
 
@@ -2597,7 +2609,7 @@ action:
                   className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center space-x-2 shadow-sm"
                 >
                   <Download className="w-4 h-4" />
-                  <span>Download Volledige Backup (.zip)</span>
+                  <span>{lang === 'nl' ? 'Download Volledige Backup (.zip)' : 'Download Complete Backup (.zip)'}</span>
                 </button>
               </div>
 
@@ -2605,10 +2617,12 @@ action:
                 <div>
                   <h3 className="font-bold text-xs text-slate-900 dark:text-white flex items-center space-x-2">
                     <Upload className="w-4 h-4 text-sky-500" />
-                    <span>Backup Terugzetten</span>
+                    <span>{lang === 'nl' ? 'Backup Terugzetten' : 'Restore Backup'}</span>
                   </h3>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                    Herstel VehicleVault vanaf een eerder gedownload ZIP-archief. Er wordt voor de veiligheid automatisch een <span className="font-mono">.bak</span> kopie gemaakt.
+                    {lang === 'nl'
+                      ? <>Herstel VehicleVault vanaf een eerder gedownload ZIP-archief. Er wordt voor de veiligheid automatisch een <span className="font-mono">.bak</span> kopie gemaakt.</>
+                      : <>Restore VehicleVault from a previous ZIP archive backup. A safety <span className="font-mono">.bak</span> copy is generated automatically.</>}
                   </p>
                 </div>
 
@@ -2616,7 +2630,7 @@ action:
                   restoringBackup ? 'opacity-50 cursor-not-allowed' : ''
                 }`}>
                   {restoringBackup ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                  <span>{restoringBackup ? 'Bezig met herstellen...' : 'Selecteer ZIP Backup Bestand'}</span>
+                  <span>{restoringBackup ? (lang === 'nl' ? 'Bezig met herstellen...' : 'Restoring...') : (lang === 'nl' ? 'Selecteer ZIP Backup Bestand' : 'Select ZIP Backup File')}</span>
                   <input
                     type="file"
                     accept=".zip"

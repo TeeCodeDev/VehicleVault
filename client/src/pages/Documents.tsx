@@ -212,8 +212,14 @@ export const Documents: React.FC = () => {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] text-center p-8 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm">
         <FolderLock className="w-12 h-12 text-slate-300 dark:text-slate-600 mb-3" />
-        <h3 className="text-base font-bold text-slate-800 dark:text-white">Geen voertuig geselecteerd</h3>
-        <p className="text-xs text-slate-500 max-w-sm mt-1">Selecteer een voertuig in het menu hierboven om de digitale handschoenenkast te bekijken.</p>
+        <h3 className="text-base font-bold text-slate-800 dark:text-white">
+          {lang === 'nl' ? 'Geen voertuig geselecteerd' : 'No vehicle selected'}
+        </h3>
+        <p className="text-xs text-slate-500 max-w-sm mt-1">
+          {lang === 'nl'
+            ? 'Selecteer een voertuig in het menu hierboven om de digitale handschoenenkast te bekijken.'
+            : 'Select a vehicle from the top menu to access the digital glovebox.'}
+        </p>
       </div>
     );
   }
@@ -377,7 +383,7 @@ export const Documents: React.FC = () => {
                   <div className="space-x-2">
                     <span>{formatFileSize(doc.file_size)}</span>
                     <span>•</span>
-                    <span>{new Date(doc.created_at).toLocaleDateString('nl-NL')}</span>
+                    <span>{formatDisplayDate(doc.created_at)}</span>
                   </div>
 
                   <div className="flex items-center space-x-1.5">
@@ -389,7 +395,7 @@ export const Documents: React.FC = () => {
                           title: doc.name,
                           url: downloadUrl,
                           fileSize: doc.file_size,
-                          date: new Date(doc.created_at).toLocaleDateString('nl-NL'),
+                          date: formatDisplayDate(doc.created_at),
                           notes: doc.notes || undefined,
                         })
                       }
@@ -439,7 +445,7 @@ export const Documents: React.FC = () => {
               {/* File Dropzone */}
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                  Bestand (.pdf, .jpg, .png, .webp) *
+                  {lang === 'nl' ? 'Bestand (.pdf, .jpg, .png, .webp) *' : 'File (.pdf, .jpg, .png, .webp) *'}
                 </label>
                 <label className="border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-sky-500 rounded-xl p-4 flex flex-col items-center justify-center text-center cursor-pointer transition bg-slate-50/50 dark:bg-slate-950/40">
                   <UploadCloud className="w-7 h-7 text-slate-400 mb-1" />
@@ -453,12 +459,12 @@ export const Documents: React.FC = () => {
                   )}
                   {compressing && (
                     <span className="text-[10px] text-amber-500 font-medium animate-pulse mt-1">
-                      Foto comprimeren & optimaliseren...
+                      {lang === 'nl' ? 'Foto comprimeren & optimaliseren...' : 'Compressing & optimizing image...'}
                     </span>
                   )}
                   {compressionRatio && !compressing && (
                     <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold mt-1">
-                      ✓ Gecomprimeerd: {compressionRatio}
+                      {lang === 'nl' ? `✓ Gecomprimeerd: ${compressionRatio}` : `✓ Compressed: ${compressionRatio}`}
                     </span>
                   )}
                   <input
@@ -481,7 +487,7 @@ export const Documents: React.FC = () => {
                   required
                   value={docName}
                   onChange={(e) => setDocName(e.target.value)}
-                  placeholder="bijv. Kentekenbewijs Deel 1, Polis Univé 2026, APK Rapport"
+                  placeholder={lang === 'nl' ? 'bijv. Kentekenbewijs Deel 1, Polis Univé 2026, APK Rapport' : 'e.g. Registration Part 1, Insurance Policy, Inspection Form'}
                   className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-sky-500"
                 />
               </div>
@@ -528,7 +534,7 @@ export const Documents: React.FC = () => {
                   rows={2}
                   value={docNotes}
                   onChange={(e) => setDocNotes(e.target.value)}
-                  placeholder="Optionele toelichting of polisnummer..."
+                  placeholder={lang === 'nl' ? 'Optionele toelichting of polisnummer...' : 'Optional notes or policy number...'}
                   className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-sky-500"
                 />
               </div>

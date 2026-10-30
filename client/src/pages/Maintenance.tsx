@@ -714,14 +714,14 @@ export const Maintenance: React.FC = () => {
 
               <div>
                 <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
-                  {t('customName')} / Reset Interval
+                  {lang === 'nl' ? 'Koppel aan onderhoudsinterval (optioneel resetten)' : 'Link to maintenance interval (optional reset)'}
                 </label>
                 <select
                   value={matchedIntervalId}
                   onChange={(e) => setMatchedIntervalId(e.target.value)}
                   className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-slate-900 dark:text-white font-medium focus:outline-none focus:border-sky-500 shadow-sm"
                 >
-                  <option value="">{t('all')}</option>
+                  <option value="">{lang === 'nl' ? 'Geen (losse reparatie / geen interval resetten)' : 'None (standalone service / no interval reset)'}</option>
                   {intervals.map((i) => (
                     <option key={i.id} value={i.id}>
                       {translateCategory(i.customName || i.categoryName)}
