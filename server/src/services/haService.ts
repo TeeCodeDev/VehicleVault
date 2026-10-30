@@ -178,7 +178,7 @@ export class HaService {
 
     return {
       status: 'ok',
-      version: '1.0.14',
+      version: '2.0.0',
       timestamp: new Date().toISOString(),
       total_vehicles: resultVehicles.length,
       vehicles: resultVehicles,

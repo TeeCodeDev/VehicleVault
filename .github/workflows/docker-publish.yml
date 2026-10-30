@@ -1,4 +1,4 @@
-name: Docker Build and Publish
+name: Docker Build, Release & Wiki Sync
 
 on:
   push:
@@ -76,3 +76,54 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  release:
+    name: Publish Official Release & Sync Wiki
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Clean up legacy v1.0.x releases and publish v2.0.0 Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Remove any legacy v1.0.x GitHub Releases
+          for old_tag in $(gh release list --limit 50 --json tagName -q '.[].tagName' | grep '^v1\.0\.' || true); do
+            echo "Deleting legacy release: $old_tag"
+            gh release delete "$old_tag" --yes --cleanup-tag || true
+          done
+
+          # Create or update the official v2.0.0 Release
+          if gh release view v2.0.0 >/dev/null 2>&1; then
+            gh release edit v2.0.0 \
+              --title "VehicleVault v2.0.0 — Official Production Release" \
+              --notes-file RELEASE_NOTES.md \
+              --latest
+          else
+            gh release create v2.0.0 \
+              --title "VehicleVault v2.0.0 — Official Production Release" \
+              --notes-file RELEASE_NOTES.md \
+              --latest
+          fi
+
+      - name: Publish docs/wiki to GitHub Wiki (if initialized)
+        continue-on-error: true
+        run: |
+          WIKI_URL="https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.wiki.git"
+          if git clone "$WIKI_URL" /tmp/wiki_repo 2>/dev/null; then
+            cp -r docs/wiki/*.md /tmp/wiki_repo/
+            cd /tmp/wiki_repo
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add -A
+            if ! git diff --cached --quiet; then
+              git commit -m "docs(wiki): sync VehicleVault v2.0.0 documentation"
+              git push origin HEAD
+            fi
+          else
+            echo "GitHub Wiki git repo not yet initialized via UI; docs/wiki is available directly in the main repository."
+          fi

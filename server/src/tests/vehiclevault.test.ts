@@ -769,7 +769,7 @@ Date,Odometer,Fuel_amount,Price,Total_cost,Notes
     it('should generate sensor payload for active vehicles with accurate telemetry', () => {
       const payload = HaService.getSensorsPayload();
       assert.equal(payload.status, 'ok');
-      assert.equal(payload.version, '1.0.14');
+      assert.equal(payload.version, '2.0.0');
       assert.ok(Array.isArray(payload.vehicles));
       assert.ok(payload.total_vehicles >= 1);
 
