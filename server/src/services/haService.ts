@@ -9,6 +9,7 @@ export interface HaVehicleSensorData {
   model: string | null;
   year: number | null;
   status: string;
+  image_url: string | null;
   odometer: number;
   apk: {
     expiration_date: string | null;
@@ -140,6 +141,7 @@ export class HaService {
         model: v.model || null,
         year: v.year || null,
         status: v.status,
+        image_url: v.image_path ? `/uploads/vehicles/${v.image_path}` : null,
         odometer: currentOdo,
         apk: {
           expiration_date: v.apk_expiration_date || null,
@@ -165,6 +167,7 @@ export class HaService {
         },
         attributes: {
           license_plate: v.license_plate,
+          image_url: v.image_path ? `/uploads/vehicles/${v.image_path}` : null,
           odometer_km: currentOdo,
           apk_status: apkStatus,
           apk_days_remaining: apkEval.daysRemaining,
