@@ -32,7 +32,7 @@ export class HaController {
         vehicle = userId
           ? db.get<any>(
               `SELECT * FROM vehicles
-               WHERE id = ? AND (user_id = ? OR id IN (SELECT vehicle_id FROM vehicle_shares WHERE shared_with_user_id = ? AND permission = 'write'))`,
+               WHERE id = ? AND (user_id = ? OR id IN (SELECT vehicle_id FROM vehicle_shares WHERE user_id = ? AND role = 'editor'))`,
               [vehicle_id, userId, userId]
             )
           : db.get<any>('SELECT * FROM vehicles WHERE id = ?', [vehicle_id]);
@@ -42,7 +42,7 @@ export class HaController {
           ? db.get<any>(
               `SELECT * FROM vehicles
                WHERE UPPER(REPLACE(REPLACE(license_plate, "-", ""), " ", "")) = ?
-                 AND (user_id = ? OR id IN (SELECT vehicle_id FROM vehicle_shares WHERE shared_with_user_id = ? AND permission = 'write'))`,
+                 AND (user_id = ? OR id IN (SELECT vehicle_id FROM vehicle_shares WHERE user_id = ? AND role = 'editor'))`,
               [clean, userId, userId]
             )
           : db.get<any>(
@@ -54,7 +54,7 @@ export class HaController {
         const all = userId
           ? db.query<any>(
               `SELECT * FROM vehicles
-               WHERE status = 'active' AND (user_id = ? OR id IN (SELECT vehicle_id FROM vehicle_shares WHERE shared_with_user_id = ? AND permission = 'write'))
+               WHERE status = 'active' AND (user_id = ? OR id IN (SELECT vehicle_id FROM vehicle_shares WHERE user_id = ? AND role = 'editor'))
                LIMIT 2`,
               [userId, userId]
             )

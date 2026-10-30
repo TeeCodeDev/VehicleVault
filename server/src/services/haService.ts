@@ -60,7 +60,7 @@ export class HaService {
           LEFT JOIN (SELECT vehicle_id, MAX(odometer) as max_o FROM odometer_logs GROUP BY vehicle_id) o ON o.vehicle_id = v.id
           LEFT JOIN (SELECT vehicle_id, MAX(end_odometer) as max_t FROM trips GROUP BY vehicle_id) t ON t.vehicle_id = v.id
           WHERE v.status = 'active'
-            AND (v.user_id = ? OR v.id IN (SELECT vehicle_id FROM vehicle_shares WHERE shared_with_user_id = ?))
+            AND (v.user_id = ? OR v.id IN (SELECT vehicle_id FROM vehicle_shares WHERE user_id = ?))
           GROUP BY v.id
           ORDER BY v.created_at ASC
           `,
