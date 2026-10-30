@@ -7,6 +7,7 @@ import { db } from '../db/database.js';
 import { DATA_PATHS } from '../config/env.js';
 import { MaintenanceService } from '../services/maintenanceService.js';
 import { AiReceiptService } from '../services/aiReceiptService.js';
+import { TcoService } from '../services/tcoService.js';
 
 const intervalSchema = z.object({
   vehicle_id: z.string().uuid(),
@@ -34,6 +35,7 @@ const serviceRecordSchema = z.object({
   line_items: z.union([z.string(), z.array(z.any())]).optional().nullable(),
   notes: z.string().optional().nullable(),
   invoice_path: z.string().optional().nullable(),
+  exclude_from_tco: z.union([z.boolean(), z.number()]).optional(),
 });
 
 export class MaintenanceController {
@@ -226,12 +228,22 @@ export class MaintenanceController {
         : JSON.stringify(data.line_items)
       : null;
 
+    const vehicle = db.get<any>('SELECT * FROM vehicles WHERE id = ?', [data.vehicle_id]);
+    const excludeFromTco =
+      data.exclude_from_tco !== undefined
+        ? data.exclude_from_tco
+          ? 1
+          : 0
+        : TcoService.isExcludedFromTco({ date: data.date, odometer: data.odometer }, vehicle)
+          ? 1
+          : 0;
+
     db.run(
       `INSERT INTO service_records (
         id, vehicle_id, category_id, maintenance_interval_id, service_item,
         date, odometer, performing_party, cost, parts_cost, labor_cost,
-        garage_name, garage_address, line_items, notes, invoice_path, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        garage_name, garage_address, line_items, notes, invoice_path, exclude_from_tco, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         data.vehicle_id,
@@ -249,6 +261,7 @@ export class MaintenanceController {
         lineItemsJson,
         data.notes || null,
         data.invoice_path || null,
+        excludeFromTco,
         new Date().toISOString(),
       ]
     );
@@ -331,6 +344,16 @@ export class MaintenanceController {
     const updatedNotes = data.notes !== undefined ? data.notes : existing.notes;
     const updatedInvoicePath = data.invoice_path !== undefined ? data.invoice_path : existing.invoice_path;
 
+    const vehicle = db.get<any>('SELECT * FROM vehicles WHERE id = ?', [existing.vehicle_id]);
+    const updatedExcludeFromTco =
+      data.exclude_from_tco !== undefined
+        ? data.exclude_from_tco
+          ? 1
+          : 0
+        : TcoService.isExcludedFromTco({ date: updatedDate, odometer: updatedOdometer, exclude_from_tco: existing.exclude_from_tco }, vehicle)
+          ? 1
+          : 0;
+
     db.run(
       `UPDATE service_records SET
         service_item = ?,
@@ -344,7 +367,8 @@ export class MaintenanceController {
         garage_address = ?,
         line_items = ?,
         notes = ?,
-        invoice_path = ?
+        invoice_path = ?,
+        exclude_from_tco = ?
        WHERE id = ?`,
       [
         updatedServiceItem,
@@ -359,6 +383,7 @@ export class MaintenanceController {
         lineItemsJson,
         updatedNotes || null,
         updatedInvoicePath || null,
+        updatedExcludeFromTco,
         id,
       ]
     );

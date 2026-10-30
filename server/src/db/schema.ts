@@ -235,6 +235,7 @@ export function initializeDatabase(): void {
       line_items TEXT,
       notes TEXT,
       invoice_path TEXT,
+      exclude_from_tco INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL,
       FOREIGN KEY (vehicle_id) REFERENCES vehicles(id) ON DELETE CASCADE,
       FOREIGN KEY (category_id) REFERENCES service_categories(id) ON DELETE SET NULL,
@@ -256,6 +257,9 @@ export function initializeDatabase(): void {
   }
   if (!columnExists('service_records', 'line_items')) {
     db.exec('ALTER TABLE service_records ADD COLUMN line_items TEXT;');
+  }
+  if (!columnExists('service_records', 'exclude_from_tco')) {
+    db.exec('ALTER TABLE service_records ADD COLUMN exclude_from_tco INTEGER NOT NULL DEFAULT 0;');
   }
   try {
     db.exec('UPDATE service_records SET parts_cost = cost WHERE parts_cost = 0 AND labor_cost = 0 AND cost > 0;');
@@ -483,6 +487,49 @@ export function initializeDatabase(): void {
       );
       if (normalizedName !== d.name) {
         db.run('UPDATE vehicle_documents SET name = ? WHERE id = ?', [normalizedName, d.id]);
+      }
+    }
+  } catch {
+    // Non-fatal migration check
+  }
+
+  // Auto-backfill purchase_date from RDW datum_tenaamstelling if missing, and mark pre-ownership service_records as exclude_from_tco = 1
+  try {
+    const allVehicles = db.query<any>('SELECT id, purchase_date, initial_odometer, rdw_data FROM vehicles');
+    for (const v of allVehicles) {
+      let ownershipDate = v.purchase_date && String(v.purchase_date).trim() ? String(v.purchase_date).trim() : null;
+      if (!ownershipDate && v.rdw_data) {
+        try {
+          const parsedRdw = typeof v.rdw_data === 'string' ? JSON.parse(v.rdw_data) : v.rdw_data;
+          const rawTenaam = parsedRdw?.datum_tenaamstelling || parsedRdw?.raw?.datum_tenaamstelling;
+          if (rawTenaam) {
+            const s = String(rawTenaam).trim();
+            if (/^\d{8}$/.test(s)) {
+              ownershipDate = `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`;
+            } else if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
+              ownershipDate = s.slice(0, 10);
+            }
+            if (ownershipDate) {
+              db.run('UPDATE vehicles SET purchase_date = ? WHERE id = ? AND (purchase_date IS NULL OR purchase_date = "")', [
+                ownershipDate,
+                v.id,
+              ]);
+            }
+          }
+        } catch {}
+      }
+
+      if (ownershipDate) {
+        db.run(
+          'UPDATE service_records SET exclude_from_tco = 1 WHERE vehicle_id = ? AND date < ?',
+          [v.id, ownershipDate]
+        );
+      }
+      if (v.initial_odometer && Number(v.initial_odometer) > 0) {
+        db.run(
+          'UPDATE service_records SET exclude_from_tco = 1 WHERE vehicle_id = ? AND odometer > 0 AND odometer < ?',
+          [v.id, Number(v.initial_odometer)]
+        );
       }
     }
   } catch {

@@ -151,6 +151,7 @@ export interface ServiceRecord {
   line_items?: string | null;
   notes?: string | null;
   invoice_path?: string | null;
+  exclude_from_tco?: number | boolean;
   created_at: string;
 }
 

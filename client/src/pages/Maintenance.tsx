@@ -70,6 +70,7 @@ export const Maintenance: React.FC = () => {
   const [extractedLineItems, setExtractedLineItems] = useState<InvoiceLineItem[]>([]);
   const [serviceNotes, setServiceNotes] = useState('');
   const [matchedIntervalId, setMatchedIntervalId] = useState<string>('');
+  const [excludeFromTco, setExcludeFromTco] = useState(false);
   const [invoiceFile, setInvoiceFile] = useState<File | null>(null);
   const [uploadedInvoiceFileName, setUploadedInvoiceFileName] = useState<string | null>(null);
   const [submittingService, setSubmittingService] = useState(false);
@@ -156,6 +157,73 @@ export const Maintenance: React.FC = () => {
     }
   };
 
+  const getVehicleOwnershipStart = (v: Vehicle | null): string | null => {
+    if (!v) return null;
+    if (v.purchase_date && v.purchase_date.trim()) {
+      return v.purchase_date.trim().slice(0, 10);
+    }
+    if (v.rdw_data) {
+      try {
+        const parsed = typeof v.rdw_data === 'string' ? JSON.parse(v.rdw_data) : v.rdw_data;
+        const rawTenaam = parsed?.datum_tenaamstelling || parsed?.raw?.datum_tenaamstelling;
+        if (rawTenaam) {
+          const s = String(rawTenaam).trim();
+          if (/^\d{8}$/.test(s)) {
+            return `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`;
+          }
+          if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
+            return s.slice(0, 10);
+          }
+        }
+      } catch {}
+    }
+    return null;
+  };
+
+  const isPreOwnershipRecord = (
+    rec: { date?: string; odometer?: number; exclude_from_tco?: number | boolean },
+    v: Vehicle | null
+  ): boolean => {
+    if (!rec) return false;
+    if (rec.exclude_from_tco === 1 || rec.exclude_from_tco === true) return true;
+    if (!v) return false;
+
+    const ownershipStart = getVehicleOwnershipStart(v);
+    if (ownershipStart && rec.date && rec.date.slice(0, 10) < ownershipStart) {
+      return true;
+    }
+
+    const initOdo = Number(v.initial_odometer) || 0;
+    const recOdo = Number(rec.odometer) || 0;
+    if (initOdo > 0 && recOdo > 0 && recOdo < initOdo) {
+      return true;
+    }
+
+    return false;
+  };
+
+  const handleServiceDateChange = (newDate: string) => {
+    setServiceDate(newDate);
+    if (selectedVehicle) {
+      const autoExclude = isPreOwnershipRecord(
+        { date: newDate, odometer: parseFloat(serviceOdometer) || 0 },
+        selectedVehicle
+      );
+      setExcludeFromTco(autoExclude);
+    }
+  };
+
+  const handleServiceOdometerChange = (newOdoStr: string) => {
+    setServiceOdometer(newOdoStr);
+    if (selectedVehicle) {
+      const autoExclude = isPreOwnershipRecord(
+        { date: serviceDate, odometer: parseFloat(newOdoStr) || 0 },
+        selectedVehicle
+      );
+      setExcludeFromTco(autoExclude);
+    }
+  };
+
   const openNewServiceModal = () => {
     setEditingRecord(null);
     setServiceItem('');
@@ -171,6 +239,7 @@ export const Maintenance: React.FC = () => {
     setExtractedLineItems([]);
     setServiceNotes('');
     setMatchedIntervalId('');
+    setExcludeFromTco(false);
     setInvoiceFile(null);
     setUploadedInvoiceFileName(null);
     setScanExtraction(null);
@@ -198,6 +267,7 @@ export const Maintenance: React.FC = () => {
     setExtractedLineItems(Array.isArray(parsedItems) ? parsedItems : []);
     setServiceNotes(rec.notes || '');
     setMatchedIntervalId(rec.maintenance_interval_id || '');
+    setExcludeFromTco(isPreOwnershipRecord(rec, selectedVehicle));
     setInvoiceFile(null);
     setUploadedInvoiceFileName(rec.invoice_path || null);
     setScanExtraction(null);
@@ -238,6 +308,9 @@ export const Maintenance: React.FC = () => {
         setScanExtraction(ext);
         setPerformingParty('garage');
 
+        const nextDate = ext.date || serviceDate;
+        const nextOdo = ext.odometer && ext.odometer > 0 ? ext.odometer : parseFloat(serviceOdometer) || 0;
+
         if (ext.serviceTitle) {
           setServiceItem(ext.serviceTitle);
         }
@@ -246,6 +319,11 @@ export const Maintenance: React.FC = () => {
         }
         if (ext.odometer && ext.odometer > 0) {
           setServiceOdometer(String(ext.odometer));
+        }
+        if (selectedVehicle) {
+          setExcludeFromTco(
+            isPreOwnershipRecord({ date: nextDate, odometer: nextOdo }, selectedVehicle)
+          );
         }
         if (ext.garageName) {
           setGarageName(ext.garageName);
@@ -335,6 +413,7 @@ export const Maintenance: React.FC = () => {
         line_items: extractedLineItems.length > 0 ? JSON.stringify(extractedLineItems) : null,
         notes: serviceNotes || null,
         invoice_path: finalInvoicePath || null,
+        exclude_from_tco: excludeFromTco ? 1 : 0,
         maintenance_interval_id: matchedIntervalId || undefined,
       };
 
@@ -469,10 +548,12 @@ export const Maintenance: React.FC = () => {
     return <div className="text-slate-400 text-xs py-8">{t('welcomeSubtitle')}</div>;
   }
 
-  const totalSpend = records.reduce((sum, r) => sum + (r.cost || 0), 0);
-  const totalParts = records.reduce((sum, r) => sum + (r.parts_cost ?? (r.performing_party === 'self' ? r.cost : 0)), 0);
-  const totalLabor = records.reduce((sum, r) => sum + (r.labor_cost ?? 0), 0);
-  const diyRecords = records.filter((r) => r.performing_party === 'self');
+  const ownRecords = records.filter((r) => !isPreOwnershipRecord(r, selectedVehicle));
+  const preOwnershipCount = records.length - ownRecords.length;
+  const totalSpend = ownRecords.reduce((sum, r) => sum + (r.cost || 0), 0);
+  const totalParts = ownRecords.reduce((sum, r) => sum + (r.parts_cost ?? (r.performing_party === 'self' ? r.cost : 0)), 0);
+  const totalLabor = ownRecords.reduce((sum, r) => sum + (r.labor_cost ?? 0), 0);
+  const diyRecords = ownRecords.filter((r) => r.performing_party === 'self');
   const totalDiySavings = diyRecords.reduce((sum, r) => {
     const parts = r.parts_cost ?? r.cost ?? 0;
     const saved = Math.max(65, parts > 0 ? parts * 0.85 : 75);
@@ -520,7 +601,13 @@ export const Maintenance: React.FC = () => {
           <div className="text-lg font-bold text-slate-900 dark:text-white font-mono">
             € {totalSpend.toFixed(2)}
           </div>
-          <span className="text-[10px] text-slate-400">{records.length} records</span>
+          <span className="text-[10px] text-slate-400">
+            {preOwnershipCount > 0
+              ? lang === 'nl'
+                ? `${ownRecords.length} eigen • ${preOwnershipCount} historie (buiten TCO)`
+                : `${ownRecords.length} own • ${preOwnershipCount} pre-ownership (excl. TCO)`
+              : `${ownRecords.length} records`}
+          </span>
         </div>
 
         <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-xl p-4 shadow-sm">
@@ -772,7 +859,29 @@ export const Maintenance: React.FC = () => {
                         </div>
                       </td>
                       <td className="py-3.5 px-4 font-mono whitespace-nowrap">
-                        <div className="font-bold text-slate-900 dark:text-white">€ {r.cost.toFixed(2)}</div>
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className={`font-bold ${
+                              isPreOwnershipRecord(r, selectedVehicle)
+                                ? 'text-slate-400 dark:text-slate-500'
+                                : 'text-slate-900 dark:text-white'
+                            }`}
+                          >
+                            € {r.cost.toFixed(2)}
+                          </span>
+                          {isPreOwnershipRecord(r, selectedVehicle) && (
+                            <span
+                              className="px-1.5 py-0.5 rounded text-[9px] font-sans font-bold bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/60"
+                              title={
+                                lang === 'nl'
+                                  ? 'Historische onderhoudsbeurt van vóór aankoop — telt niet mee in jouw eigen TCO-kosten'
+                                  : 'Pre-ownership maintenance record — excluded from your TCO costs'
+                              }
+                            >
+                              {lang === 'nl' ? 'Vorige eigenaar (buiten TCO)' : 'Pre-ownership (excl. TCO)'}
+                            </span>
+                          )}
+                        </div>
                         {(r.parts_cost !== undefined || r.labor_cost !== undefined) && (
                           <div className="text-[10px] text-slate-500 dark:text-slate-400 font-sans mt-0.5">
                             <span>{t('partsCostShort')}: €{(r.parts_cost ?? (r.performing_party === 'self' ? r.cost : 0)).toFixed(0)}</span>
@@ -1015,7 +1124,7 @@ export const Maintenance: React.FC = () => {
                   <DatePicker
                     label={t('date')}
                     value={serviceDate}
-                    onChange={setServiceDate}
+                    onChange={handleServiceDateChange}
                     required
                   />
                 </div>
@@ -1027,11 +1136,39 @@ export const Maintenance: React.FC = () => {
                     type="number"
                     required
                     value={serviceOdometer}
-                    onChange={(e) => setServiceOdometer(e.target.value)}
+                    onChange={(e) => handleServiceOdometerChange(e.target.value)}
                     className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-1.5 text-slate-900 dark:text-white font-mono font-bold focus:outline-none focus:border-sky-500 shadow-sm"
                   />
                 </div>
               </div>
+
+              {/* Pre-ownership / Exclude from TCO Toggle */}
+              <label
+                className={`flex items-start space-x-3 p-3 rounded-xl border cursor-pointer transition ${
+                  excludeFromTco
+                    ? 'bg-amber-50/80 dark:bg-amber-950/30 border-amber-300 dark:border-amber-800/70 text-amber-900 dark:text-amber-200'
+                    : 'bg-slate-50/70 dark:bg-slate-950/50 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300'
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={excludeFromTco}
+                  onChange={(e) => setExcludeFromTco(e.target.checked)}
+                  className="mt-0.5 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                />
+                <div className="text-[11px] leading-relaxed">
+                  <span className="font-bold block">
+                    {lang === 'nl'
+                      ? 'Historische beurt / Vorige eigenaar (buiten eigen TCO houden)'
+                      : 'Pre-ownership service / Previous owner (exclude from my TCO)'}
+                  </span>
+                  <span className="text-[10px] opacity-80">
+                    {lang === 'nl'
+                      ? 'Wordt automatisch aangevinkt als de factuurdatum of kilometerstand vóór jouw aankoop valt. Wel zichtbaar in het onderhoudspaspoort, niet meegenomen in jouw TCO-kosten.'
+                      : 'Automatically checked when invoice date or odometer is prior to your purchase. Kept in service passport, excluded from your TCO costs.'}
+                  </span>
+                </div>
+              </label>
 
               {/* Performing Party */}
               <div>

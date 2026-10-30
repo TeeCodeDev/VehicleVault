@@ -109,6 +109,59 @@ export interface VehicleTcoSummary {
 }
 
 export class TcoService {
+  /**
+   * Returns the effective ownership start date (YYYY-MM-DD) for a vehicle,
+   * checking purchase_date first and falling back to RDW datum_tenaamstelling.
+   */
+  public static getOwnershipStartDate(vehicle: any): string | null {
+    if (!vehicle) return null;
+    if (vehicle.purchase_date && typeof vehicle.purchase_date === 'string' && vehicle.purchase_date.trim()) {
+      return vehicle.purchase_date.trim().slice(0, 10);
+    }
+    if (vehicle.rdw_data) {
+      try {
+        const parsed = typeof vehicle.rdw_data === 'string' ? JSON.parse(vehicle.rdw_data) : vehicle.rdw_data;
+        const rawTenaam = parsed?.datum_tenaamstelling || parsed?.raw?.datum_tenaamstelling;
+        if (rawTenaam) {
+          const s = String(rawTenaam).trim();
+          if (/^\d{8}$/.test(s)) {
+            return `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`;
+          }
+          if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
+            return s.slice(0, 10);
+          }
+        }
+      } catch {}
+    }
+    return null;
+  }
+
+  /**
+   * Determines whether a service record belongs to pre-ownership history
+   * (either explicitly marked exclude_from_tco, dated before purchase/tenaamstelling,
+   * or logged at an odometer reading lower than initial_odometer).
+   */
+  public static isExcludedFromTco(record: any, vehicle: any): boolean {
+    if (!record) return false;
+    if (record.exclude_from_tco === 1 || record.exclude_from_tco === true) {
+      return true;
+    }
+    if (!vehicle) return false;
+
+    const ownershipStart = TcoService.getOwnershipStartDate(vehicle);
+    if (ownershipStart && record.date && String(record.date).slice(0, 10) < ownershipStart) {
+      return true;
+    }
+
+    const initOdo = Number(vehicle.initial_odometer) || 0;
+    const recOdo = Number(record.odometer) || 0;
+    if (initOdo > 0 && recOdo > 0 && recOdo < initOdo) {
+      return true;
+    }
+
+    return false;
+  }
+
   public static calculateTco(options: TcoFilterOptions): VehicleTcoSummary {
     const {
       vehicleId,
@@ -171,7 +224,9 @@ export class TcoService {
     }
     serviceSql += ' ORDER BY date ASC';
 
-    const serviceEntries = db.query<any>(serviceSql, serviceParams);
+    const allServiceEntries = db.query<any>(serviceSql, serviceParams);
+    // Exclude pre-ownership / previous owner maintenance invoices from TCO calculations
+    const serviceEntries = allServiceEntries.filter((s) => !TcoService.isExcludedFromTco(s, vehicle));
 
     // 1. Calculate Fuel Trends & Economy
     const fuelTrends: FuelTrendPoint[] = [];

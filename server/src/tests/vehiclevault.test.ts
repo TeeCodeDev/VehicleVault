@@ -323,6 +323,38 @@ describe('VehicleVault Comprehensive Test Suite', () => {
       assert.equal(tco.priceStats.avgPrice, 1.947);
     });
 
+    it('should exclude pre-ownership service records (before purchase_date or below initial_odometer) from TCO', () => {
+      // testVehicleId has purchase_date = '2023-01-15' and initial_odometer = 50000
+      const preDateRecId = crypto.randomUUID();
+      const preOdoRecId = crypto.randomUUID();
+
+      // 1. Invoice dated 2021-05-10 (before purchase_date 2023-01-15)
+      db.run(
+        `INSERT INTO service_records (id, vehicle_id, service_item, date, odometer, performing_party, cost, created_at)
+         VALUES (?, ?, ?, ?, ?, 'garage', ?, ?)`,
+        [preDateRecId, testVehicleId, 'Grote Beurt Vorige Eigenaar', '2021-05-10', 38000, 680, new Date().toISOString()]
+      );
+
+      // 2. Invoice dated 2023-02-01 but odometer 42000 (< initial_odometer 50000)
+      db.run(
+        `INSERT INTO service_records (id, vehicle_id, service_item, date, odometer, performing_party, cost, created_at)
+         VALUES (?, ?, ?, ?, ?, 'garage', ?, ?)`,
+        [preOdoRecId, testVehicleId, 'Import Inspectie Duitsland', '2023-02-01', 42000, 320, new Date().toISOString()]
+      );
+
+      try {
+        const tco = TcoService.calculateTco({
+          vehicleId: testVehicleId,
+          includePurchasePrice: false,
+        });
+
+        // Neither the €680 nor the €320 pre-ownership invoice should be added to the €250 own service total
+        assert.equal(tco.serviceTotal, 250.0);
+        assert.equal(tco.totalCost, 415.5);
+      } finally {
+        db.run('DELETE FROM service_records WHERE id IN (?, ?)', [preDateRecId, preOdoRecId]);
+      }
+    });
   });
 
   describe('CSV Import Engine', () => {
