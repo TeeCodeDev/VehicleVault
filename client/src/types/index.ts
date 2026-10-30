@@ -278,6 +278,15 @@ export interface ApiKeyItem {
   created_at: string;
 }
 
+export interface PasskeyItem {
+  id: string;
+  label: string;
+  deviceType: string | null;
+  backedUp: boolean;
+  createdAt: string;
+  lastUsedAt: string | null;
+}
+
 export interface RecurringExpense {
   id: string;
   vehicle_id: string;

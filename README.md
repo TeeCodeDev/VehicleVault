@@ -119,6 +119,7 @@
 - **Vehicle Sharing:** Share specific vehicles with household members or co-drivers with `Editor` or `Viewer` permissions.
 - **Modular Navigation:** Enable or disable individual platform modules in Settings to tailor the interface to your needs.
 - **Single Sign-On (SSO):** Optional reverse-proxy header authentication (Authelia, Authentik, Pangolin, Cloudflare Access, Traefik).
+- **Passkeys:** Sign in with fingerprint, face or device PIN (WebAuthn) next to your password, with one-time recovery codes. Needs a domain name and HTTPS; see the [security wiki page](docs/wiki/Notifications-and-Security.md#4-passkeys--recovery-codes).
 
 ### 🔔 Push & Email Notifications
 - **Automated Alerts:** Dispatches reminders when APK inspections, maintenance intervals, or vehicle documents are approaching expiry (< 30d, < 7d).
@@ -230,7 +231,8 @@ npm run dev:all
 
 - **Zero Telemetry / Self-Contained:** No tracking, analytics, or third-party cookies.
 - **JWT & HTTP-Only Cookies:** Persistent access tokens paired with `SameSite=Lax` secure refresh cookies.
-- **Hashed Secrets:** Passwords hashed with bcrypt; API keys and tokens hashed with SHA-256.
+- **Hashed Secrets:** Passwords hashed with bcrypt; API keys, tokens and passkey recovery codes hashed with SHA-256.
+- **Passkeys (WebAuthn):** Verified with the maintained `@simplewebauthn/server` library; only public keys are stored.
 - **Path Traversal Protection:** All file upload and download endpoints strictly sanitize paths with `path.basename`.
 - **Health Checks:** Diagnostic endpoint available at `/healthz`.
 

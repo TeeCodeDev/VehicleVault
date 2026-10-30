@@ -1,14 +1,19 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { User } from '../types/index.js';
 import { apiFetch, setAuthToken, getAuthToken } from '../api/client.js';
+import { signInWithPasskey, passkeysSupported } from '../utils/passkeys.js';
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   authDisabled: boolean;
   hasUsers: boolean;
+  passkeyAvailable: boolean;
+  passkeyUnavailableReason: string | null;
   login: (email: string, pass: string, rememberMe?: boolean) => Promise<void>;
   register: (email: string, pass: string) => Promise<void>;
+  loginWithPasskey: () => Promise<void>;
+  loginWithRecoveryCode: (code: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshAuthStatus: () => Promise<void>;
 }
@@ -20,6 +25,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const [authDisabled, setAuthDisabled] = useState(false);
   const [hasUsers, setHasUsers] = useState(true);
+  const [serverPasskeyAvailable, setServerPasskeyAvailable] = useState(false);
+  const [passkeyUnavailableReason, setPasskeyUnavailableReason] = useState<string | null>(null);
 
   const checkAuth = useCallback(async () => {
     try {
@@ -30,6 +37,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (typeof statusRes?.hasUsers === 'boolean') {
         setHasUsers(statusRes.hasUsers);
       }
+      setServerPasskeyAvailable(statusRes?.passkeyAvailable === true);
+      setPasskeyUnavailableReason(statusRes?.passkeyUnavailableReason || null);
 
       if (statusRes?.isProxyAuth && statusRes.user) {
         setUser(statusRes.user);
@@ -98,6 +107,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(res.user);
   };
 
+  const loginWithPasskey = async () => {
+    const res = await signInWithPasskey();
+    setAuthToken(res.accessToken);
+    setUser(res.user);
+  };
+
+  const loginWithRecoveryCode = async (code: string) => {
+    const res = await apiFetch<{ accessToken: string; user: User }>('/api/auth/recovery/redeem', {
+      method: 'POST',
+      body: JSON.stringify({ code }),
+    });
+    setAuthToken(res.accessToken);
+    setUser(res.user);
+  };
+
   const register = async (email: string, pass: string) => {
     const res = await apiFetch<{ accessToken: string; user: User }>('/api/auth/register', {
       method: 'POST',
@@ -126,8 +150,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         loading,
         authDisabled,
         hasUsers,
+        passkeyAvailable: serverPasskeyAvailable && passkeysSupported(),
+        passkeyUnavailableReason:
+          passkeyUnavailableReason ||
+          (serverPasskeyAvailable && !passkeysSupported() ? 'Deze browser ondersteunt geen passkeys.' : null),
         login,
         register,
+        loginWithPasskey,
+        loginWithRecoveryCode,
         logout,
         refreshAuthStatus: checkAuth,
       }}
