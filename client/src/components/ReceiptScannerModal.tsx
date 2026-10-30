@@ -15,10 +15,18 @@ import {
   Zap,
   ZapOff,
   RefreshCw,
+  Crop,
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext.js';
 import { compressImage } from '../utils/imageCompressor.js';
 import { formatDisplayDate } from '../utils/format.js';
+import {
+  detectReceiptInVideo,
+  renderReceiptHud,
+  containerToVideo,
+  DetectedReceipt,
+  Rect,
+} from '../utils/receiptDetector.js';
 
 interface ReceiptScannerModalProps {
   isOpen: boolean;
@@ -35,10 +43,17 @@ interface ReceiptScannerModalProps {
   }) => void;
 }
 
-export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({ isOpen, onClose, onExtracted }) => {
+export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({
+  isOpen,
+  onClose,
+  onExtracted,
+}) => {
   const { t, lang } = useLanguage();
   const [activeTab, setActiveTab] = useState<'camera' | 'upload'>('camera');
   const [file, setFile] = useState<File | null>(null);
+  const [fullFile, setFullFile] = useState<File | null>(null);
+  const [croppedFile, setCroppedFile] = useState<File | null>(null);
+  const [isCroppedActive, setIsCroppedActive] = useState(true);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -46,13 +61,20 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({ isOpen
   const [engineInfo, setEngineInfo] = useState<{ name: string; isAi: boolean } | null>(null);
 
   // Live Camera Viewfinder State
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const hudCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
   const [cameraLoading, setCameraLoading] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [hasTorch, setHasTorch] = useState(false);
   const [torchOn, setTorchOn] = useState(false);
+
+  // Real-time Receipt Edge Detection State
+  const [isAutoDetectEnabled, setIsAutoDetectEnabled] = useState(true);
+  const [detectedReceipt, setDetectedReceipt] = useState<DetectedReceipt | null>(null);
+  const latestDetectionRef = useRef<DetectedReceipt | null>(null);
 
   // Fetch AI engine settings
   useEffect(() => {
@@ -64,15 +86,27 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({ isOpen
         .then((r) => r.json())
         .then((data) => {
           if (data.provider === 'gemini' && data.hasGeminiKey) {
-            setEngineInfo({ name: `Google Gemini (${data.geminiModel || '3.8-flash'})`, isAi: true });
+            setEngineInfo({
+              name: `Google Gemini (${data.geminiModel || '3.8-flash'})`,
+              isAi: true,
+            });
           } else if (data.provider === 'openai' && data.hasOpenaiKey) {
-            setEngineInfo({ name: `OpenAI Vision (${data.openaiModel || 'gpt-4o-mini'})`, isAi: true });
+            setEngineInfo({
+              name: `OpenAI Vision (${data.openaiModel || 'gpt-4o-mini'})`,
+              isAi: true,
+            });
           } else {
-            setEngineInfo({ name: lang === 'nl' ? 'Tesseract OCR (Lokaal)' : 'Tesseract OCR (Local)', isAi: false });
+            setEngineInfo({
+              name: lang === 'nl' ? 'Tesseract OCR (Lokaal)' : 'Tesseract OCR (Local)',
+              isAi: false,
+            });
           }
         })
         .catch(() => {
-          setEngineInfo({ name: lang === 'nl' ? 'Tesseract OCR (Lokaal)' : 'Tesseract OCR (Local)', isAi: false });
+          setEngineInfo({
+            name: lang === 'nl' ? 'Tesseract OCR (Lokaal)' : 'Tesseract OCR (Local)',
+            isAi: false,
+          });
         });
 
       (window as any).__setReceiptModalState = (result: any, preview: string) => {
@@ -98,6 +132,8 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({ isOpen
       videoRef.current.srcObject = null;
     }
     setTorchOn(false);
+    setDetectedReceipt(null);
+    latestDetectionRef.current = null;
   };
 
   // Start live camera stream
@@ -166,10 +202,77 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({ isOpen
     };
   }, [isOpen, activeTab, previewUrl, facingMode]);
 
+  // Real-time Receipt Detection & HUD Animation Loop
+  useEffect(() => {
+    if (!isOpen || activeTab !== 'camera' || previewUrl || !stream) {
+      return;
+    }
+
+    let animId: number;
+    let lastScanTime = 0;
+
+    const loop = (now: number) => {
+      const video = videoRef.current;
+      const hud = hudCanvasRef.current;
+      const container = containerRef.current;
+
+      if (video && hud && container && video.readyState >= 2 && video.videoWidth > 0) {
+        const contW = container.clientWidth;
+        const contH = container.clientHeight;
+
+        if (hud.width !== contW || hud.height !== contH) {
+          hud.width = contW;
+          hud.height = contH;
+        }
+
+        // Tall receipt aspect ratio (ratio ~ 1:2.2, width 58%, height 84%)
+        const guideW = Math.round(contW * 0.58);
+        const guideH = Math.round(contH * 0.84);
+        const guideX = Math.round((contW - guideW) / 2);
+        const guideY = Math.round((contH - guideH) / 2);
+        const guideRect: Rect = { x: guideX, y: guideY, width: guideW, height: guideH };
+
+        // Throttle edge detection to every 100ms
+        if (now - lastScanTime >= 100) {
+          lastScanTime = now;
+          if (isAutoDetectEnabled) {
+            const detected = detectReceiptInVideo(video, latestDetectionRef.current);
+            latestDetectionRef.current = detected;
+            setDetectedReceipt(detected);
+          } else {
+            latestDetectionRef.current = null;
+            setDetectedReceipt(null);
+          }
+        }
+
+        // Draw HUD overlay every animation frame
+        renderReceiptHud(
+          hud,
+          contW,
+          contH,
+          video.videoWidth,
+          video.videoHeight,
+          latestDetectionRef.current,
+          guideRect
+        );
+      }
+
+      animId = requestAnimationFrame(loop);
+    };
+
+    animId = requestAnimationFrame(loop);
+
+    return () => {
+      cancelAnimationFrame(animId);
+    };
+  }, [isOpen, activeTab, previewUrl, stream, isAutoDetectEnabled]);
+
   // Reset state on modal close
   const handleClose = () => {
     stopCameraStream();
     setFile(null);
+    setFullFile(null);
+    setCroppedFile(null);
     setPreviewUrl(null);
     setOcrResult(null);
     setError(null);
@@ -200,38 +303,111 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({ isOpen
     }
   };
 
-  // Capture frame from live viewfinder video
+  // Capture photo with smart receipt auto-crop or viewport guide crop
   const handleCapturePhoto = async () => {
-    if (!videoRef.current) return;
+    if (!videoRef.current || !containerRef.current) return;
     const video = videoRef.current;
-    const width = video.videoWidth || 1280;
-    const height = video.videoHeight || 720;
+    const container = containerRef.current;
 
-    const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    const vidW = video.videoWidth;
+    const vidH = video.videoHeight;
+    if (!vidW || !vidH) return;
 
-    ctx.drawImage(video, 0, 0, width, height);
+    const contW = container.clientWidth;
+    const contH = container.clientHeight;
 
-    canvas.toBlob(
-      async (blob) => {
-        if (!blob) return;
-        const capturedFile = new File([blob], `tankbon_${Date.now()}.jpg`, {
+    // 1. Capture Full Sensor Frame
+    const fullCanvas = document.createElement('canvas');
+    fullCanvas.width = vidW;
+    fullCanvas.height = vidH;
+    const fullCtx = fullCanvas.getContext('2d');
+    if (!fullCtx) return;
+    fullCtx.drawImage(video, 0, 0, vidW, vidH);
+
+    const fullBlob: Blob = await new Promise((res) =>
+      fullCanvas.toBlob((b) => res(b!), 'image/jpeg', 0.92)
+    );
+    const capturedFullFile = new File([fullBlob], `tankbon_full_${Date.now()}.jpg`, {
+      type: 'image/jpeg',
+      lastModified: Date.now(),
+    });
+
+    // 2. Determine Smart Crop Region in native video coordinates
+    let cropX = 0;
+    let cropY = 0;
+    let cropW = vidW;
+    let cropH = vidH;
+    let isCropApplied = false;
+
+    const activeDetection = latestDetectionRef.current || detectedReceipt;
+
+    if (activeDetection && activeDetection.isDetected) {
+      // Auto-Crop directly to the detected receipt with safe 4% padding
+      cropX = Math.max(0, Math.round(activeDetection.boundingRect.x));
+      cropY = Math.max(0, Math.round(activeDetection.boundingRect.y));
+      cropW = Math.min(vidW - cropX, Math.round(activeDetection.boundingRect.width));
+      cropH = Math.min(vidH - cropY, Math.round(activeDetection.boundingRect.height));
+      isCropApplied = cropW > 80 && cropH > 80;
+    } else {
+      // Fallback: Crop accurately to the visible tall receipt guide frame in the viewport
+      const guideW = Math.round(contW * 0.58);
+      const guideH = Math.round(contH * 0.84);
+      const guideX = Math.round((contW - guideW) / 2);
+      const guideY = Math.round((contH - guideH) / 2);
+
+      const pTL = containerToVideo(guideX, guideY, contW, contH, vidW, vidH);
+      const pBR = containerToVideo(guideX + guideW, guideY + guideH, contW, contH, vidW, vidH);
+
+      cropX = Math.max(0, Math.round(Math.min(pTL.x, pBR.x)));
+      cropY = Math.max(0, Math.round(Math.min(pTL.y, pBR.y)));
+      const cropMaxX = Math.min(vidW, Math.round(Math.max(pTL.x, pBR.x)));
+      const cropMaxY = Math.min(vidH, Math.round(Math.max(pTL.y, pBR.y)));
+
+      cropW = cropMaxX - cropX;
+      cropH = cropMaxY - cropY;
+      isCropApplied = cropW > 100 && cropH > 100;
+    }
+
+    // 3. Create the Cropped Image Canvas
+    let selectedFile = capturedFullFile;
+    if (isCropApplied && cropW > 60 && cropH > 60) {
+      const cropCanvas = document.createElement('canvas');
+      cropCanvas.width = cropW;
+      cropCanvas.height = cropH;
+      const cropCtx = cropCanvas.getContext('2d');
+      if (cropCtx) {
+        cropCtx.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+        const croppedBlob: Blob = await new Promise((res) =>
+          cropCanvas.toBlob((b) => res(b!), 'image/jpeg', 0.92)
+        );
+        selectedFile = new File([croppedBlob], `tankbon_${Date.now()}.jpg`, {
           type: 'image/jpeg',
           lastModified: Date.now(),
         });
-        const compressed = await compressImage(capturedFile);
-        setFile(compressed);
-        setPreviewUrl(URL.createObjectURL(compressed));
-        setOcrResult(null);
-        setError(null);
-        stopCameraStream();
-      },
-      'image/jpeg',
-      0.9
-    );
+      }
+    }
+
+    const compressedCropped = await compressImage(selectedFile);
+    const compressedFull = await compressImage(capturedFullFile);
+
+    setCroppedFile(compressedCropped);
+    setFullFile(compressedFull);
+    setIsCroppedActive(true);
+    setFile(compressedCropped);
+    setPreviewUrl(URL.createObjectURL(compressedCropped));
+    setOcrResult(null);
+    setError(null);
+    stopCameraStream();
+  };
+
+  // Toggle between cropped receipt and full sensor photo in preview
+  const handleToggleCrop = async () => {
+    if (!croppedFile || !fullFile) return;
+    const nextState = !isCroppedActive;
+    setIsCroppedActive(nextState);
+    const targetFile = nextState ? croppedFile : fullFile;
+    setFile(targetFile);
+    setPreviewUrl(URL.createObjectURL(targetFile));
   };
 
   // Rotate preview 90 degrees clockwise
@@ -273,6 +449,8 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({ isOpen
   // Retake photo / choose different file
   const handleRetake = () => {
     setFile(null);
+    setFullFile(null);
+    setCroppedFile(null);
     setPreviewUrl(null);
     setOcrResult(null);
     setError(null);
@@ -287,6 +465,8 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({ isOpen
       const selected = e.target.files[0];
       const compressed = await compressImage(selected);
       setFile(compressed);
+      setFullFile(compressed);
+      setCroppedFile(null);
       setPreviewUrl(URL.createObjectURL(compressed));
       setOcrResult(null);
       setError(null);
@@ -379,7 +559,9 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({ isOpen
             </div>
             <div>
               <div className="flex items-center space-x-2">
-                <h3 className="font-bold text-sm text-slate-900 dark:text-white">{t('ocrReceiptScanner')}</h3>
+                <h3 className="font-bold text-sm text-slate-900 dark:text-white">
+                  {t('ocrReceiptScanner')}
+                </h3>
                 {engineInfo && (
                   <span
                     className={`inline-flex items-center space-x-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
@@ -388,20 +570,24 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({ isOpen
                         : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
                     }`}
                   >
-                    {engineInfo.isAi ? <Sparkles className="w-2.5 h-2.5 text-indigo-500" /> : null}
+                    {engineInfo.isAi ? (
+                      <Sparkles className="w-2.5 h-2.5 text-indigo-500" />
+                    ) : null}
                     <span>{engineInfo.name}</span>
                   </span>
                 )}
               </div>
               <p className="text-[11px] text-slate-500">
-                {lang === 'nl' ? 'Live viewfinder of upload voor automatische bonherkenning' : 'Live viewfinder or upload for instant receipt scanning'}
+                {lang === 'nl'
+                  ? 'Live viewfinder met automatische randdetectie of bestand uploaden'
+                  : 'Live viewfinder with automatic receipt contour detection'}
               </p>
             </div>
           </div>
           <button
             onClick={handleClose}
             className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg transition"
-            title="Sluiten"
+            title={lang === 'nl' ? 'Sluiten' : 'Close'}
           >
             <X className="w-5 h-5" />
           </button>
@@ -449,9 +635,12 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({ isOpen
         )}
 
         <div className="space-y-3.5">
-          {/* TAB 1: LIVE CAMERA VIEWFINDER */}
+          {/* TAB 1: LIVE CAMERA VIEWFINDER WITH REAL-TIME DOCUMENT DETECTION */}
           {activeTab === 'camera' && !previewUrl && (
-            <div className="relative rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 shadow-inner aspect-[3/4] max-h-[420px] flex items-center justify-center">
+            <div
+              ref={containerRef}
+              className="relative rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 shadow-inner w-full aspect-[3/4] sm:aspect-[4/5] min-h-[420px] max-h-[64vh] flex items-center justify-center"
+            >
               {/* Camera Error / Permission Fallback */}
               {cameraError ? (
                 <div className="p-6 text-center text-slate-300 max-w-xs space-y-3">
@@ -480,7 +669,7 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({ isOpen
                 </div>
               ) : (
                 <>
-                  {/* Live Video Feed */}
+                  {/* Live Video Stream */}
                   <video
                     ref={videoRef}
                     autoPlay
@@ -489,31 +678,77 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({ isOpen
                     className="w-full h-full object-cover"
                   />
 
+                  {/* Real-time Document Contour HUD Canvas */}
+                  <canvas
+                    ref={hudCanvasRef}
+                    className="absolute inset-0 pointer-events-none w-full h-full z-10"
+                  />
+
                   {cameraLoading && (
-                    <div className="absolute inset-0 bg-slate-950/80 flex flex-col items-center justify-center text-white space-y-2">
+                    <div className="absolute inset-0 bg-slate-950/80 flex flex-col items-center justify-center text-white space-y-2 z-20">
                       <Loader2 className="w-8 h-8 animate-spin text-accent-400" />
-                      <span className="text-xs font-medium">{lang === 'nl' ? 'Camera starten...' : 'Starting camera...'}</span>
+                      <span className="text-xs font-medium">
+                        {lang === 'nl' ? 'Camera starten...' : 'Starting camera...'}
+                      </span>
                     </div>
                   )}
 
-                  {/* Viewfinder Receipt Bounding Box HUD */}
-                  <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-between p-4">
-                    {/* Top alignment label */}
-                    <div className="bg-black/60 backdrop-blur-md text-white text-[11px] font-medium px-3 py-1 rounded-full border border-white/10 shadow-sm mt-1">
-                      {lang === 'nl' ? '📄 Plaats de tankbon binnen het kader' : '📄 Frame the receipt inside the box'}
+                  {/* Viewfinder Controls & Dynamic HUD Overlays */}
+                  <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-between p-3.5 z-20">
+                    {/* Top Status & Edge-Detect Toggle */}
+                    <div className="w-full flex items-center justify-between gap-2 pointer-events-auto">
+                      {/* Dynamic Detection Badge */}
+                      <div className="transition-all duration-200">
+                        {detectedReceipt?.isDetected ? (
+                          <div className="bg-emerald-600/90 backdrop-blur-md text-white text-[11px] font-bold px-3 py-1 rounded-full border border-emerald-400/50 shadow-md flex items-center space-x-1.5 animate-in fade-in zoom-in-95">
+                            <Sparkles className="w-3.5 h-3.5 text-emerald-200 animate-pulse" />
+                            <span>
+                              {lang === 'nl'
+                                ? '✨ Tankbon gedetecteerd (Auto-Crop gereed)'
+                                : '✨ Receipt detected (Auto-Crop ready)'}
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="bg-black/60 backdrop-blur-md text-white text-[11px] font-medium px-3.5 py-1 rounded-full border border-white/10 shadow-sm flex items-center space-x-1.5">
+                            <span>
+                              {lang === 'nl'
+                                ? '📄 Richt op de bon binnen het kader'
+                                : '📄 Frame the receipt inside the box'}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Auto Edge Detection Toggle */}
+                      <button
+                        type="button"
+                        onClick={() => setIsAutoDetectEnabled(!isAutoDetectEnabled)}
+                        className={`px-2.5 py-1 rounded-full text-[10px] font-bold border transition flex items-center space-x-1 backdrop-blur-md ${
+                          isAutoDetectEnabled
+                            ? 'bg-emerald-500/80 text-white border-emerald-400/60 shadow-xs'
+                            : 'bg-black/50 text-slate-300 border-white/20 hover:bg-black/70'
+                        }`}
+                        title={
+                          lang === 'nl'
+                            ? 'Automatische randdetectie aan/uit'
+                            : 'Toggle auto edge detection'
+                        }
+                      >
+                        <Sparkles className="w-3 h-3" />
+                        <span>
+                          {lang === 'nl'
+                            ? isAutoDetectEnabled
+                              ? 'Auto: Aan'
+                              : 'Auto: Uit'
+                            : isAutoDetectEnabled
+                            ? 'Auto: On'
+                            : 'Auto: Off'}
+                        </span>
+                      </button>
                     </div>
 
-                    {/* Receipt Target Framing Guide */}
-                    <div className="relative w-4/5 h-[62%] border border-white/30 rounded-xl bg-transparent shadow-[0_0_0_9999px_rgba(0,0,0,0.4)]">
-                      {/* 4 Corner Guides */}
-                      <span className="absolute -top-1 -left-1 w-5 h-5 border-t-2 border-l-2 border-accent-400 rounded-tl-sm" />
-                      <span className="absolute -top-1 -right-1 w-5 h-5 border-t-2 border-r-2 border-accent-400 rounded-tr-sm" />
-                      <span className="absolute -bottom-1 -left-1 w-5 h-5 border-b-2 border-l-2 border-accent-400 rounded-bl-sm" />
-                      <span className="absolute -bottom-1 -right-1 w-5 h-5 border-b-2 border-r-2 border-accent-400 rounded-br-sm" />
-                    </div>
-
-                    {/* Bottom Controls Bar */}
-                    <div className="w-full flex items-center justify-between px-6 pointer-events-auto pb-2">
+                    {/* Bottom Camera Controls Bar */}
+                    <div className="w-full flex items-center justify-between px-4 sm:px-6 pointer-events-auto pb-1">
                       {/* Torch Button */}
                       {hasTorch ? (
                         <button
@@ -521,27 +756,49 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({ isOpen
                           onClick={handleToggleTorch}
                           className={`w-11 h-11 rounded-full flex items-center justify-center transition border ${
                             torchOn
-                              ? 'bg-amber-400 text-slate-950 border-amber-300 shadow-lg'
-                              : 'bg-black/50 hover:bg-black/80 text-white border-white/20'
+                              ? 'bg-amber-400 text-slate-950 border-amber-300 shadow-lg scale-105'
+                              : 'bg-black/55 hover:bg-black/80 text-white border-white/20'
                           }`}
                           title={lang === 'nl' ? 'Zaklamp aan/uit' : 'Toggle torch'}
                         >
-                          {torchOn ? <Zap className="w-5 h-5 fill-current" /> : <ZapOff className="w-5 h-5" />}
+                          {torchOn ? (
+                            <Zap className="w-5 h-5 fill-current" />
+                          ) : (
+                            <ZapOff className="w-5 h-5" />
+                          )}
                         </button>
                       ) : (
                         <div className="w-11 h-11" />
                       )}
 
-                      {/* Main Shutter Button */}
+                      {/* Main Shutter Button with Dynamic Detection Halo */}
                       <button
                         type="button"
                         onClick={handleCapturePhoto}
                         disabled={cameraLoading}
-                        className="w-16 h-16 rounded-full bg-white p-1 shadow-2xl flex items-center justify-center hover:scale-105 active:scale-95 transition disabled:opacity-50"
-                        title={lang === 'nl' ? 'Foto maken' : 'Take photo'}
+                        className={`w-16 h-16 rounded-full p-1 shadow-2xl flex items-center justify-center transition active:scale-95 disabled:opacity-50 ${
+                          detectedReceipt?.isDetected
+                            ? 'bg-emerald-400 ring-4 ring-emerald-500/50 shadow-[0_0_25px_rgba(16,185,129,0.55)] scale-105'
+                            : 'bg-white hover:scale-105'
+                        }`}
+                        title={
+                          lang === 'nl'
+                            ? detectedReceipt?.isDetected
+                              ? 'Bon vastleggen & uitsnijden'
+                              : 'Foto maken'
+                            : detectedReceipt?.isDetected
+                            ? 'Capture & auto-crop receipt'
+                            : 'Take photo'
+                        }
                       >
                         <div className="w-13 h-13 rounded-full border-2 border-slate-900 bg-white flex items-center justify-center">
-                          <div className="w-11 h-11 rounded-full bg-accent-600 hover:bg-accent-700 transition" />
+                          <div
+                            className={`w-11 h-11 rounded-full transition-colors ${
+                              detectedReceipt?.isDetected
+                                ? 'bg-emerald-500 hover:bg-emerald-600'
+                                : 'bg-accent-600 hover:bg-accent-700'
+                            }`}
+                          />
                         </div>
                       </button>
 
@@ -549,7 +806,7 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({ isOpen
                       <button
                         type="button"
                         onClick={handleFlipCamera}
-                        className="w-11 h-11 rounded-full bg-black/50 hover:bg-black/80 text-white border border-white/20 flex items-center justify-center transition"
+                        className="w-11 h-11 rounded-full bg-black/55 hover:bg-black/80 text-white border border-white/20 flex items-center justify-center transition"
                         title={lang === 'nl' ? 'Wissel camera' : 'Flip camera'}
                       >
                         <SwitchCamera className="w-5 h-5" />
@@ -571,14 +828,19 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({ isOpen
                 className="hidden"
                 id="receipt-file-input"
               />
-              <label htmlFor="receipt-file-input" className="cursor-pointer flex flex-col items-center">
+              <label
+                htmlFor="receipt-file-input"
+                className="cursor-pointer flex flex-col items-center"
+              >
                 <div className="w-12 h-12 rounded-xl bg-accent-50 dark:bg-accent-950/50 text-accent-600 dark:text-accent-400 flex items-center justify-center mb-3">
                   <Upload className="w-6 h-6" />
                 </div>
                 <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
                   {t('ocrDropzoneText')}
                 </span>
-                <span className="text-[11px] text-slate-500 mt-1">JPG, PNG, WEBP of HEIC (max 15MB)</span>
+                <span className="text-[11px] text-slate-500 mt-1">
+                  JPG, PNG, WEBP of HEIC (max 15MB)
+                </span>
               </label>
             </div>
           )}
@@ -586,13 +848,49 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({ isOpen
           {/* PHOTO CAPTURED / LOADED PREVIEW & ACTIONS */}
           {previewUrl && (
             <div className="bg-slate-50 dark:bg-slate-950 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3">
-              <div className="relative rounded-xl overflow-hidden bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-center max-h-[260px]">
+              <div className="relative rounded-xl overflow-hidden bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-center max-h-[380px] sm:max-h-[440px]">
                 <img
                   src={previewUrl}
                   alt="Receipt preview"
-                  className="w-full h-full max-h-[260px] object-contain"
+                  className="w-full h-full max-h-[380px] sm:max-h-[440px] object-contain"
                 />
+
+                {/* Top Action Bar in Preview */}
                 <div className="absolute top-2 right-2 flex items-center space-x-1.5">
+                  {/* Toggle Cropped vs Full Image */}
+                  {croppedFile && fullFile && (
+                    <button
+                      type="button"
+                      onClick={handleToggleCrop}
+                      className={`p-1.5 rounded-lg backdrop-blur-sm border transition text-xs flex items-center space-x-1 shadow-md ${
+                        isCroppedActive
+                          ? 'bg-emerald-600/90 text-white border-emerald-400/50'
+                          : 'bg-black/60 hover:bg-black/90 text-slate-200 border-white/10'
+                      }`}
+                      title={
+                        lang === 'nl'
+                          ? isCroppedActive
+                            ? 'Toon volledige foto'
+                            : 'Herstel bijgesneden bon'
+                          : isCroppedActive
+                          ? 'Show full sensor capture'
+                          : 'Show cropped receipt'
+                      }
+                    >
+                      <Crop className="w-3.5 h-3.5" />
+                      <span className="text-[10px] font-semibold">
+                        {isCroppedActive
+                          ? lang === 'nl'
+                            ? 'Bijgesneden'
+                            : 'Cropped'
+                          : lang === 'nl'
+                          ? 'Volledig'
+                          : 'Full'}
+                      </span>
+                    </button>
+                  )}
+
+                  {/* Rotate 90 degrees */}
                   <button
                     type="button"
                     onClick={handleRotate90}
@@ -602,6 +900,8 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({ isOpen
                     <RotateCw className="w-3.5 h-3.5" />
                     <span className="text-[10px] font-semibold">90°</span>
                   </button>
+
+                  {/* Retake Photo */}
                   <button
                     type="button"
                     onClick={handleRetake}
@@ -609,7 +909,9 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({ isOpen
                     title={lang === 'nl' ? 'Opnieuw nemen' : 'Retake'}
                   >
                     <RefreshCw className="w-3.5 h-3.5" />
-                    <span className="text-[10px] font-semibold">{lang === 'nl' ? 'Opnieuw' : 'Retake'}</span>
+                    <span className="text-[10px] font-semibold">
+                      {lang === 'nl' ? 'Opnieuw' : 'Retake'}
+                    </span>
                   </button>
                 </div>
               </div>
@@ -617,10 +919,17 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({ isOpen
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 pt-1">
                 <div className="min-w-0">
                   <p className="font-semibold text-xs text-slate-800 dark:text-slate-200 truncate">
-                    {file?.name || (lang === 'nl' ? 'Tankbon_Shell.jpg' : 'Fuel_Receipt_Shell.jpg')}
+                    {file?.name ||
+                      (lang === 'nl' ? 'Tankbon_Shell.jpg' : 'Fuel_Receipt_Shell.jpg')}
                   </p>
                   <p className="text-slate-500 text-[11px]">
-                    {Math.round((file?.size || 48200) / 1024)} KB {lang === 'nl' ? 'geoptimaliseerd' : 'optimized'}
+                    {Math.round((file?.size || 48200) / 1024)} KB{' '}
+                    {lang === 'nl' ? 'geoptimaliseerd' : 'optimized'}
+                    {isCroppedActive && (
+                      <span className="text-emerald-600 dark:text-emerald-400 ml-1.5 font-medium">
+                        • {lang === 'nl' ? 'Slim bijgesneden' : 'Auto-cropped'}
+                      </span>
+                    )}
                   </p>
                 </div>
                 {!ocrResult && (
@@ -630,7 +939,11 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({ isOpen
                     disabled={loading}
                     className="w-full sm:w-auto px-4 py-2 bg-accent-600 hover:bg-accent-700 text-white rounded-lg text-xs font-semibold inline-flex items-center justify-center space-x-1.5 transition disabled:opacity-50 shadow-sm shrink-0"
                   >
-                    {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                    {loading ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-3.5 h-3.5" />
+                    )}
                     <span>
                       {loading
                         ? lang === 'nl'
@@ -690,7 +1003,9 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({ isOpen
                     <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                     <div className="flex-1 min-w-0">
                       <span className="font-bold block">
-                        {lang === 'nl' ? 'AI Analyse mislukt (teruggevallen op lokale Tesseract OCR):' : 'AI Analysis failed (fell back to local OCR):'}
+                        {lang === 'nl'
+                          ? 'AI Analyse mislukt (teruggevallen op lokale Tesseract OCR):'
+                          : 'AI Analysis failed (fell back to local OCR):'}
                       </span>
                       <span className="text-amber-800 dark:text-amber-300 font-mono text-[10px] break-all block mt-0.5">
                         {ocrResult.extracted.aiError}
@@ -706,7 +1021,9 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({ isOpen
               )}
 
               {/* Station, Address and Fuel Type banner if detected */}
-              {(ocrResult.extracted?.station || ocrResult.extracted?.stationAddress || ocrResult.extracted?.fuelType) && (
+              {(ocrResult.extracted?.station ||
+                ocrResult.extracted?.stationAddress ||
+                ocrResult.extracted?.fuelType) && (
                 <div className="flex flex-col gap-1 p-2.5 bg-accent-50/70 dark:bg-accent-950/40 border border-accent-100 dark:border-accent-900/40 rounded-lg text-[11px]">
                   <div className="flex flex-wrap items-center gap-1.5">
                     {ocrResult.extracted?.station && (
@@ -735,25 +1052,35 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({ isOpen
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-center">
                 <div className="bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm">
-                  <span className="text-slate-500 block text-[10px] uppercase font-bold tracking-wider">{t('date')}</span>
+                  <span className="text-slate-500 block text-[10px] uppercase font-bold tracking-wider">
+                    {t('date')}
+                  </span>
                   <span className="text-xs font-bold text-slate-900 dark:text-white">
                     {formatDisplayDate(ocrResult.extracted?.date)}
                   </span>
                 </div>
                 <div className="bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm">
-                  <span className="text-slate-500 block text-[10px] uppercase font-bold tracking-wider">{t('liters')}</span>
+                  <span className="text-slate-500 block text-[10px] uppercase font-bold tracking-wider">
+                    {t('liters')}
+                  </span>
                   <span className="text-xs font-bold text-slate-900 dark:text-white">
                     {ocrResult.extracted?.liters ? `${ocrResult.extracted.liters} L` : '—'}
                   </span>
                 </div>
                 <div className="bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm">
-                  <span className="text-slate-500 block text-[10px] uppercase font-bold tracking-wider">{t('pricePerLiter')}</span>
+                  <span className="text-slate-500 block text-[10px] uppercase font-bold tracking-wider">
+                    {t('pricePerLiter')}
+                  </span>
                   <span className="text-xs font-bold text-slate-900 dark:text-white">
-                    {ocrResult.extracted?.pricePerLiter ? `€ ${ocrResult.extracted.pricePerLiter}` : '—'}
+                    {ocrResult.extracted?.pricePerLiter
+                      ? `€ ${ocrResult.extracted.pricePerLiter}`
+                      : '—'}
                   </span>
                 </div>
                 <div className="bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm">
-                  <span className="text-slate-500 block text-[10px] uppercase font-bold tracking-wider">{t('totalCost')}</span>
+                  <span className="text-slate-500 block text-[10px] uppercase font-bold tracking-wider">
+                    {t('totalCost')}
+                  </span>
                   <span className="text-xs font-bold text-slate-900 dark:text-white">
                     {ocrResult.extracted?.totalCost ? `€ ${ocrResult.extracted.totalCost}` : '—'}
                   </span>
@@ -764,11 +1091,11 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({ isOpen
         </div>
 
         {/* Footer Actions */}
-        <div className="flex items-center justify-end space-x-2 mt-5 border-t border-slate-100 dark:border-slate-800 pt-3">
+        <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-3.5 mt-4">
           <button
             type="button"
             onClick={handleClose}
-            className="px-3.5 py-1.5 text-xs text-slate-500 hover:text-slate-800 dark:hover:text-white transition"
+            className="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-lg transition"
           >
             {t('cancel')}
           </button>
@@ -776,9 +1103,10 @@ export const ReceiptScannerModal: React.FC<ReceiptScannerModalProps> = ({ isOpen
             type="button"
             onClick={handleApply}
             disabled={!ocrResult}
-            className="px-4 py-1.5 bg-accent-600 text-white hover:bg-accent-700 rounded-lg text-xs font-semibold disabled:opacity-50 transition shadow-sm"
+            className="px-5 py-2 bg-accent-600 hover:bg-accent-700 text-white rounded-xl text-xs font-bold transition shadow-sm disabled:opacity-40 disabled:cursor-not-allowed flex items-center space-x-1.5"
           >
-            {lang === 'nl' ? 'Gegevens overnemen' : 'Apply values'}
+            <CheckCircle2 className="w-4 h-4" />
+            <span>{lang === 'nl' ? 'Gegevens overnemen' : 'Apply values'}</span>
           </button>
         </div>
       </div>

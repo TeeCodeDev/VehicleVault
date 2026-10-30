@@ -12,6 +12,7 @@ import {
   Globe,
   Sparkles,
   ExternalLink,
+  Coffee,
   Eye,
   EyeOff,
   Loader2,
@@ -706,12 +707,12 @@ export const Settings: React.FC = () => {
   // Home Assistant REST Sensor YAML configuration template
   const haHost = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3084';
   const haYamlConfig = `# Home Assistant configuration.yaml
-# VehicleVault REST Sensors Integration
+# Integratie met VehicleVault via REST Sensors
 rest:
   - resource: ${haHost}/api/integrations/ha/sensors
     scan_interval: 300
     headers:
-      x-api-key: ${apiKeys[0]?.prefix ? `${apiKeys[0].prefix}... (insert full API key here)` : 'YOUR_VEHICLEVAULT_API_KEY'}
+      x-api-key: ${apiKeys[0]?.prefix ? `${apiKeys[0].prefix}... (plaats hier je volledige API Key)` : 'UW_VEHICLEVAULT_API_KEY'}
     sensor:
       - name: "VehicleVault Odometer"
         value_template: "{{ value_json.vehicles[0].odometer }}"
@@ -1168,6 +1169,35 @@ rest:
                 <span>{diagnosticsRefreshing ? 'Verversen...' : 'Vernieuwen'}</span>
               </button>
             </div>
+
+            {/* Support on Ko-fi */}
+            <div className="p-4 rounded-xl bg-gradient-to-r from-rose-50/80 to-amber-50/60 dark:from-rose-950/30 dark:to-amber-950/20 border border-rose-200/80 dark:border-rose-900/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-xl bg-rose-100 dark:bg-rose-900/50 border border-rose-200 dark:border-rose-800/60 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 shadow-2xs">
+                  <Coffee className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-xs text-slate-900 dark:text-white">
+                    {lang === 'nl' ? 'Ondersteun VehicleVault' : 'Support VehicleVault'}
+                  </h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    {lang === 'nl'
+                      ? 'Vind je VehicleVault handig? Trakteer de ontwikkelaar op een kop koffie via Ko-fi!'
+                      : 'Enjoying VehicleVault? Support development by buying the developer a coffee on Ko-fi!'}
+                  </p>
+                </div>
+              </div>
+              <a
+                href="https://ko-fi.com/D1D51ZGUNL"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold inline-flex items-center justify-center space-x-1.5 transition shadow-sm hover:scale-[1.02] shrink-0"
+              >
+                <Coffee className="w-4 h-4" />
+                <span>Support on Ko-fi</span>
+                <ExternalLink className="w-3.5 h-3.5 ml-0.5" />
+              </a>
+            </div>
           </div>
         </div>
       )}
@@ -1461,6 +1491,35 @@ rest:
               >
                 {aiSaving ? 'Opslaan...' : 'Wijzigingen Opslaan'}
               </button>
+            </div>
+
+            {/* Support on Ko-fi */}
+            <div className="p-4 rounded-xl bg-gradient-to-r from-rose-50/80 to-amber-50/60 dark:from-rose-950/30 dark:to-amber-950/20 border border-rose-200/80 dark:border-rose-900/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-xl bg-rose-100 dark:bg-rose-900/50 border border-rose-200 dark:border-rose-800/60 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 shadow-2xs">
+                  <Coffee className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-xs text-slate-900 dark:text-white">
+                    {lang === 'nl' ? 'Ondersteun VehicleVault' : 'Support VehicleVault'}
+                  </h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    {lang === 'nl'
+                      ? 'Vind je VehicleVault handig? Trakteer de ontwikkelaar op een kop koffie via Ko-fi!'
+                      : 'Enjoying VehicleVault? Support development by buying the developer a coffee on Ko-fi!'}
+                  </p>
+                </div>
+              </div>
+              <a
+                href="https://ko-fi.com/D1D51ZGUNL"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold inline-flex items-center justify-center space-x-1.5 transition shadow-sm hover:scale-[1.02] shrink-0"
+              >
+                <Coffee className="w-4 h-4" />
+                <span>Support on Ko-fi</span>
+                <ExternalLink className="w-3.5 h-3.5 ml-0.5" />
+              </a>
             </div>
           </div>
         </div>
@@ -1834,6 +1893,35 @@ rest:
                 ))
               )}
             </div>
+
+            {/* Support on Ko-fi */}
+            <div className="p-4 rounded-xl bg-gradient-to-r from-rose-50/80 to-amber-50/60 dark:from-rose-950/30 dark:to-amber-950/20 border border-rose-200/80 dark:border-rose-900/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-xl bg-rose-100 dark:bg-rose-900/50 border border-rose-200 dark:border-rose-800/60 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 shadow-2xs">
+                  <Coffee className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-xs text-slate-900 dark:text-white">
+                    {lang === 'nl' ? 'Ondersteun VehicleVault' : 'Support VehicleVault'}
+                  </h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    {lang === 'nl'
+                      ? 'Vind je VehicleVault handig? Trakteer de ontwikkelaar op een kop koffie via Ko-fi!'
+                      : 'Enjoying VehicleVault? Support development by buying the developer a coffee on Ko-fi!'}
+                  </p>
+                </div>
+              </div>
+              <a
+                href="https://ko-fi.com/D1D51ZGUNL"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold inline-flex items-center justify-center space-x-1.5 transition shadow-sm hover:scale-[1.02] shrink-0"
+              >
+                <Coffee className="w-4 h-4" />
+                <span>Support on Ko-fi</span>
+                <ExternalLink className="w-3.5 h-3.5 ml-0.5" />
+              </a>
+            </div>
           </div>
         </div>
       )}
@@ -2160,6 +2248,35 @@ rest:
                 </button>
               </div>
             </div>
+
+            {/* Support on Ko-fi */}
+            <div className="p-4 rounded-xl bg-gradient-to-r from-rose-50/80 to-amber-50/60 dark:from-rose-950/30 dark:to-amber-950/20 border border-rose-200/80 dark:border-rose-900/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-xl bg-rose-100 dark:bg-rose-900/50 border border-rose-200 dark:border-rose-800/60 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 shadow-2xs">
+                  <Coffee className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-xs text-slate-900 dark:text-white">
+                    {lang === 'nl' ? 'Ondersteun VehicleVault' : 'Support VehicleVault'}
+                  </h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    {lang === 'nl'
+                      ? 'Vind je VehicleVault handig? Trakteer de ontwikkelaar op een kop koffie via Ko-fi!'
+                      : 'Enjoying VehicleVault? Support development by buying the developer a coffee on Ko-fi!'}
+                  </p>
+                </div>
+              </div>
+              <a
+                href="https://ko-fi.com/D1D51ZGUNL"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold inline-flex items-center justify-center space-x-1.5 transition shadow-sm hover:scale-[1.02] shrink-0"
+              >
+                <Coffee className="w-4 h-4" />
+                <span>Support on Ko-fi</span>
+                <ExternalLink className="w-3.5 h-3.5 ml-0.5" />
+              </a>
+            </div>
           </div>
         </div>
       )}
@@ -2450,6 +2567,35 @@ rest:
                   />
                 </label>
               </div>
+            </div>
+
+            {/* Support on Ko-fi */}
+            <div className="p-4 rounded-xl bg-gradient-to-r from-rose-50/80 to-amber-50/60 dark:from-rose-950/30 dark:to-amber-950/20 border border-rose-200/80 dark:border-rose-900/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-xl bg-rose-100 dark:bg-rose-900/50 border border-rose-200 dark:border-rose-800/60 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 shadow-2xs">
+                  <Coffee className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-xs text-slate-900 dark:text-white">
+                    {lang === 'nl' ? 'Ondersteun VehicleVault' : 'Support VehicleVault'}
+                  </h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    {lang === 'nl'
+                      ? 'Vind je VehicleVault handig? Trakteer de ontwikkelaar op een kop koffie via Ko-fi!'
+                      : 'Enjoying VehicleVault? Support development by buying the developer a coffee on Ko-fi!'}
+                  </p>
+                </div>
+              </div>
+              <a
+                href="https://ko-fi.com/D1D51ZGUNL"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold inline-flex items-center justify-center space-x-1.5 transition shadow-sm hover:scale-[1.02] shrink-0"
+              >
+                <Coffee className="w-4 h-4" />
+                <span>Support on Ko-fi</span>
+                <ExternalLink className="w-3.5 h-3.5 ml-0.5" />
+              </a>
             </div>
           </div>
         </div>
