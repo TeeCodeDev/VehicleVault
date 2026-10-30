@@ -16,8 +16,27 @@ export class TireController {
         [vehicleId]
       );
 
-      // Evaluate tread depths for alerts
+      // Get vehicle current odometer to compute live mileage on mounted tire sets
+      const vehOdoRow = db.get<any>(
+        `SELECT 
+          MAX(
+            COALESCE((SELECT MAX(odometer) FROM fuel_entries WHERE vehicle_id = ?), 0),
+            COALESCE((SELECT MAX(odometer) FROM service_records WHERE vehicle_id = ?), 0),
+            COALESCE((SELECT MAX(odometer) FROM odometer_logs WHERE vehicle_id = ?), 0),
+            (SELECT initial_odometer FROM vehicles WHERE id = ?)
+          ) as current_odometer`,
+        [vehicleId, vehicleId, vehicleId, vehicleId]
+      );
+      const vehicleCurrentOdo = vehOdoRow?.current_odometer || 0;
+
+      // Evaluate tread depths for alerts & compute dynamic live mileage
       const enrichedSets = tireSets.map((set) => {
+        let currentKm = set.total_km || 0;
+        if (set.status === 'mounted' && set.mounted_odometer !== null && set.mounted_odometer !== undefined) {
+          const delta = Math.max(0, vehicleCurrentOdo - set.mounted_odometer);
+          currentKm += delta;
+        }
+
         const depths = [set.tread_depth_fl, set.tread_depth_fr, set.tread_depth_rl, set.tread_depth_rr].filter(
           (d) => d !== null && d !== undefined
         );
@@ -38,6 +57,7 @@ export class TireController {
 
         return {
           ...set,
+          current_km: currentKm,
           minDepth,
           treadStatus,
         };
@@ -85,6 +105,22 @@ export class TireController {
         db.run("UPDATE tire_sets SET status = 'stored' WHERE vehicle_id = ? AND status = 'mounted'", [vehicleId]);
       }
 
+      // If mounted and mountedOdometer is not explicitly provided, default to current vehicle odometer
+      let finalMountedOdo = mountedOdometer !== null && mountedOdometer !== undefined && mountedOdometer !== '' ? Number(mountedOdometer) : null;
+      if (status === 'mounted' && finalMountedOdo === null) {
+        const vehOdoRow = db.get<any>(
+          `SELECT 
+            MAX(
+              COALESCE((SELECT MAX(odometer) FROM fuel_entries WHERE vehicle_id = ?), 0),
+              COALESCE((SELECT MAX(odometer) FROM service_records WHERE vehicle_id = ?), 0),
+              COALESCE((SELECT MAX(odometer) FROM odometer_logs WHERE vehicle_id = ?), 0),
+              (SELECT initial_odometer FROM vehicles WHERE id = ?)
+            ) as current_odometer`,
+          [vehicleId, vehicleId, vehicleId, vehicleId]
+        );
+        finalMountedOdo = vehOdoRow?.current_odometer || null;
+      }
+
       const id = crypto.randomUUID();
       const now = new Date().toISOString();
 
@@ -116,8 +152,8 @@ export class TireController {
           dotCode?.trim() || null,
           storageLocation?.trim() || null,
           status,
-          mountedOdometer !== null ? Number(mountedOdometer) : null,
-          mountedDate || null,
+          finalMountedOdo,
+          mountedDate || (status === 'mounted' ? now.split('T')[0] : null),
           Number(totalKm) || 0,
           treadDepthFl !== null && treadDepthFl !== undefined && treadDepthFl !== '' ? Number(treadDepthFl) : null,
           treadDepthFr !== null && treadDepthFr !== undefined && treadDepthFr !== '' ? Number(treadDepthFr) : null,
@@ -181,6 +217,10 @@ export class TireController {
         updatedBrandModel = brandModel?.trim() || null;
       }
 
+      const updatedTotalKm = totalKm !== undefined && totalKm !== null && totalKm !== '' ? Number(totalKm) : existing.total_km;
+      const updatedMountedOdo = mountedOdometer !== undefined ? (mountedOdometer !== null && mountedOdometer !== '' ? Number(mountedOdometer) : null) : existing.mounted_odometer;
+      const updatedMountedDate = mountedDate !== undefined ? (mountedDate || null) : existing.mounted_date;
+
       db.run(
         `UPDATE tire_sets SET
           name = COALESCE(?, name),
@@ -194,9 +234,9 @@ export class TireController {
           dot_code = COALESCE(?, dot_code),
           storage_location = COALESCE(?, storage_location),
           status = COALESCE(?, status),
-          mounted_odometer = COALESCE(?, mounted_odometer),
-          mounted_date = COALESCE(?, mounted_date),
-          total_km = COALESCE(?, total_km),
+          mounted_odometer = ?,
+          mounted_date = ?,
+          total_km = ?,
           tread_depth_fl = ?,
           tread_depth_fr = ?,
           tread_depth_rl = ?,
@@ -216,9 +256,9 @@ export class TireController {
           dotCode !== undefined ? dotCode.trim() : null,
           storageLocation !== undefined ? storageLocation.trim() : null,
           status ?? null,
-          mountedOdometer !== undefined ? Number(mountedOdometer) : null,
-          mountedDate ?? null,
-          totalKm !== undefined ? Number(totalKm) : null,
+          updatedMountedOdo,
+          updatedMountedDate,
+          updatedTotalKm,
           treadDepthFl !== undefined ? (treadDepthFl !== '' && treadDepthFl !== null ? Number(treadDepthFl) : null) : existing.tread_depth_fl,
           treadDepthFr !== undefined ? (treadDepthFr !== '' && treadDepthFr !== null ? Number(treadDepthFr) : null) : existing.tread_depth_fr,
           treadDepthRl !== undefined ? (treadDepthRl !== '' && treadDepthRl !== null ? Number(treadDepthRl) : null) : existing.tread_depth_rl,

@@ -63,6 +63,8 @@ export const Tires: React.FC = () => {
   const [treadRl, setTreadRl] = useState('');
   const [treadRr, setTreadRr] = useState('');
   const [notes, setNotes] = useState('');
+  const [totalKm, setTotalKm] = useState('0');
+  const [mountedOdometer, setMountedOdometer] = useState('');
 
   // Swap modal state
   const [swapOdometer, setSwapOdometer] = useState('');
@@ -113,6 +115,9 @@ export const Tires: React.FC = () => {
     setTreadRl('7.5');
     setTreadRr('7.5');
     setNotes('');
+    setTotalKm('0');
+    const curOdo = selectedVehicle?.current_odometer || selectedVehicle?.initial_odometer;
+    setMountedOdometer(curOdo ? curOdo.toString() : '');
     setModalError(null);
     setIsAddEditModalOpen(true);
   };
@@ -135,13 +140,16 @@ export const Tires: React.FC = () => {
     setTreadRl(set.tread_depth_rl !== null ? set.tread_depth_rl.toString() : '');
     setTreadRr(set.tread_depth_rr !== null ? set.tread_depth_rr.toString() : '');
     setNotes(set.notes || '');
+    setTotalKm((set.total_km ?? 0).toString());
+    setMountedOdometer(set.mounted_odometer !== null && set.mounted_odometer !== undefined ? set.mounted_odometer.toString() : '');
     setModalError(null);
     setIsAddEditModalOpen(true);
   };
 
   const openSwapModal = (target: TireSet) => {
     setSwapTargetSet(target);
-    setSwapOdometer(selectedVehicle?.initial_odometer ? selectedVehicle.initial_odometer.toString() : '');
+    const curOdo = selectedVehicle?.current_odometer || selectedVehicle?.initial_odometer;
+    setSwapOdometer(curOdo ? curOdo.toString() : '');
     setSwapDate(new Date().toISOString().split('T')[0]);
     setModalError(null);
     setIsSwapModalOpen(true);
@@ -183,6 +191,8 @@ export const Tires: React.FC = () => {
         dotCode: dotCode.trim(),
         storageLocation: storageLocation.trim(),
         status,
+        totalKm: totalKm !== '' ? parseFloat(totalKm) : 0,
+        mountedOdometer: mountedOdometer !== '' ? parseFloat(mountedOdometer) : null,
         treadDepthFl: treadFl !== '' ? parseFloat(treadFl) : null,
         treadDepthFr: treadFr !== '' ? parseFloat(treadFr) : null,
         treadDepthRl: treadRl !== '' ? parseFloat(treadRl) : null,
@@ -385,7 +395,9 @@ export const Tires: React.FC = () => {
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-1 text-xs">
                 <div>
                   <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Gereden Kilometers</span>
-                  <span className="text-sm font-black font-mono text-white">{(activeMountedSet.total_km || 0).toLocaleString('nl-NL')} km</span>
+                  <span className="text-sm font-black font-mono text-white">
+                    {((activeMountedSet.current_km !== undefined ? activeMountedSet.current_km : activeMountedSet.total_km) || 0).toLocaleString('nl-NL')} km
+                  </span>
                 </div>
                 {activeMountedSet.storage_location && (
                   <div>
@@ -426,7 +438,7 @@ export const Tires: React.FC = () => {
                   onClick={() => openEditModal(activeMountedSet)}
                   className="px-3 py-1.5 bg-white/5 hover:bg-white/15 text-slate-300 hover:text-white rounded-xl text-xs font-semibold transition"
                 >
-                  Details Bewerken
+                  Details & Km Bewerken
                 </button>
               </div>
             </div>
@@ -598,7 +610,7 @@ export const Tires: React.FC = () => {
                     <div>
                       <span className="text-[10px] text-slate-400 uppercase font-bold block">Totaal gereden</span>
                       <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
-                        {(set.total_km || 0).toLocaleString('nl-NL')} km
+                        {((set.current_km !== undefined ? set.current_km : set.total_km) || 0).toLocaleString('nl-NL')} km
                       </span>
                     </div>
                     <div>
@@ -909,6 +921,87 @@ export const Tires: React.FC = () => {
                   onChange={(e) => setStorageLocation(e.target.value)}
                   className="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
                 />
+              </div>
+
+              {/* Kilometerstand & Slijtagehistorie */}
+              <div className="p-3.5 rounded-xl bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/20 space-y-3">
+                <div className="flex items-center space-x-2 text-xs font-bold text-amber-700 dark:text-amber-400">
+                  <Gauge className="w-4 h-4 text-amber-500" />
+                  <span>Kilometerstand & Slijtagehistorie</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      {status === 'mounted'
+                        ? 'Gereden km vóór montage'
+                        : 'Totaal gereden kilometers'}
+                    </label>
+                    <input
+                      type="number"
+                      step="1"
+                      min="0"
+                      placeholder="0"
+                      value={totalKm}
+                      onChange={(e) => setTotalKm(e.target.value)}
+                      className="w-full text-xs font-mono font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    />
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 block">
+                      {status === 'mounted'
+                        ? 'Kilometers uit eerdere seizoenen (0 bij nieuwe banden).'
+                        : 'Totale kilometerstand die op deze set is afgelegd.'}
+                    </span>
+                  </div>
+
+                  {status === 'mounted' && (
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        Tellerstand auto bij montage (km)
+                      </label>
+                      <input
+                        type="number"
+                        step="1"
+                        min="0"
+                        placeholder={
+                          selectedVehicle?.current_odometer
+                            ? selectedVehicle.current_odometer.toString()
+                            : (selectedVehicle?.initial_odometer ? selectedVehicle.initial_odometer.toString() : 'bijv. 67799')
+                        }
+                        value={mountedOdometer}
+                        onChange={(e) => setMountedOdometer(e.target.value)}
+                        className="w-full text-xs font-mono font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      />
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 block">
+                        Auto km-stand op het moment dat deze set eronder ging.
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {status === 'mounted' && (
+                  <div className="pt-1 text-[11px] text-slate-600 dark:text-slate-300 flex items-center justify-between bg-white/70 dark:bg-slate-900/60 p-2.5 rounded-lg border border-slate-200/70 dark:border-slate-800">
+                    <div>
+                      <span className="text-slate-400 block text-[10px]">HUIDIGE AUTO TELLERSTAND</span>
+                      <span className="font-mono font-bold text-slate-800 dark:text-slate-100">
+                        {((selectedVehicle?.current_odometer || selectedVehicle?.initial_odometer) || 0).toLocaleString('nl-NL')} km
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-slate-400 block text-[10px]">BEREKENDE AFSTAND OP DEZE SET</span>
+                      <span className="font-mono font-black text-amber-600 dark:text-amber-400">
+                        {(
+                          (parseFloat(totalKm) || 0) +
+                          Math.max(
+                            0,
+                            ((selectedVehicle?.current_odometer || selectedVehicle?.initial_odometer) || 0) -
+                              (parseFloat(mountedOdometer) || ((selectedVehicle?.current_odometer || selectedVehicle?.initial_odometer) || 0))
+                          )
+                        ).toLocaleString('nl-NL')}{' '}
+                        km
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Initial Tread Depths */}

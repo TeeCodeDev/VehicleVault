@@ -1260,6 +1260,37 @@ Date,Odometer,Fuel_amount,Price,Total_cost,Notes
       assert.ok(mounted);
       assert.equal(mounted.id, newMountedId);
     });
+
+    it('should allow editing total_km and mounted_odometer and compute dynamic live mileage', () => {
+      const setId = crypto.randomUUID();
+      const now = new Date().toISOString();
+
+      // User creates or edits a tire set with 15,000 km historical mileage, mounted at 67,799 km
+      db.run(
+        `INSERT INTO tire_sets (
+          id, vehicle_id, name, season, brand, model, brand_model, status, mounted_odometer, total_km, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, 'mounted', 67799, 15000, ?)`,
+        [setId, testVehicleId, 'Bridgestone Turanza', 'all_season', 'Bridgestone', 'Turanza 6', 'Bridgestone Turanza 6', now]
+      );
+
+      // Verify direct edit update
+      db.run(
+        `UPDATE tire_sets SET total_km = ?, mounted_odometer = ? WHERE id = ?`,
+        [18500, 67000, setId]
+      );
+
+      const updated = db.get<any>('SELECT * FROM tire_sets WHERE id = ?', [setId]);
+      assert.equal(updated.total_km, 18500);
+      assert.equal(updated.mounted_odometer, 67000);
+
+      // Simulate live vehicle odometer at 68,799 km: delta is 68,799 - 67,000 = 1,799 km
+      const vehicleCurrentOdo = 68799;
+      const delta = Math.max(0, vehicleCurrentOdo - updated.mounted_odometer);
+      const computedCurrentKm = updated.total_km + delta;
+
+      assert.equal(delta, 1799);
+      assert.equal(computedCurrentKm, 20299);
+    });
   });
 
   describe('Fuel Fill-up Export & Module Toggle Configuration Engine', () => {

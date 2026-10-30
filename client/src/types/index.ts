@@ -305,6 +305,7 @@ export interface TireSet {
   mounted_odometer: number | null;
   mounted_date: string | null;
   total_km: number;
+  current_km?: number;
   tread_depth_fl: number | null;
   tread_depth_fr: number | null;
   tread_depth_rl: number | null;
