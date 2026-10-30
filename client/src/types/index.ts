@@ -137,6 +137,7 @@ export interface VehicleDocument {
   file_size: number;
   mime_type: string;
   notes?: string | null;
+  expires_at?: string | null;
   created_at: string;
 }
 

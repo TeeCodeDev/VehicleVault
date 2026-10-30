@@ -38,6 +38,7 @@ import {
   Palette,
   Fuel,
   Route,
+  Zap,
   Wrench,
   Disc,
   Landmark,
@@ -175,6 +176,7 @@ export const Settings: React.FC = () => {
 
   // Home Assistant State
   const [haCopied, setHaCopied] = useState(false);
+  const [haOdoCopied, setHaOdoCopied] = useState(false);
 
   // Backup & Storage State
   const [storageStats, setStorageStats] = useState<{
@@ -733,6 +735,28 @@ rest:
         value_template: "{{ value_json.vehicles[0].fuel_stats.last_fuel_cost }}"
         unit_of_measurement: "EUR"
         icon: "mdi:currency-eur"
+`;
+
+  const haPushOdoConfig = `# 1. Home Assistant configuration.yaml (REST Command):
+rest_command:
+  update_vehiclevault_odometer:
+    url: "${haHost}/api/integrations/ha/odometer"
+    method: POST
+    headers:
+      x-api-key: "${apiKeys[0]?.prefix ? `${apiKeys[0].prefix}... (plaats hier je API Key)` : 'UW_VEHICLEVAULT_API_KEY'}"
+      content-type: "application/json"
+    payload: '{"license_plate": "{{ plate }}", "odometer": {{ odo | float }} }'
+
+# 2. Voorbeeld Automatisering (automations.yaml):
+alias: "Auto Thuis - Kilometerstand Sync naar VehicleVault"
+trigger:
+  - platform: state
+    entity_id: sensor.mijn_auto_odometer
+action:
+  - service: rest_command.update_vehiclevault_odometer
+    data:
+      plate: "NL-KENTEKEN"
+      odo: "{{ states('sensor.mijn_auto_odometer') }}"
 `;
 
   return (
@@ -2405,6 +2429,41 @@ rest:
               <div className="relative">
                 <pre className="p-4 rounded-xl bg-slate-950 text-slate-200 font-mono text-[11px] overflow-x-auto leading-relaxed border border-slate-800 max-h-60">
                   {haYamlConfig}
+                </pre>
+              </div>
+            </div>
+
+            {/* Optie 3: Kilometerstand automatisch synchroniseren vanuit Home Assistant */}
+            <div className="p-4 rounded-xl border border-sky-200/80 dark:border-sky-900/50 bg-sky-50/40 dark:bg-sky-950/20 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <h3 className="font-bold text-xs text-slate-900 dark:text-white flex items-center space-x-2">
+                    <Zap className="w-4 h-4 text-sky-500" />
+                    <span>{lang === 'nl' ? 'Optie 3: Kilometerstand automatisch doorgeven vanuit Home Assistant' : 'Option 3: Auto-Push Odometer from Home Assistant'}</span>
+                  </h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    {lang === 'nl'
+                      ? 'Heeft je auto een integratie in Home Assistant (Tesla, Kia/Hyundai Bluelink, BMW, OBD2)? Laat Home Assistant na elke rit de tellerstand automatisch naar VehicleVault sturen!'
+                      : 'Car integration in Home Assistant (Tesla, Bluelink, BMW, OBD2)? Push odometer readings automatically into VehicleVault!'}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(haPushOdoConfig);
+                    setHaOdoCopied(true);
+                    setTimeout(() => setHaOdoCopied(false), 2000);
+                  }}
+                  className="px-3 py-1 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-xs font-bold transition flex items-center space-x-1.5 shrink-0 shadow-2xs"
+                >
+                  {haOdoCopied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{haOdoCopied ? (lang === 'nl' ? 'Gekopieerd!' : 'Copied!') : (lang === 'nl' ? 'Kopieer YAML' : 'Copy YAML')}</span>
+                </button>
+              </div>
+
+              <div className="relative">
+                <pre className="p-4 rounded-xl bg-slate-950 text-slate-200 font-mono text-[11px] overflow-x-auto leading-relaxed border border-slate-800 max-h-60">
+                  {haPushOdoConfig}
                 </pre>
               </div>
             </div>

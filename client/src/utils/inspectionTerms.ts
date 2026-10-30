@@ -64,3 +64,4 @@ export function getInspectionTerm(country?: string | null, lang: string = 'nl'):
     syncLabel: lang === 'nl' ? 'RDW APK Synchroniseren' : 'Sync RDW APK',
   };
 }
+

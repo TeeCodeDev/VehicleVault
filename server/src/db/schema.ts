@@ -261,10 +261,29 @@ export function initializeDatabase(): void {
       file_size INTEGER NOT NULL DEFAULT 0,
       mime_type TEXT,
       notes TEXT,
+      expires_at TEXT,
       created_at TEXT NOT NULL,
       FOREIGN KEY (vehicle_id) REFERENCES vehicles(id) ON DELETE CASCADE,
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     );
+  `);
+
+  if (!columnExists('vehicle_documents', 'expires_at')) {
+    db.exec('ALTER TABLE vehicle_documents ADD COLUMN expires_at TEXT;');
+  }
+
+  // 9b. Odometer logs (Automated Home Assistant, OBD2, manual telemetric logs)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS odometer_logs (
+      id TEXT PRIMARY KEY,
+      vehicle_id TEXT NOT NULL,
+      odometer REAL NOT NULL,
+      source TEXT NOT NULL DEFAULT 'home_assistant',
+      date TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (vehicle_id) REFERENCES vehicles(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_odometer_logs_vehicle ON odometer_logs (vehicle_id);
   `);
 
   // 10. System settings (AI providers, API keys, global configurations)

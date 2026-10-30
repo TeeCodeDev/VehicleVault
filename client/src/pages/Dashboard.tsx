@@ -294,6 +294,16 @@ export const Dashboard: React.FC = () => {
                 <span>{lang === 'nl' ? 'PDF Dossier' : 'Service Dossier'}</span>
               </button>
 
+              <a
+                href={selectedVehicle ? `/api/vehicles/${selectedVehicle.id}/calendar.ics` : '/api/vehicles/calendar.ics'}
+                download={selectedVehicle ? `vehiclevault-${selectedVehicle.name.toLowerCase().replace(/\s+/g, '-')}.ics` : 'vehiclevault-calendar.ics'}
+                className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-xl text-xs font-semibold inline-flex items-center space-x-1.5 transition border border-slate-200 dark:border-slate-700/60"
+                title={lang === 'nl' ? 'Exporteer APK, beurten en documenten naar je Apple/Google/Outlook kalender' : 'Export inspection, service and documents to Apple/Google/Outlook Calendar'}
+              >
+                <Calendar className="w-3.5 h-3.5 text-emerald-500" />
+                <span>{lang === 'nl' ? 'Kalender (.ics)' : 'Calendar (.ics)'}</span>
+              </a>
+
               <button
                 onClick={() => setIsShowcaseModalOpen(true)}
                 className="px-3.5 py-2 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:hover:bg-amber-900/60 text-amber-800 dark:text-amber-300 rounded-xl text-xs font-bold inline-flex items-center space-x-1.5 transition border border-amber-200 dark:border-amber-800/60 shadow-2xs hover:scale-[1.02]"

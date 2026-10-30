@@ -58,14 +58,15 @@ export class DocumentController {
     const name = (req.body.name as string) || req.file.originalname;
     const category = (req.body.category as string) || 'other';
     const notes = (req.body.notes as string) || null;
+    const expiresAt = (req.body.expires_at as string) || (req.body.expiresAt as string) || null;
 
     const id = crypto.randomUUID();
     const now = new Date().toISOString();
 
     db.run(
       `INSERT INTO vehicle_documents (
-        id, vehicle_id, user_id, name, category, file_path, file_size, mime_type, notes, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        id, vehicle_id, user_id, name, category, file_path, file_size, mime_type, notes, expires_at, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         vehicleId,
@@ -76,6 +77,7 @@ export class DocumentController {
         req.file.size,
         req.file.mimetype,
         notes,
+        expiresAt,
         now,
       ]
     );

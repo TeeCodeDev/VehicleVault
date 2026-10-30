@@ -16,6 +16,8 @@ import { Vehicle, VehicleDocument } from '../types/index.js';
 import { apiFetch } from '../api/client.js';
 import { useLanguage } from '../context/LanguageContext.js';
 import { compressImage } from '../utils/imageCompressor.js';
+import { formatDisplayDate } from '../utils/format.js';
+import { DatePicker } from '../components/DatePicker.js';
 import { DocumentPreviewModal } from '../components/DocumentPreviewModal.js';
 
 interface ContextType {
@@ -49,6 +51,7 @@ export const Documents: React.FC = () => {
   const [docName, setDocName] = useState('');
   const [docCategory, setDocCategory] = useState<'registration' | 'insurance' | 'apk' | 'invoice' | 'manual' | 'other'>('registration');
   const [docNotes, setDocNotes] = useState('');
+  const [docExpiresAt, setDocExpiresAt] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [compressing, setCompressing] = useState(false);
   const [compressionRatio, setCompressionRatio] = useState<string | null>(null);
@@ -111,6 +114,7 @@ export const Documents: React.FC = () => {
       formData.append('name', docName || docFile.name);
       formData.append('category', docCategory);
       if (docNotes) formData.append('notes', docNotes);
+      if (docExpiresAt) formData.append('expires_at', docExpiresAt);
 
       await apiFetch(`/api/documents/${selectedVehicle.id}`, {
         method: 'POST',
@@ -121,6 +125,7 @@ export const Documents: React.FC = () => {
       setDocFile(null);
       setDocName('');
       setDocNotes('');
+      setDocExpiresAt('');
       setCompressionRatio(null);
       setDocCategory('registration');
       await loadDocuments(selectedVehicle.id);
@@ -317,9 +322,38 @@ export const Documents: React.FC = () => {
                         <h4 className="text-xs font-bold text-slate-900 dark:text-white line-clamp-1 group-hover:text-sky-600 dark:group-hover:text-sky-400 transition" title={doc.name}>
                           {doc.name}
                         </h4>
-                        <span className={`inline-block px-2 py-0.5 mt-0.5 rounded-full text-[10px] font-bold border ${badge.badgeClass}`}>
-                          {badge.label}
-                        </span>
+                        <div className="flex items-center flex-wrap gap-1 mt-0.5">
+                          <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold border ${badge.badgeClass}`}>
+                            {badge.label}
+                          </span>
+                          {doc.expires_at && (() => {
+                            const exp = new Date(doc.expires_at);
+                            const today = new Date();
+                            today.setHours(0, 0, 0, 0);
+                            const days = Math.ceil((exp.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                            const isExpired = days < 0;
+                            const isDueSoon = days >= 0 && days <= 30;
+
+                            return (
+                              <span
+                                className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                                  isExpired
+                                    ? 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800'
+                                    : isDueSoon
+                                    ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800'
+                                    : 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
+                                }`}
+                                title={`Vervaldatum: ${formatDisplayDate(doc.expires_at)}`}
+                              >
+                                {isExpired
+                                  ? (lang === 'nl' ? `Verlopen (${formatDisplayDate(doc.expires_at)})` : `Expired (${formatDisplayDate(doc.expires_at)})`)
+                                  : isDueSoon
+                                  ? (lang === 'nl' ? `Verloopt over ${days}d` : `Expires in ${days}d`)
+                                  : (lang === 'nl' ? `Geldig t/m ${formatDisplayDate(doc.expires_at)}` : `Valid until ${formatDisplayDate(doc.expires_at)}`)}
+                              </span>
+                            );
+                          })()}
+                        </div>
                       </div>
                     </div>
 
@@ -472,6 +506,20 @@ export const Documents: React.FC = () => {
               </div>
 
               {/* Notes */}
+              {/* Expiration Date (Optional) */}
+              <div>
+                <DatePicker
+                  label={lang === 'nl' ? 'Vervaldatum (optioneel, voor bijv. polis of keuring)' : 'Expiration Date (optional, e.g. for policy or inspection)'}
+                  value={docExpiresAt}
+                  onChange={setDocExpiresAt}
+                />
+                <p className="text-[10px] text-slate-400 mt-1">
+                  {lang === 'nl'
+                    ? 'Als je een datum instelt, stuurt VehicleVault automatisch een herinnering 30 dagen en 7 dagen van tevoren.'
+                    : 'Setting an expiration date triggers automatic alerts 30 days and 7 days prior to expiry.'}
+                </p>
+              </div>
+
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                   {t('notes')} ({t('vehicleNotes')})

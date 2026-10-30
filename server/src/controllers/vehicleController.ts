@@ -3,6 +3,7 @@ import { Request, Response } from 'express';
 import { z } from 'zod';
 import { db } from '../db/database.js';
 import { RdwService } from '../services/rdwService.js';
+import { CalendarService } from '../services/calendarService.js';
 import { getVehicleAccess } from '../utils/vehicleAccess.js';
 
 const vehicleSchema = z.object({
@@ -36,7 +37,7 @@ export class VehicleController {
           u.email as owner_email,
           CASE WHEN v.user_id = ? THEN 1 ELSE 0 END as is_owner,
           CASE WHEN v.user_id = ? THEN 'owner' ELSE COALESCE(vs.role, 'editor') END as access_role,
-          MAX(COALESCE(f.max_f, 0), COALESCE(s.max_s, 0), v.initial_odometer) as current_odometer,
+          MAX(COALESCE(f.max_f, 0), COALESCE(s.max_s, 0), COALESCE(o.max_o, 0), v.initial_odometer) as current_odometer,
           sc.is_active as is_showcase_active,
           sc.public_slug as showcase_slug
         FROM vehicles v
@@ -45,6 +46,7 @@ export class VehicleController {
         LEFT JOIN vehicle_showcases sc ON sc.vehicle_id = v.id
         LEFT JOIN (SELECT vehicle_id, MAX(odometer) as max_f FROM fuel_entries GROUP BY vehicle_id) f ON f.vehicle_id = v.id
         LEFT JOIN (SELECT vehicle_id, MAX(odometer) as max_s FROM service_records GROUP BY vehicle_id) s ON s.vehicle_id = v.id
+        LEFT JOIN (SELECT vehicle_id, MAX(odometer) as max_o FROM odometer_logs GROUP BY vehicle_id) o ON o.vehicle_id = v.id
         WHERE (${showAll ? '1=1' : '(v.user_id = ? OR vs.user_id = ?)'})
       `;
       const params: any[] = [userId, userId, userId];
@@ -95,7 +97,7 @@ export class VehicleController {
           u.email as owner_email,
           CASE WHEN v.user_id = ? THEN 1 ELSE 0 END as is_owner,
           CASE WHEN v.user_id = ? THEN 'owner' ELSE COALESCE(vs.role, 'editor') END as access_role,
-          MAX(COALESCE(f.max_f, 0), COALESCE(s.max_s, 0), v.initial_odometer) as current_odometer,
+          MAX(COALESCE(f.max_f, 0), COALESCE(s.max_s, 0), COALESCE(o.max_o, 0), v.initial_odometer) as current_odometer,
           sc.is_active as is_showcase_active,
           sc.public_slug as showcase_slug
          FROM vehicles v
@@ -104,6 +106,7 @@ export class VehicleController {
          LEFT JOIN vehicle_showcases sc ON sc.vehicle_id = v.id
          LEFT JOIN (SELECT vehicle_id, MAX(odometer) as max_f FROM fuel_entries GROUP BY vehicle_id) f ON f.vehicle_id = v.id
          LEFT JOIN (SELECT vehicle_id, MAX(odometer) as max_s FROM service_records GROUP BY vehicle_id) s ON s.vehicle_id = v.id
+         LEFT JOIN (SELECT vehicle_id, MAX(odometer) as max_o FROM odometer_logs GROUP BY vehicle_id) o ON o.vehicle_id = v.id
          WHERE v.id = ?
          GROUP BY v.id`,
         [userId, userId, userId, id]
@@ -461,6 +464,19 @@ export class VehicleController {
     } catch (err: any) {
       console.error('Sync APK error:', err);
       res.status(500).json({ error: err?.message || 'Sync APK failed' });
+    }
+  }
+
+  public static exportIcs(req: Request, res: Response): void {
+    try {
+      const { id } = req.params;
+      const icsData = CalendarService.generateIcs(id || undefined, req.user?.userId);
+      res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="vehiclevault-${id || 'fleet'}.ics"`);
+      res.send(icsData);
+    } catch (err: any) {
+      console.error('Export ICS error:', err);
+      res.status(500).json({ error: 'Failed to generate calendar export' });
     }
   }
 }

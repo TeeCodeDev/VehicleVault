@@ -35,5 +35,9 @@ router.get('/:id/shares', VehicleController.getShares);
 router.post('/:id/shares', VehicleController.addShare);
 router.delete('/:id/shares/:userId', VehicleController.removeShare);
 
+// iCalendar (.ics) Export
+router.get('/calendar.ics', VehicleController.exportIcs);
+router.get('/:id/calendar.ics', VehicleController.exportIcs);
+
 export default router;
 

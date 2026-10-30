@@ -215,10 +215,11 @@ export class NotificationService {
 
     const vehicles = db.query<any>(`
       SELECT v.*,
-        MAX(COALESCE(f.max_f, 0), COALESCE(s.max_s, 0), v.initial_odometer) as current_odometer
+        MAX(COALESCE(f.max_f, 0), COALESCE(s.max_s, 0), COALESCE(o.max_o, 0), v.initial_odometer) as current_odometer
       FROM vehicles v
       LEFT JOIN (SELECT vehicle_id, MAX(odometer) as max_f FROM fuel_entries GROUP BY vehicle_id) f ON f.vehicle_id = v.id
       LEFT JOIN (SELECT vehicle_id, MAX(odometer) as max_s FROM service_records GROUP BY vehicle_id) s ON s.vehicle_id = v.id
+      LEFT JOIN (SELECT vehicle_id, MAX(odometer) as max_o FROM odometer_logs GROUP BY vehicle_id) o ON o.vehicle_id = v.id
       WHERE v.status = 'active'
       GROUP BY v.id
     `);
@@ -305,6 +306,44 @@ export class NotificationService {
               count++;
               details.push(`Onderhoud alert verzonden voor ${v.name} (${itemName})`);
             }
+          }
+        }
+      }
+    }
+
+    // 3. Expiring Documents Check (< 30 days and < 7 days)
+    const expiringDocs = db.query<any>(`
+      SELECT d.*, v.name as vehicle_name, v.license_plate
+      FROM vehicle_documents d
+      JOIN vehicles v ON v.id = d.vehicle_id
+      WHERE d.expires_at IS NOT NULL AND d.expires_at != '' AND v.status = 'active'
+    `);
+
+    for (const doc of expiringDocs) {
+      const expDate = new Date(doc.expires_at);
+      if (!isNaN(expDate.getTime())) {
+        const diffMs = expDate.getTime() - new Date(todayStr).getTime();
+        const daysRemaining = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+        if (daysRemaining <= 30) {
+          const cacheKey = `notif_doc_${doc.id}_${todayStr}`;
+          const alreadySent = db.get<{ value: string }>('SELECT value FROM system_settings WHERE key = ?', [cacheKey]);
+
+          if (!alreadySent) {
+            const urgency = daysRemaining <= 7 ? 'urgent' : 'high';
+            const title = `📑 Document Herinnering: ${doc.name} (${doc.vehicle_name})`;
+            const msg = daysRemaining < 0
+              ? `Het document "${doc.name}" voor ${doc.vehicle_name} is sinds ${Math.abs(daysRemaining)} dagen verlopen (${doc.expires_at})!`
+              : `Het document "${doc.name}" voor ${doc.vehicle_name} verloopt over ${daysRemaining} dagen (${doc.expires_at}).`;
+
+            await this.send(title, msg, urgency, ['document', 'warning']);
+            db.run('INSERT OR REPLACE INTO system_settings (key, value, updated_at) VALUES (?, ?, ?)', [
+              cacheKey,
+              'sent',
+              new Date().toISOString(),
+            ]);
+            count++;
+            details.push(`Document alert verzonden voor ${doc.name}`);
           }
         }
       }

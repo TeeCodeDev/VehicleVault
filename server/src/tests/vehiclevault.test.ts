@@ -44,6 +44,8 @@ import { ShowcaseZipService } from '../services/showcaseZipService.js';
 import { AuthController } from '../controllers/authController.js';
 import { FuelController } from '../controllers/fuelController.js';
 import { MaintenanceController } from '../controllers/maintenanceController.js';
+import { HaController } from '../controllers/haController.js';
+import { CalendarService } from '../services/calendarService.js';
 import { DATA_PATHS } from '../config/env.js';
 import { EmailService } from '../services/emailService.js';
 
@@ -1680,6 +1682,79 @@ Date,Odometer,Fuel_amount,Price,Total_cost,Notes
         if (fs.existsSync(fakeInvoicePath)) {
           fs.unlinkSync(fakeInvoicePath);
         }
+      }
+    });
+
+    it('should ingest odometer reading from Home Assistant webhook via HaController.updateOdometer', async () => {
+      let statusCode = 200;
+      let jsonPayload: any = null;
+      const mockRes: any = {
+        status: (c: number) => {
+          statusCode = c;
+          return mockRes;
+        },
+        json: (p: any) => {
+          jsonPayload = p;
+          return mockRes;
+        },
+      };
+
+      await HaController.updateOdometer(
+        { body: { vehicle_id: testVehicleId, odometer: 95400, source: 'home_assistant' } } as any,
+        mockRes
+      );
+
+      assert.equal(statusCode, 200);
+      assert.equal(jsonPayload.success, true);
+      assert.equal(jsonPayload.odometer, 95400);
+
+      const log = db.get<any>('SELECT odometer, source FROM odometer_logs WHERE vehicle_id = ? ORDER BY created_at DESC LIMIT 1', [testVehicleId]);
+      assert.ok(log);
+      assert.equal(log.odometer, 95400);
+      assert.equal(log.source, 'home_assistant');
+    });
+
+    it('should generate RFC 5545 compliant .ics calendar export including APK and maintenance alarms', () => {
+      const ics = CalendarService.generateIcs(testVehicleId);
+      assert.ok(ics.startsWith('BEGIN:VCALENDAR'));
+      assert.ok(ics.includes('PRODID:-//VehicleVault//Vehicle Management Platform//NL'));
+      assert.ok(ics.includes('BEGIN:VEVENT'));
+      assert.ok(ics.includes('VALARM'));
+      assert.ok(ics.endsWith('END:VCALENDAR'));
+      assert.ok(ics.includes('\r\n'));
+    });
+
+    it('should alert on expiring documents within 30 days during notification check', async () => {
+      const docId = crypto.randomUUID();
+      const inTwoWeeks = new Date();
+      inTwoWeeks.setDate(inTwoWeeks.getDate() + 14);
+      const expDateStr = inTwoWeeks.toISOString().slice(0, 10);
+
+      db.run(
+        `INSERT INTO vehicle_documents (id, vehicle_id, user_id, name, category, file_path, file_size, expires_at, created_at)
+         VALUES (?, ?, ?, 'Groene Kaart 2026', 'insurance', 'groenekaart.pdf', 1024, ?, ?)`,
+        [docId, testVehicleId, testUserId, expDateStr, new Date().toISOString()]
+      );
+
+      try {
+        const doc = db.get<any>('SELECT expires_at FROM vehicle_documents WHERE id = ?', [docId]);
+        assert.equal(doc.expires_at, expDateStr);
+
+        // Temporarily configure notification settings to mock dispatch
+        NotificationService.saveSettings({
+          provider: 'webhook',
+          webhookUrl: 'https://webhook.invalid.local/test',
+          enabledApk: true,
+          enabledMaintenance: true,
+        });
+
+        // Run check (will attempt dispatch)
+        const result = await NotificationService.checkAndDispatchAlerts();
+        assert.ok(result);
+        assert.ok(Array.isArray(result.details));
+      } finally {
+        db.run('DELETE FROM vehicle_documents WHERE id = ?', [docId]);
+        NotificationService.saveSettings({ provider: 'none' });
       }
     });
   });

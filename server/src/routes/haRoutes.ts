@@ -4,8 +4,9 @@ import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
 
-// Endpoint for Home Assistant REST integration
+// Endpoints for Home Assistant REST integration
 router.get('/sensors', requireAuth, HaController.getSensors);
+router.post('/odometer', requireAuth, HaController.updateOdometer);
 
 export default router;
 
