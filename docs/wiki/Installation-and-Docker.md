@@ -15,13 +15,13 @@ services:
     container_name: vehiclevault
     restart: unless-stopped
     ports:
-      - "3084:3084"
+      - "${PORT:-3084}:${PORT:-3084}"
     environment:
       - NODE_ENV=production
-      - PORT=3084
+      - PORT=${PORT:-3084}
       - DATA_DIR=/data
-      - JWT_SECRET=change_this_to_a_long_random_secret_string
-      - JWT_REFRESH_SECRET=change_this_to_another_long_random_secret_string
+      - JWT_SECRET=${JWT_SECRET:-change_this_to_a_long_random_secret_string}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-change_this_to_another_long_random_secret_string}
     volumes:
       - ./data:/data
 ```

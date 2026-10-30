@@ -42,4 +42,8 @@ Dit document bevat de geplande features en ideeën voor toekomstige releases van
 - **Native PWA Web Push:** Naast Ntfy, Gotify, Pushover, Webhooks en SMTP ook directe browser/PWA push-notificaties ondersteunen via de Web Push standaard (VAPID-keys in de Service Worker), zodat je op iOS/Android/Desktop meldingen vanuit de geïnstalleerde PWA kunt ontvangen zonder externe notificatieservice.
 - **E-mail Presets & OAuth2 / Graph opties:** Snelle 1-klik presets in de UI voor o.a. **Gmail** (`smtp.gmail.com`) en **Microsoft 365 / Outlook.com** (`smtp.office365.com` / Microsoft Graph API).
 
+### 6. Native Passkey / WebAuthn Ondersteuning
+- **Passkeys (FaceID / TouchID / Windows Hello / YubiKey):** Naast de bestaande ondersteuning voor Reverse Proxy SSO (Authelia, Authentik, Pangolin, Cloudflare Access) ook directe ingebouwde WebAuthn / Passkey-authenticatie toevoegen voor passwordless inloggen.
+
+
 

@@ -30,7 +30,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 ENV NODE_ENV=production
-ENV PORT=3001
+ENV PORT=3084
 ENV DATA_DIR=/data
 
 # Create persistent storage mount directories
@@ -44,14 +44,14 @@ COPY --from=server-builder /app/server/dist ./dist
 COPY --from=client-builder /app/client/dist ./client/dist
 
 # Expose HTTP port
-EXPOSE 3001
+EXPOSE 3084
 
 # Declare persistent volume
 VOLUME ["/data"]
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD curl -f http://localhost:3001/healthz || exit 1
+  CMD curl -f http://localhost:${PORT:-3084}/healthz || exit 1
 
 # Start the unified VehicleVault server (serving REST API, MCP, and PWA)
 CMD ["node", "dist/index.js"]
