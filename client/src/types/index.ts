@@ -109,6 +109,30 @@ export interface MaintenanceInterval {
   triggerReason: 'distance' | 'time' | 'none';
 }
 
+export interface InvoiceLineItem {
+  originalDescription: string;
+  translatedDescription: string;
+  category: 'parts' | 'labor' | 'other';
+  quantity?: string | null;
+  totalPrice: number | null;
+}
+
+export interface AiInvoiceExtraction {
+  date: string | null;
+  odometer: number | null;
+  serviceTitle: string | null;
+  garageName: string | null;
+  garageAddress: string | null;
+  detectedLanguage: string | null;
+  totalCost: number | null;
+  partsCost: number | null;
+  laborCost: number | null;
+  lineItems: InvoiceLineItem[];
+  translatedNotes: string | null;
+  engine: 'gemini' | 'openai';
+  model: string;
+}
+
 export interface ServiceRecord {
   id: string;
   vehicle_id: string;
@@ -122,6 +146,9 @@ export interface ServiceRecord {
   cost: number;
   parts_cost?: number;
   labor_cost?: number;
+  garage_name?: string | null;
+  garage_address?: string | null;
+  line_items?: string | null;
   notes?: string | null;
   invoice_path?: string | null;
   created_at: string;

@@ -1788,5 +1788,97 @@ Date,Odometer,Fuel_amount,Price,Total_cost,Notes
         NotificationService.saveSettings({ provider: 'none' });
       }
     });
+
+    it('should normalize German AI invoice extraction with translation, garage address, and sync to vehicle_documents', () => {
+      const sampleGermanAiJson = JSON.stringify({
+        garageName: 'Autohaus Müller GmbH',
+        garageAddress: 'Industriestraße 12, 48599 Gronau (Westf.), Duitsland',
+        date: '17.08.2026',
+        odometer: '54.320 km',
+        detectedLanguage: 'Duits',
+        serviceTitle: 'Grote Onderhoudsbeurt & Olie verversen',
+        totalCost: '357,00',
+        partsCost: '150,00',
+        laborCost: '150,00',
+        translatedNotes: 'Inspektion nach Herstellervorgabe durchgeführt, Bremsflüssigkeit erneuert.',
+        lineItems: [
+          {
+            originalDescription: 'Inspektion mit Ölwechsel',
+            translatedDescription: 'Inspectie met olieverversing',
+            category: 'labor',
+            quantity: '1x',
+            totalPrice: 150.0,
+          },
+          {
+            originalDescription: 'Ölfilterpatrone & Motoröl 5W-30',
+            translatedDescription: 'Oliefilterpatroon & Motorolie 5W-30',
+            category: 'parts',
+            quantity: '1x',
+            totalPrice: 105.0,
+          },
+          {
+            originalDescription: 'Bremsflüssigkeit DOT4',
+            translatedDescription: 'Remvloeistof DOT4',
+            category: 'parts',
+            quantity: '1x',
+            totalPrice: 45.0,
+          },
+        ],
+      });
+
+      const parsed = AiReceiptService.normalizeInvoiceResult(
+        sampleGermanAiJson,
+        'gemini',
+        'gemini-2.5-flash',
+        'nl'
+      );
+
+      assert.equal(parsed.garageName, 'Autohaus Müller GmbH');
+      assert.equal(parsed.garageAddress, 'Industriestraße 12, 48599 Gronau (Westf.), Duitsland');
+      assert.equal(parsed.date, '2026-08-17');
+      assert.equal(parsed.odometer, 54320);
+      assert.equal(parsed.detectedLanguage, 'Duits');
+      assert.equal(parsed.serviceTitle, 'Grote Onderhoudsbeurt & Olie verversen');
+      assert.equal(parsed.totalCost, 357);
+      // Net 150 + 150 = 300, total 357 (19% German MwSt) -> reconciled to 178.5 + 178.5 = 357
+      assert.equal(Number(((parsed.partsCost || 0) + (parsed.laborCost || 0)).toFixed(2)), 357);
+      assert.equal(parsed.lineItems.length, 3);
+      assert.equal(parsed.lineItems[0].originalDescription, 'Inspektion mit Ölwechsel');
+      assert.equal(parsed.lineItems[0].translatedDescription, 'Inspectie met olieverversing');
+      assert.equal(parsed.lineItems[0].category, 'labor');
+      assert.equal(parsed.lineItems[1].category, 'parts');
+
+      // Also verify syncInvoiceToDocuments copies file to documents dir and creates vehicle_documents entry
+      const fakeFilename = `german-invoice-${Date.now()}.pdf`;
+      const fakeInvoicePath = path.join(DATA_PATHS.invoices, fakeFilename);
+      const fakeDocPath = path.join(DATA_PATHS.documents, fakeFilename);
+      fs.writeFileSync(fakeInvoicePath, '%PDF-1.4 german invoice test');
+
+      try {
+        MaintenanceController.syncInvoiceToDocuments(
+          testVehicleId,
+          testUserId,
+          fakeFilename,
+          parsed.serviceTitle || 'Onderhoud',
+          parsed.date || '2026-08-17',
+          parsed.garageName,
+          parsed.garageAddress
+        );
+
+        assert.ok(fs.existsSync(fakeDocPath), 'Expected invoice file to be copied to documents directory');
+        const syncedDoc = db.get<any>(
+          'SELECT name, category, file_path, notes FROM vehicle_documents WHERE vehicle_id = ? AND file_path = ?',
+          [testVehicleId, fakeFilename]
+        );
+        assert.ok(syncedDoc, 'Expected synced document record in vehicle_documents');
+        assert.equal(syncedDoc.category, 'invoice');
+        assert.ok(syncedDoc.name.includes('Autohaus Müller GmbH'));
+        assert.ok(syncedDoc.notes.includes('Industriestraße 12'));
+      } finally {
+        db.run('DELETE FROM vehicle_documents WHERE vehicle_id = ? AND file_path = ?', [testVehicleId, fakeFilename]);
+        if (fs.existsSync(fakeInvoicePath)) fs.unlinkSync(fakeInvoicePath);
+        if (fs.existsSync(fakeDocPath)) fs.unlinkSync(fakeDocPath);
+      }
+    });
   });
 });

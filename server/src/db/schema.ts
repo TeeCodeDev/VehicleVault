@@ -230,6 +230,9 @@ export function initializeDatabase(): void {
       cost REAL NOT NULL DEFAULT 0,
       parts_cost REAL NOT NULL DEFAULT 0,
       labor_cost REAL NOT NULL DEFAULT 0,
+      garage_name TEXT,
+      garage_address TEXT,
+      line_items TEXT,
       notes TEXT,
       invoice_path TEXT,
       created_at TEXT NOT NULL,
@@ -244,6 +247,15 @@ export function initializeDatabase(): void {
   }
   if (!columnExists('service_records', 'labor_cost')) {
     db.exec('ALTER TABLE service_records ADD COLUMN labor_cost REAL NOT NULL DEFAULT 0;');
+  }
+  if (!columnExists('service_records', 'garage_name')) {
+    db.exec('ALTER TABLE service_records ADD COLUMN garage_name TEXT;');
+  }
+  if (!columnExists('service_records', 'garage_address')) {
+    db.exec('ALTER TABLE service_records ADD COLUMN garage_address TEXT;');
+  }
+  if (!columnExists('service_records', 'line_items')) {
+    db.exec('ALTER TABLE service_records ADD COLUMN line_items TEXT;');
   }
   try {
     db.exec('UPDATE service_records SET parts_cost = cost WHERE parts_cost = 0 AND labor_cost = 0 AND cost > 0;');
