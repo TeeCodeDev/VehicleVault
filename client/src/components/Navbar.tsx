@@ -132,6 +132,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 {activeVehicle.license_plate && (
                   <LicensePlateBadge
                     plate={activeVehicle.license_plate}
+                    country={activeVehicle.plate_country}
                     size="xs"
                     className="hidden xs:inline-flex shrink-0"
                   />
@@ -198,6 +199,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                               {v.license_plate && (
                                 <LicensePlateBadge
                                   plate={v.license_plate}
+                                  country={v.plate_country}
                                   size="xs"
                                   className="shrink-0"
                                 />

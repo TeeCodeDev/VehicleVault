@@ -25,6 +25,7 @@ import { DatePicker } from '../components/DatePicker.js';
 import { useLanguage } from '../context/LanguageContext.js';
 import { formatDisplayDate } from '../utils/format.js';
 import { compressImage } from '../utils/imageCompressor.js';
+import { DocumentPreviewModal } from '../components/DocumentPreviewModal.js';
 
 interface ContextType {
   vehicles: Vehicle[];
@@ -55,6 +56,16 @@ export const Maintenance: React.FC = () => {
   const [matchedIntervalId, setMatchedIntervalId] = useState<string>('');
   const [invoiceFile, setInvoiceFile] = useState<File | null>(null);
   const [submittingService, setSubmittingService] = useState(false);
+
+  // In-app Document / Invoice Preview State
+  const [previewDoc, setPreviewDoc] = useState<{
+    isOpen: boolean;
+    title: string;
+    url: string;
+    date?: string;
+    notes?: string;
+  } | null>(null);
+  const [attachingInvoiceRecordId, setAttachingInvoiceRecordId] = useState<string | null>(null);
 
   // Add Interval Form State
   const [intervalCategoryId, setIntervalCategoryId] = useState('');
@@ -169,6 +180,25 @@ export const Maintenance: React.FC = () => {
       alert(err?.message || 'Failed to log maintenance record');
     } finally {
       setSubmittingService(false);
+    }
+  };
+
+  const handleQuickAttachInvoice = async (recordId: string, file?: File | null) => {
+    if (!file || !selectedVehicle) return;
+    try {
+      setAttachingInvoiceRecordId(recordId);
+      const compressed = await compressImage(file);
+      const formData = new FormData();
+      formData.append('invoice', compressed);
+      await apiFetch(`/api/maintenance/records/${recordId}/invoice`, {
+        method: 'POST',
+        body: formData,
+      });
+      await loadData(selectedVehicle.id);
+    } catch (err: any) {
+      alert(err?.message || (lang === 'nl' ? 'Koppelen van factuur mislukt' : 'Failed to attach invoice'));
+    } finally {
+      setAttachingInvoiceRecordId(null);
     }
   };
 
@@ -471,17 +501,46 @@ export const Maintenance: React.FC = () => {
                     </td>
                     <td className="py-3 px-4 whitespace-nowrap">
                       {r.invoice_path ? (
-                        <a
-                          href={`/uploads/invoices/${r.invoice_path}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center space-x-1 text-sky-600 dark:text-sky-400 hover:underline font-semibold"
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setPreviewDoc({
+                              isOpen: true,
+                              title: `${r.service_item} — ${lang === 'nl' ? 'Factuur' : 'Invoice'}`,
+                              url: `/uploads/invoices/${r.invoice_path}`,
+                              date: formatDisplayDate(r.date),
+                              notes: r.notes || undefined,
+                            })
+                          }
+                          className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800/50 hover:bg-sky-100 dark:hover:bg-sky-900/50 font-bold text-xs transition shadow-2xs group"
+                          title={lang === 'nl' ? 'Bekijk factuur direct in-app' : 'View invoice in-app'}
                         >
-                          <Paperclip className="w-3.5 h-3.5" />
-                          <span>{t('view')}</span>
-                        </a>
+                          <FileText className="w-3.5 h-3.5 text-rose-500 group-hover:scale-110 transition-transform" />
+                          <span>{lang === 'nl' ? 'Factuur bekijken' : 'View invoice'}</span>
+                        </button>
                       ) : (
-                        <span className="text-slate-400">—</span>
+                        <label
+                          className={`inline-flex items-center space-x-1 text-[11px] text-slate-400 hover:text-sky-600 dark:hover:text-sky-400 font-semibold cursor-pointer transition ${
+                            attachingInvoiceRecordId === r.id ? 'opacity-50 pointer-events-none' : ''
+                          }`}
+                          title={lang === 'nl' ? 'Koppel een PDF factuur of bon aan deze beurt' : 'Attach an invoice or receipt to this service record'}
+                        >
+                          <Paperclip className="w-3 h-3" />
+                          <span>
+                            {attachingInvoiceRecordId === r.id
+                              ? (lang === 'nl' ? 'Uploaden...' : 'Uploading...')
+                              : (lang === 'nl' ? '+ Factuur koppelen' : '+ Attach invoice')}
+                          </span>
+                          <input
+                            type="file"
+                            accept=".pdf,image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const f = e.target.files?.[0];
+                              if (f) handleQuickAttachInvoice(r.id, f);
+                            }}
+                          />
+                        </label>
                       )}
                     </td>
                     <td className="py-3 px-4 text-right whitespace-nowrap">
@@ -928,6 +987,17 @@ export const Maintenance: React.FC = () => {
             </form>
           </div>
         </div>
+      )}
+      {/* In-app Document / Invoice Preview Modal */}
+      {previewDoc && (
+        <DocumentPreviewModal
+          isOpen={previewDoc.isOpen}
+          onClose={() => setPreviewDoc(null)}
+          title={previewDoc.title}
+          url={previewDoc.url}
+          date={previewDoc.date}
+          notes={previewDoc.notes}
+        />
       )}
     </div>
   );

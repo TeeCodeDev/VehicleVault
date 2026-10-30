@@ -43,6 +43,7 @@ import { ShowcaseService } from '../services/showcaseService.js';
 import { ShowcaseZipService } from '../services/showcaseZipService.js';
 import { AuthController } from '../controllers/authController.js';
 import { FuelController } from '../controllers/fuelController.js';
+import { MaintenanceController } from '../controllers/maintenanceController.js';
 import { DATA_PATHS } from '../config/env.js';
 import { EmailService } from '../services/emailService.js';
 
@@ -1615,6 +1616,71 @@ Date,Odometer,Fuel_amount,Price,Total_cost,Notes
       assert.equal(ext?.category, 'exterieur');
       assert.equal(sch?.category, 'gebruikssporen');
       assert.equal(ext?.is_primary, 1);
+    });
+  });
+
+  describe('Multi-Country License Plate & Maintenance Invoices', () => {
+    it('should support plate_country in vehicles schema and persist correctly', () => {
+      const vId = crypto.randomUUID();
+      const now = new Date().toISOString();
+      db.run(
+        `INSERT INTO vehicles (id, user_id, name, type, license_plate, plate_country, purchase_price, initial_odometer, status, created_at, updated_at)
+         VALUES (?, ?, 'Belgian Daily', 'car', '1-ABC-123', 'BE', 12000, 45000, 'active', ?, ?)`,
+        [vId, testUserId, now, now]
+      );
+
+      const v = db.get<any>('SELECT license_plate, plate_country FROM vehicles WHERE id = ?', [vId]);
+      assert.ok(v);
+      assert.equal(v.license_plate, '1-ABC-123');
+      assert.equal(v.plate_country, 'BE');
+
+      db.run('DELETE FROM vehicles WHERE id = ?', [vId]);
+    });
+
+    it('should attach an invoice to an existing service record via MaintenanceController.attachInvoiceToRecord', async () => {
+      const recId = crypto.randomUUID();
+      const now = new Date().toISOString();
+      db.run(
+        `INSERT INTO service_records (id, vehicle_id, service_item, date, odometer, performing_party, cost, created_at)
+         VALUES (?, ?, 'Grote Beurt & Remmen', '2026-10-25', 85000, 'garage', 450, ?)`,
+        [recId, testVehicleId, now]
+      );
+
+      const fakeFilename = `test_inv_${Date.now()}.pdf`;
+      const fakeInvoicePath = path.join(DATA_PATHS.invoices, fakeFilename);
+      fs.writeFileSync(fakeInvoicePath, '%PDF-1.4 test invoice content');
+
+      let statusCode = 200;
+      let jsonPayload: any = null;
+      const mockRes: any = {
+        status: (c: number) => {
+          statusCode = c;
+          return mockRes;
+        },
+        json: (p: any) => {
+          jsonPayload = p;
+          return mockRes;
+        },
+      };
+
+      try {
+        await MaintenanceController.attachInvoiceToRecord(
+          { params: { id: recId }, file: { filename: fakeFilename, path: fakeInvoicePath } } as any,
+          mockRes
+        );
+
+        assert.equal(statusCode, 200);
+        assert.equal(jsonPayload.success, true);
+        assert.equal(jsonPayload.fileName, fakeFilename);
+
+        const updated = db.get<any>('SELECT invoice_path FROM service_records WHERE id = ?', [recId]);
+        assert.equal(updated.invoice_path, fakeFilename);
+      } finally {
+        db.run('DELETE FROM service_records WHERE id = ?', [recId]);
+        if (fs.existsSync(fakeInvoicePath)) {
+          fs.unlinkSync(fakeInvoicePath);
+        }
+      }
     });
   });
 });

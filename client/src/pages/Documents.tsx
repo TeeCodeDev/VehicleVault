@@ -10,11 +10,13 @@ import {
   X,
   UploadCloud,
   File,
+  Eye,
 } from 'lucide-react';
 import { Vehicle, VehicleDocument } from '../types/index.js';
 import { apiFetch } from '../api/client.js';
 import { useLanguage } from '../context/LanguageContext.js';
 import { compressImage } from '../utils/imageCompressor.js';
+import { DocumentPreviewModal } from '../components/DocumentPreviewModal.js';
 
 interface ContextType {
   vehicles: Vehicle[];
@@ -25,11 +27,21 @@ type DocCategory = 'all' | 'registration' | 'insurance' | 'apk' | 'invoice' | 'm
 
 export const Documents: React.FC = () => {
   const { selectedVehicle } = useOutletContext<ContextType>();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
 
   const [documents, setDocuments] = useState<VehicleDocument[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeCategory, setActiveCategory] = useState<DocCategory>('all');
+
+  // Document preview state
+  const [previewDoc, setPreviewDoc] = useState<{
+    isOpen: boolean;
+    title: string;
+    url: string;
+    date?: string;
+    fileSize?: number;
+    notes?: string;
+  } | null>(null);
 
   // Upload modal state
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -334,16 +346,37 @@ export const Documents: React.FC = () => {
                     <span>{new Date(doc.created_at).toLocaleDateString('nl-NL')}</span>
                   </div>
 
-                  <a
-                    href={downloadUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg transition inline-flex items-center space-x-1 font-semibold text-[11px]"
-                    title={t('downloadDocument')}
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    <span>{t('download')}</span>
-                  </a>
+                  <div className="flex items-center space-x-1.5">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setPreviewDoc({
+                          isOpen: true,
+                          title: doc.name,
+                          url: downloadUrl,
+                          fileSize: doc.file_size,
+                          date: new Date(doc.created_at).toLocaleDateString('nl-NL'),
+                          notes: doc.notes || undefined,
+                        })
+                      }
+                      className="p-1.5 bg-sky-50 hover:bg-sky-100 dark:bg-sky-950/40 dark:hover:bg-sky-900/50 text-sky-700 dark:text-sky-300 rounded-lg transition inline-flex items-center space-x-1 font-bold text-[11px] border border-sky-200/60 dark:border-sky-800/40"
+                      title={lang === 'nl' ? 'Bekijk direct in-app' : 'Preview in-app'}
+                    >
+                      <Eye className="w-3.5 h-3.5 text-sky-500" />
+                      <span>{lang === 'nl' ? 'Bekijken' : 'Preview'}</span>
+                    </button>
+
+                    <a
+                      href={downloadUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg transition inline-flex items-center space-x-1 font-semibold text-[11px]"
+                      title={t('downloadDocument')}
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>{t('download')}</span>
+                    </a>
+                  </div>
                 </div>
               </div>
             );
@@ -471,6 +504,18 @@ export const Documents: React.FC = () => {
             </form>
           </div>
         </div>
+      )}
+      {/* In-app Document Preview Modal */}
+      {previewDoc && (
+        <DocumentPreviewModal
+          isOpen={previewDoc.isOpen}
+          onClose={() => setPreviewDoc(null)}
+          title={previewDoc.title}
+          url={previewDoc.url}
+          fileSize={previewDoc.fileSize}
+          date={previewDoc.date}
+          notes={previewDoc.notes}
+        />
       )}
     </div>
   );

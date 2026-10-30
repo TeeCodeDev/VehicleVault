@@ -71,6 +71,7 @@ export function initializeDatabase(): void {
       status TEXT NOT NULL DEFAULT 'active',
       rdw_data TEXT,
       apk_expiration_date TEXT,
+      plate_country TEXT NOT NULL DEFAULT 'NL',
       image_path TEXT,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
@@ -88,6 +89,9 @@ export function initializeDatabase(): void {
 
   if (!columnExists('vehicles', 'image_path')) {
     db.exec('ALTER TABLE vehicles ADD COLUMN image_path TEXT;');
+  }
+  if (!columnExists('vehicles', 'plate_country')) {
+    db.exec("ALTER TABLE vehicles ADD COLUMN plate_country TEXT NOT NULL DEFAULT 'NL';");
   }
 
   // 4b. Multi-User Vehicle Sharing

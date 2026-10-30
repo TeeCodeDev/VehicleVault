@@ -24,6 +24,7 @@ import { formatDisplayDate } from '../utils/format.js';
 import { compressImage } from '../utils/imageCompressor.js';
 import { ShowcaseManagerModal } from '../components/ShowcaseManagerModal.js';
 import { LicensePlateBadge } from '../components/LicensePlateBadge.js';
+import { getInspectionTerm } from '../utils/inspectionTerms.js';
 
 interface ContextType {
   vehicles: Vehicle[];
@@ -52,6 +53,7 @@ export const Vehicles: React.FC = () => {
   const [name, setName] = useState('');
   const [type, setType] = useState<VehicleType>('car');
   const [licensePlate, setLicensePlate] = useState('');
+  const [plateCountry, setPlateCountry] = useState<'NL' | 'BE' | 'DE' | 'EU' | 'OTHER'>('NL');
   const [vin, setVin] = useState('');
   const [year, setYear] = useState<string>('');
   const [make, setMake] = useState('');
@@ -76,6 +78,7 @@ export const Vehicles: React.FC = () => {
     setName('');
     setType('car');
     setLicensePlate('');
+    setPlateCountry('NL');
     setVin('');
     setYear('');
     setMake('');
@@ -103,6 +106,7 @@ export const Vehicles: React.FC = () => {
     setName(v.name);
     setType(v.type);
     setLicensePlate(v.license_plate || '');
+    setPlateCountry(((v.plate_country as any) || 'NL'));
     setVin(v.vin || '');
     setYear(v.year ? String(v.year) : '');
     setMake(v.make || '');
@@ -158,6 +162,7 @@ export const Vehicles: React.FC = () => {
       name,
       type,
       license_plate: licensePlate || null,
+      plate_country: plateCountry,
       vin: vin || null,
       year: year ? parseInt(year, 10) : null,
       make: make || null,
@@ -401,7 +406,7 @@ export const Vehicles: React.FC = () => {
                 <div className="flex items-start justify-between gap-2 mb-1">
                   <h3 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">{v.name}</h3>
                   {v.license_plate && (
-                    <LicensePlateBadge plate={v.license_plate} size="xs" className="shrink-0" />
+                    <LicensePlateBadge plate={v.license_plate} country={v.plate_country} size="xs" className="shrink-0" />
                   )}
                 </div>
 
@@ -432,7 +437,7 @@ export const Vehicles: React.FC = () => {
                     </div>
                   )}
                   <div className="flex justify-between">
-                    <span className="text-slate-500">{t('apkDate')}</span>
+                    <span className="text-slate-500">{getInspectionTerm(v.plate_country, lang).dateLabel}</span>
                     <span className="font-semibold text-slate-800 dark:text-slate-200">
                       {formatDisplayDate(v.apk_expiration_date)}
                     </span>
@@ -747,35 +752,106 @@ export const Vehicles: React.FC = () => {
                 </div>
               </div>
 
-              {/* RDW License Plate lookup banner */}
-              <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2">
-                <label className="text-slate-700 dark:text-slate-300 font-semibold block">
-                  {t('licensePlate')} (RDW Open Data)
-                </label>
+              {/* License Plate & Country Selector */}
+              <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2.5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <label className="text-slate-700 dark:text-slate-300 font-semibold block">
+                    {t('licensePlate')}
+                  </label>
+                  {/* Country Selector Pills */}
+                  <div className="flex items-center space-x-1.5 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => setPlateCountry('NL')}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center space-x-1 ${
+                        plateCountry === 'NL'
+                          ? 'bg-[#f5c518] text-slate-950 shadow-2xs border border-amber-500'
+                          : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-300'
+                      }`}
+                      title="Nederlands kenteken"
+                    >
+                      <span>🇳🇱 NL</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPlateCountry('BE')}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center space-x-1 ${
+                        plateCountry === 'BE'
+                          ? 'bg-rose-700 text-white shadow-2xs border border-rose-800'
+                          : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-300'
+                      }`}
+                      title="Belgisch kenteken"
+                    >
+                      <span>🇧🇪 BE</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPlateCountry('DE')}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center space-x-1 ${
+                        plateCountry === 'DE'
+                          ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-2xs border border-slate-400'
+                          : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-300'
+                      }`}
+                      title="Duits kenteken"
+                    >
+                      <span>🇩🇪 DE</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPlateCountry('EU')}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center space-x-1 ${
+                        plateCountry === 'EU'
+                          ? 'bg-blue-600 text-white shadow-2xs border border-blue-700'
+                          : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-300'
+                      }`}
+                      title="Europees / Internationaal kenteken"
+                    >
+                      <span>🇪🇺 EU / Overig</span>
+                    </button>
+                  </div>
+                </div>
+
                 <div className="flex items-center space-x-2">
                   <input
                     type="text"
                     value={licensePlate}
                     onChange={(e) => setLicensePlate(e.target.value)}
-                    placeholder="bijv. 12-AB-34"
+                    placeholder={
+                      plateCountry === 'NL'
+                        ? 'bijv. GBB-01-B of 12-AB-34'
+                        : plateCountry === 'BE'
+                        ? 'bijv. 1-ABC-123'
+                        : plateCountry === 'DE'
+                        ? 'bijv. B-MW 1234'
+                        : 'bijv. ABC-1234'
+                    }
                     className="flex-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 uppercase font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:border-sky-500 shadow-sm"
                   />
-                  <button
-                    type="button"
-                    onClick={handleRdwLookup}
-                    disabled={rdwLoading || !licensePlate}
-                    className="px-3.5 py-2 bg-slate-900 text-white dark:bg-slate-800 dark:text-slate-100 hover:bg-black dark:hover:bg-slate-700 rounded-lg text-xs font-semibold inline-flex items-center space-x-1.5 transition disabled:opacity-50 shadow-sm"
-                  >
-                    {rdwLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 text-amber-400" />}
-                    <span>{t('rdwAutofill')}</span>
-                  </button>
+                  {plateCountry === 'NL' && (
+                    <button
+                      type="button"
+                      onClick={handleRdwLookup}
+                      disabled={rdwLoading || !licensePlate}
+                      className="px-3.5 py-2 bg-slate-900 text-white dark:bg-slate-800 dark:text-slate-100 hover:bg-black dark:hover:bg-slate-700 rounded-lg text-xs font-semibold inline-flex items-center space-x-1.5 transition disabled:opacity-50 shadow-sm shrink-0"
+                    >
+                      {rdwLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 text-amber-400" />}
+                      <span>{t('rdwAutofill')}</span>
+                    </button>
+                  )}
                 </div>
-                {rdwSuccess && (
+
+                {plateCountry !== 'NL' ? (
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 italic">
+                    {plateCountry === 'BE' && '🇧🇪 Belgisch kenteken: Vul specificaties en keuringsdatum handmatig in.'}
+                    {plateCountry === 'DE' && '🇩🇪 Duits kenteken: Vul specificaties en TÜV-vervaldatum handmatig in.'}
+                    {plateCountry === 'EU' && '🇪🇺 Internationaal kenteken: Voertuiggegevens kunnen handmatig worden ingevuld.'}
+                  </p>
+                ) : rdwSuccess ? (
                   <p className="text-[11px] text-emerald-600 dark:text-emerald-400 flex items-center space-x-1 font-medium">
                     <CheckCircle2 className="w-3.5 h-3.5" />
                     <span>{t('rdwFound')}</span>
                   </p>
-                )}
+                ) : null}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -928,7 +1004,7 @@ export const Vehicles: React.FC = () => {
                 </div>
                 <div>
                   <DatePicker
-                    label={t('apkDate')}
+                    label={getInspectionTerm(plateCountry, lang).dateLabel}
                     value={apkDate}
                     onChange={setApkDate}
                   />

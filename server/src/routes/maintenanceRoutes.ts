@@ -20,6 +20,7 @@ router.get('/records/:vehicleId', MaintenanceController.listRecords);
 router.post('/records', MaintenanceController.createRecord);
 router.delete('/records/:id', MaintenanceController.deleteRecord);
 router.post('/upload-invoice', uploadLimiter, uploadInvoice.single('invoice'), MaintenanceController.uploadInvoiceFile);
+router.post('/records/:id/invoice', uploadLimiter, uploadInvoice.single('invoice'), MaintenanceController.attachInvoiceToRecord);
 
 export default router;
 

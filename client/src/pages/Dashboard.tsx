@@ -21,6 +21,7 @@ import { IntervalProgressBar } from '../components/IntervalProgressBar.js';
 import { PdfExportModal } from '../components/PdfExportModal.js';
 import { ShowcaseManagerModal } from '../components/ShowcaseManagerModal.js';
 import { LicensePlateBadge } from '../components/LicensePlateBadge.js';
+import { getInspectionTerm } from '../utils/inspectionTerms.js';
 import { useLanguage } from '../context/LanguageContext.js';
 import { formatDisplayDate } from '../utils/format.js';
 import { useAuth } from '../context/AuthContext.js';
@@ -45,6 +46,7 @@ export const Dashboard: React.FC = () => {
   const vehicleFuelType = (selectedVehicle?.fuel_type || '').toLowerCase();
   const isPhev = vehicleFuelType.includes('plug-in') || vehicleFuelType.includes('phev');
   const isElectricOnly = (vehicleFuelType.includes('elektrisch') || vehicleFuelType === 'ev' || vehicleFuelType.includes('elektriciteit')) && !isPhev;
+  const inspTerm = getInspectionTerm(selectedVehicle?.plate_country, lang);
 
   useEffect(() => {
     if (selectedVehicle) {
@@ -129,7 +131,7 @@ export const Dashboard: React.FC = () => {
               🚗 Chauffeur Modus
             </span>
             {selectedVehicle?.license_plate && (
-              <LicensePlateBadge plate={selectedVehicle.license_plate} size="sm" />
+              <LicensePlateBadge plate={selectedVehicle.license_plate} country={selectedVehicle.plate_country} size="sm" />
             )}
           </div>
 
@@ -253,9 +255,9 @@ export const Dashboard: React.FC = () => {
                   {selectedVehicle?.name}
                 </h1>
 
-                {/* Dutch style license plate badge */}
+                {/* License plate badge */}
                 {selectedVehicle?.license_plate && (
-                  <LicensePlateBadge plate={selectedVehicle.license_plate} size="md" />
+                  <LicensePlateBadge plate={selectedVehicle.license_plate} country={selectedVehicle.plate_country} size="md" />
                 )}
               </div>
 
@@ -339,10 +341,10 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* APK Inspection Status */}
+        {/* Inspection Status */}
         <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-4 rounded-xl shadow-sm transition-colors">
           <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-1">
-            <span className="text-xs font-semibold">{t('apkDate')}</span>
+            <span className="text-xs font-semibold">{inspTerm.short} {lang === 'nl' ? 'Keuring' : 'Inspection'}</span>
             <div className="w-7 h-7 rounded-lg bg-amber-50 dark:bg-amber-950/60 flex items-center justify-center text-amber-600 dark:text-amber-400">
               <Calendar className="w-4 h-4" />
             </div>
@@ -350,11 +352,11 @@ export const Dashboard: React.FC = () => {
           <div className="text-base font-extrabold text-slate-900 dark:text-white flex items-center space-x-2">
             <span>{formatDisplayDate(selectedVehicle?.apk_expiration_date)}</span>
             {apkStatus?.isOverdue ? (
-              <StatusBadge status="overdue" label={t('apkOverdue')} />
+              <StatusBadge status="overdue" label={inspTerm.overdue} />
             ) : apkStatus?.isDueSoon ? (
-              <StatusBadge status="warning" label={t('apkWarning')} />
+              <StatusBadge status="warning" label={inspTerm.dueSoon} />
             ) : selectedVehicle?.apk_expiration_date ? (
-              <StatusBadge status="good" label={t('apkValid')} />
+              <StatusBadge status="good" label={inspTerm.valid} />
             ) : null}
           </div>
           <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium mt-1">
@@ -365,15 +367,17 @@ export const Dashboard: React.FC = () => {
                   : t('daysRemaining', { days: apkStatus.daysRemaining })
                 : '—'}
             </span>
-            <button
-              onClick={handleSyncApk}
-              disabled={syncingApk}
-              className="text-sky-600 dark:text-sky-400 hover:underline inline-flex items-center space-x-1"
-              title={t('syncApk')}
-            >
-              <RefreshCw className={`w-3 h-3 ${syncingApk ? 'animate-spin' : ''}`} />
-              <span className="text-[10px]">Sync</span>
-            </button>
+            {(!selectedVehicle?.plate_country || selectedVehicle?.plate_country === 'NL') && (
+              <button
+                onClick={handleSyncApk}
+                disabled={syncingApk}
+                className="text-sky-600 dark:text-sky-400 hover:underline inline-flex items-center space-x-1"
+                title={inspTerm.syncLabel}
+              >
+                <RefreshCw className={`w-3 h-3 ${syncingApk ? 'animate-spin' : ''}`} />
+                <span className="text-[10px]">Sync</span>
+              </button>
+            )}
           </div>
         </div>
 

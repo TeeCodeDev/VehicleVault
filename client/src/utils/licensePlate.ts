@@ -3,16 +3,40 @@
  */
 
 /**
- * Formats a raw license plate (e.g. "GBB01B" or "12AB34") into official Dutch sidecode format with hyphens (e.g. "GBB-01-B", "12-AB-34").
- * Supports all 14 official RDW sidecode patterns.
+ * Formats a raw license plate into official format with hyphens / spaces.
+ * Supports Dutch (RDW 14 sidecodes), Belgian, German, and International styles.
  */
-export function formatLicensePlate(plate?: string | null): string {
+export function formatLicensePlate(plate?: string | null, country: string = 'NL'): string {
   if (!plate) return '';
-  const clean = plate.toUpperCase().trim().replace(/[^A-Z0-9]/g, '');
+  const trimmed = plate.trim().toUpperCase();
+  const clean = trimmed.replace(/[^A-Z0-9]/g, '');
+
+  if (country === 'BE') {
+    // Belgian modern format: 1-ABC-123 or 2-ABC-123
+    if (/^[1-9][A-Z]{3}[0-9]{3}$/.test(clean)) {
+      return `${clean.slice(0, 1)}-${clean.slice(1, 4)}-${clean.slice(4, 7)}`;
+    }
+    // Older Belgian format: ABC-123 or 123-ABC
+    if (/^[A-Z]{3}[0-9]{3}$/.test(clean)) {
+      return `${clean.slice(0, 3)}-${clean.slice(3, 6)}`;
+    }
+    if (/^[0-9]{3}[A-Z]{3}$/.test(clean)) {
+      return `${clean.slice(0, 3)}-${clean.slice(3, 6)}`;
+    }
+    return trimmed;
+  }
+
+  if (country === 'DE') {
+    // German license plate format: preserve city code and spacing
+    if (trimmed.includes(' ') || trimmed.includes('-')) {
+      return trimmed.replace(/\s+/g, ' ');
+    }
+    return trimmed;
+  }
 
   // If not standard 6-character Dutch plate, return original trimmed
   if (clean.length !== 6) {
-    return plate.trim().toUpperCase();
+    return trimmed;
   }
 
   // Sidecode 1: XX-99-99 (2 letters, 2 digits, 2 digits)

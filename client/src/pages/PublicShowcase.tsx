@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { LicensePlateBadge } from '../components/LicensePlateBadge.js';
 import { formatLicensePlate } from '../utils/licensePlate.js';
+import { getInspectionTerm } from '../utils/inspectionTerms.js';
 
 interface CompiledShowcase {
   id: string;
@@ -45,6 +46,7 @@ interface CompiledShowcase {
     name: string;
     type: string;
     license_plate: string | null;
+    plate_country?: string | null;
     vin: string | null;
     year: number | null;
     make: string | null;
@@ -258,7 +260,7 @@ export const PublicShowcase: React.FC = () => {
           {/* Top Badges */}
           <div className="flex flex-wrap items-center gap-2.5 mb-5">
             {v.license_plate && (
-              <LicensePlateBadge plate={v.license_plate} size="lg" showCopy={true} />
+              <LicensePlateBadge plate={v.license_plate} country={v.plate_country} size="lg" showCopy={true} />
             )}
 
             {/* Prijsbadge: alleen tonen als vraagprijs ingevuld is of expliciet 'Prijs op aanvraag' gekozen is */}
@@ -275,7 +277,7 @@ export const PublicShowcase: React.FC = () => {
             )}
 
             <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-              🛡️ {lang === 'nl' ? `APK t/m ${showcase.stats.apk_vervaldatum}` : `APK valid until ${showcase.stats.apk_vervaldatum}`}
+              🛡️ {lang === 'nl' ? `${getInspectionTerm(v.plate_country, lang).short} t/m ${showcase.stats.apk_vervaldatum}` : `${getInspectionTerm(v.plate_country, lang).short} valid until ${showcase.stats.apk_vervaldatum}`}
             </span>
 
             {/* NAP Tellerstand: alleen tonen als oordeel daadwerkelijk Logisch is (verbergen bij 'Geen oordeel' of onbekend) */}

@@ -26,6 +26,7 @@ export interface Vehicle {
   rdw_data?: string | null;
   apk_expiration_date?: string | null;
   apk_status?: ApkStatus;
+  plate_country?: 'NL' | 'BE' | 'DE' | 'EU' | 'OTHER' | string;
   image_path?: string | null;
   is_owner?: boolean;
   access_role?: 'owner' | 'editor' | 'viewer';

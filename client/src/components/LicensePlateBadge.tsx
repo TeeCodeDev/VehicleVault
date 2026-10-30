@@ -5,6 +5,7 @@ import { useLanguage } from '../context/LanguageContext.js';
 
 interface LicensePlateBadgeProps {
   plate?: string | null;
+  country?: 'NL' | 'BE' | 'DE' | 'EU' | 'OTHER' | string | null;
   size?: 'xs' | 'sm' | 'md' | 'lg';
   showCopy?: boolean;
   className?: string;
@@ -12,6 +13,7 @@ interface LicensePlateBadgeProps {
 
 export const LicensePlateBadge: React.FC<LicensePlateBadgeProps> = ({
   plate,
+  country = 'NL',
   size = 'sm',
   showCopy = false,
   className = '',
@@ -26,7 +28,8 @@ export const LicensePlateBadge: React.FC<LicensePlateBadgeProps> = ({
   }
 
   if (!plate) return null;
-  const formatted = formatLicensePlate(plate);
+  const c = (country || 'NL').toUpperCase();
+  const formatted = formatLicensePlate(plate, c);
 
   const handleCopy = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -72,18 +75,45 @@ export const LicensePlateBadge: React.FC<LicensePlateBadgeProps> = ({
     },
   }[size];
 
+  // Country-specific styling:
+  // NL: Iconic yellow plate (#f5c518) with black text, blue band with NL
+  // BE: Clean white plate with Belgian ruby red text (#9a0026), blue band with B
+  // DE: Clean white plate with black DIN font, blue band with D
+  // EU / OTHER: Crisp neutral white plate with dark slate text, blue EU band
+  let plateBg = 'bg-[#f5c518] text-slate-950';
+  let plateBorder = 'border-amber-500/80';
+  let copyBorder = 'border-amber-500';
+  let flagCode = 'NL';
+
+  if (c === 'BE') {
+    plateBg = 'bg-white text-[#9a0026]';
+    plateBorder = 'border-[#9a0026]/40 dark:border-[#9a0026]/70 shadow-2xs';
+    copyBorder = 'border-[#9a0026]/50';
+    flagCode = 'B';
+  } else if (c === 'DE') {
+    plateBg = 'bg-white text-slate-950';
+    plateBorder = 'border-slate-300 dark:border-slate-600 shadow-2xs';
+    copyBorder = 'border-slate-400 dark:border-slate-600';
+    flagCode = 'D';
+  } else if (c === 'EU' || c === 'OTHER') {
+    plateBg = 'bg-white text-slate-900 dark:bg-slate-100 dark:text-slate-950';
+    plateBorder = 'border-slate-300 dark:border-slate-600 shadow-2xs';
+    copyBorder = 'border-slate-300 dark:border-slate-600';
+    flagCode = 'EU';
+  }
+
   if (showCopy) {
     return (
       <div
-        className={`inline-flex items-stretch rounded-md border border-amber-500 shadow-xs overflow-hidden ${className}`}
+        className={`inline-flex items-stretch rounded-md border ${copyBorder} shadow-xs overflow-hidden ${className}`}
       >
         <div
-          className={`inline-flex items-center bg-[#f5c518] text-slate-950 font-black font-mono tracking-wider ${sizeStyles.container} ${sizeStyles.platePad}`}
+          className={`inline-flex items-center font-black font-mono tracking-wider ${plateBg} ${sizeStyles.container} ${sizeStyles.platePad}`}
         >
           <span
             className={`bg-[#003399] text-white font-sans font-bold rounded-2xs leading-none select-none ${sizeStyles.flagText} ${sizeStyles.flagPad}`}
           >
-            NL
+            {flagCode}
           </span>
           <span>{formatted}</span>
         </div>
@@ -91,7 +121,7 @@ export const LicensePlateBadge: React.FC<LicensePlateBadgeProps> = ({
         <button
           type="button"
           onClick={handleCopy}
-          className={`inline-flex items-center space-x-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 font-bold border-l border-amber-500/40 transition select-none ${sizeStyles.btnPad}`}
+          className={`inline-flex items-center space-x-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 font-bold border-l border-slate-300 dark:border-slate-700 transition select-none ${sizeStyles.btnPad}`}
           title={lang === 'nl' ? 'Kopieer kenteken' : 'Copy license plate'}
         >
           {copied ? (
@@ -112,15 +142,14 @@ export const LicensePlateBadge: React.FC<LicensePlateBadgeProps> = ({
 
   return (
     <span
-      className={`inline-flex items-center bg-[#f5c518] text-slate-950 font-black font-mono tracking-wider rounded border border-amber-500/80 shadow-2xs ${sizeStyles.container} ${sizeStyles.platePad} ${className}`}
+      className={`inline-flex items-center font-black font-mono tracking-wider rounded border ${plateBorder} ${plateBg} ${sizeStyles.container} ${sizeStyles.platePad} ${className}`}
     >
       <span
         className={`bg-[#003399] text-white font-sans font-bold rounded-2xs leading-none select-none ${sizeStyles.flagText} ${sizeStyles.flagPad}`}
       >
-        NL
+        {flagCode}
       </span>
       <span>{formatted}</span>
     </span>
   );
 };
-

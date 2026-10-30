@@ -1,7 +1,10 @@
 import crypto from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
 import { Request, Response } from 'express';
 import { z } from 'zod';
 import { db } from '../db/database.js';
+import { DATA_PATHS } from '../config/env.js';
 import { MaintenanceService } from '../services/maintenanceService.js';
 
 const intervalSchema = z.object({
@@ -186,6 +189,32 @@ export class MaintenanceController {
       return;
     }
     res.json({ fileName: req.file.filename });
+  }
+
+  public static async attachInvoiceToRecord(req: Request, res: Response): Promise<void> {
+    const { id } = req.params;
+    if (!req.file) {
+      res.status(400).json({ error: 'No invoice or service document uploaded' });
+      return;
+    }
+
+    const record = db.get<any>('SELECT id, invoice_path FROM service_records WHERE id = ?', [id]);
+    if (!record) {
+      fs.unlink(req.file.path, () => {});
+      res.status(404).json({ error: 'Service record not found' });
+      return;
+    }
+
+    // Clean up previous invoice file if exists
+    if (record.invoice_path) {
+      const oldPath = path.join(DATA_PATHS.invoices, record.invoice_path);
+      if (fs.existsSync(oldPath)) {
+        fs.unlink(oldPath, () => {});
+      }
+    }
+
+    db.run('UPDATE service_records SET invoice_path = ? WHERE id = ?', [req.file.filename, id]);
+    res.json({ success: true, fileName: req.file.filename, message: 'Invoice attached successfully' });
   }
 
   public static async getFleetAlerts(req: Request, res: Response): Promise<void> {

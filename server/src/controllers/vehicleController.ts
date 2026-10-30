@@ -20,6 +20,7 @@ const vehicleSchema = z.object({
   notes: z.string().optional().nullable(),
   status: z.enum(['active', 'archived']).default('active'),
   apk_expiration_date: z.string().optional().nullable(),
+  plate_country: z.enum(['NL', 'BE', 'DE', 'EU', 'OTHER']).default('NL'),
   image_path: z.string().optional().nullable(),
 });
 
@@ -142,9 +143,10 @@ export class VehicleController {
 
       let rdwData: any = null;
       let apkDate = data.apk_expiration_date;
+      const plateCountry = data.plate_country || 'NL';
 
       // If Dutch license plate is supplied, attempt RDW lookup
-      if (data.license_plate) {
+      if (data.license_plate && plateCountry === 'NL') {
         const rdw = await RdwService.fetchVehicleByPlate(data.license_plate);
         if (rdw) {
           rdwData = rdw.raw;
@@ -159,14 +161,14 @@ export class VehicleController {
         `INSERT INTO vehicles (
           id, user_id, name, type, license_plate, vin, year, make, model,
           fuel_type, purchase_date, purchase_price, initial_odometer,
-          notes, status, rdw_data, apk_expiration_date, image_path, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          notes, status, rdw_data, apk_expiration_date, plate_country, image_path, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           id,
           req.user?.userId,
           data.name,
           data.type,
-          data.license_plate ? RdwService.normalizePlate(data.license_plate) : null,
+          data.license_plate ? (plateCountry === 'NL' ? RdwService.normalizePlate(data.license_plate) : data.license_plate.trim().toUpperCase()) : null,
           data.vin || null,
           data.year || null,
           data.make || null,
@@ -179,6 +181,7 @@ export class VehicleController {
           data.status,
           rdwData ? JSON.stringify(rdwData) : null,
           apkDate || null,
+          plateCountry,
           data.image_path || null,
           now,
           now,
@@ -235,8 +238,9 @@ export class VehicleController {
 
       const name = data.name !== undefined ? data.name : existing.name;
       const type = data.type !== undefined ? data.type : existing.type;
+      const plate_country = data.plate_country !== undefined ? data.plate_country : (existing.plate_country || 'NL');
       const license_plate = data.license_plate !== undefined
-        ? (data.license_plate ? RdwService.normalizePlate(data.license_plate) : null)
+        ? (data.license_plate ? (plate_country === 'NL' ? RdwService.normalizePlate(data.license_plate) : data.license_plate.trim().toUpperCase()) : null)
         : existing.license_plate;
       const vin = data.vin !== undefined ? data.vin : existing.vin;
       const year = data.year !== undefined ? data.year : existing.year;
@@ -255,7 +259,7 @@ export class VehicleController {
         `UPDATE vehicles SET
           name = ?, type = ?, license_plate = ?, vin = ?, year = ?, make = ?, model = ?,
           fuel_type = ?, purchase_date = ?, purchase_price = ?, initial_odometer = ?,
-          notes = ?, status = ?, apk_expiration_date = ?, image_path = ?, updated_at = ?
+          notes = ?, status = ?, apk_expiration_date = ?, plate_country = ?, image_path = ?, updated_at = ?
          WHERE id = ?`,
         [
           name,
@@ -272,6 +276,7 @@ export class VehicleController {
           notes,
           status,
           apk_expiration_date,
+          plate_country,
           image_path,
           now,
           id,
