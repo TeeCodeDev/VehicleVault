@@ -49,3 +49,4 @@
 - **Slimme AI Factuurscanner & Vertaler:** Upload een Duitse of buitenlandse PDF-/fotofactuur; AI vertaalt elk onderdeel en arbeidsloon naar het Nederlands, leest het garage-adres uit (met Google Maps-koppeling), voegt de factuur toe aan *Documenten* en vinkt automatisch de juiste onderhoudsintervallen aan.
 - **Zuivere Eigen TCO:** Facturen met een datum of kilometerstand vóór jouw aankoop (`Aankoopdatum` / `Aankoopstand`) blijven zichtbaar in het volledige onderhoudspaspoort van de auto, maar tellen niet mee in je eigen TCO-kosten.
 - **Compleet PDF Voertuigdossier:** Exporteer een representatief PDF-boekje inclusief huidige bandenset & profieldieptes en alle gekoppelde PDF-/afbeeldingsfacturen als volwaardige losse bijlagepagina's achteraan het rapport.
+

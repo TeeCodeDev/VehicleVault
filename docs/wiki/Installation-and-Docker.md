@@ -75,3 +75,4 @@ Als je VehicleVault achter **Pangolin**, **Authelia**, **Authentik**, **Cloudfla
 Onder **Instellingen ➔ Systeem Backup & Herstel** kun je op elk moment:
 1. Een **Volledige Backup (.zip)** downloaden (voert eerst een veilige SQLite `wal_checkpoint(TRUNCATE)` uit en pakt de database plus alle mappen `vehicles`, `receipts`, `invoices` en `documents` in).
 2. Een eerder gedownloade `.zip` backup met **1 klik terugzetten** (maakt automatisch eerst een `.bak` veiligheidskopie aan).
+

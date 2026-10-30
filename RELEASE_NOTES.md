@@ -59,3 +59,4 @@ docker pull ghcr.io/teecodedev/vehiclevault:latest
 ```
 
 See the **[README](https://github.com/TeeCodeDev/VehicleVault#readme)** and **[Wiki Documentation](https://github.com/TeeCodeDev/VehicleVault/tree/main/docs/wiki/Home.md)** for full setup instructions.
+

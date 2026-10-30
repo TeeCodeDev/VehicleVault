@@ -138,14 +138,14 @@ export const Maintenance: React.FC = () => {
   const loadData = async (vehicleId: string) => {
     try {
       const [intRes, recRes, catRes] = await Promise.all([
-        apiFetch<{ intervals: MaintenanceInterval[] }>(`/api/maintenance/intervals/${vehicleId}`),
-        apiFetch<{ records: ServiceRecord[] }>(`/api/maintenance/records/${vehicleId}`),
-        apiFetch<{ categories: ServiceCategory[] }>('/api/maintenance/categories'),
+        apiFetch<{ intervals: MaintenanceInterval[] }>(`/api/maintenance/intervals/${vehicleId}`).catch(() => ({ intervals: [] })),
+        apiFetch<{ records: ServiceRecord[] }>(`/api/maintenance/records/${vehicleId}`).catch(() => ({ records: [] })),
+        apiFetch<{ categories: ServiceCategory[] }>('/api/maintenance/categories').catch(() => ({ categories: [] })),
       ]);
-      setIntervals(intRes.intervals);
-      setRecords(recRes.records);
-      setCategories(catRes.categories);
-      if (catRes.categories.length > 0 && !intervalCategoryId) {
+      setIntervals(intRes.intervals || []);
+      setRecords(recRes.records || []);
+      setCategories(catRes.categories || []);
+      if (catRes.categories && catRes.categories.length > 0 && !intervalCategoryId) {
         setIntervalCategoryId(catRes.categories[0].id);
       }
     } catch {

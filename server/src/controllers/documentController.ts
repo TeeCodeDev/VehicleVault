@@ -4,25 +4,21 @@ import path from 'node:path';
 import { Request, Response } from 'express';
 import { db } from '../db/database.js';
 import { DATA_PATHS } from '../config/env.js';
+import { getVehicleAccess } from '../utils/vehicleAccess.js';
 
 export class DocumentController {
   public static async list(req: Request, res: Response): Promise<void> {
     const { vehicleId } = req.params;
     const category = req.query.category as string;
-    const isSharedRole = req.user?.role === 'admin' || req.user?.role === 'driver';
 
-    const vehicle = db.get(
-      `SELECT id FROM vehicles WHERE id = ? ${isSharedRole ? '' : 'AND user_id = ?'}`,
-      isSharedRole ? [vehicleId] : [vehicleId, req.user?.userId]
-    );
-
-    if (!vehicle) {
+    const access = getVehicleAccess(vehicleId, req.user?.userId);
+    if (!access.hasAccess && req.user?.role !== 'admin' && req.user?.role !== 'driver') {
       res.status(404).json({ error: 'Vehicle not found' });
       return;
     }
 
-    let sql = `SELECT * FROM vehicle_documents WHERE vehicle_id = ? ${isSharedRole ? '' : 'AND user_id = ?'}`;
-    const params: any[] = isSharedRole ? [vehicleId] : [vehicleId, req.user?.userId];
+    let sql = 'SELECT * FROM vehicle_documents WHERE vehicle_id = ?';
+    const params: any[] = [vehicleId];
 
     if (category && category !== 'all') {
       sql += ' AND category = ?';
@@ -42,16 +38,18 @@ export class DocumentController {
       return;
     }
 
-    const isSharedRole = req.user?.role === 'admin' || req.user?.role === 'driver';
-    const vehicle = db.get(
-      `SELECT id FROM vehicles WHERE id = ? ${isSharedRole ? '' : 'AND user_id = ?'}`,
-      isSharedRole ? [vehicleId] : [vehicleId, req.user?.userId]
-    );
+    const access = getVehicleAccess(vehicleId, req.user?.userId);
+    const canUpload =
+      (access.hasAccess && access.role !== 'viewer') ||
+      req.user?.role === 'admin' ||
+      req.user?.role === 'driver';
 
-    if (!vehicle) {
-      // Remove uploaded file if vehicle doesn't exist
+    if (!canUpload) {
+      // Remove uploaded file if vehicle doesn't exist or user lacks permission
       fs.unlink(req.file.path, () => {});
-      res.status(404).json({ error: 'Vehicle not found' });
+      res.status(access.hasAccess ? 403 : 404).json({
+        error: access.hasAccess ? 'Geen bewerkrechten voor dit voertuig' : 'Vehicle not found',
+      });
       return;
     }
 
@@ -70,7 +68,7 @@ export class DocumentController {
       [
         id,
         vehicleId,
-        req.user?.userId,
+        req.user?.userId || access.vehicle?.user_id,
         name,
         category,
         req.file.filename,
@@ -92,14 +90,23 @@ export class DocumentController {
 
   public static async delete(req: Request, res: Response): Promise<void> {
     const { id } = req.params;
-    const isSharedRole = req.user?.role === 'admin' || req.user?.role === 'driver';
-    const doc = db.get<any>(
-      `SELECT file_path FROM vehicle_documents WHERE id = ? ${isSharedRole ? '' : 'AND user_id = ?'}`,
-      isSharedRole ? [id] : [id, req.user?.userId]
-    );
+    const doc = db.get<any>('SELECT id, vehicle_id, file_path FROM vehicle_documents WHERE id = ?', [id]);
 
     if (!doc) {
       res.status(404).json({ error: 'Document not found' });
+      return;
+    }
+
+    const access = getVehicleAccess(doc.vehicle_id, req.user?.userId);
+    const canDelete =
+      (access.hasAccess && access.role !== 'viewer') ||
+      req.user?.role === 'admin' ||
+      req.user?.role === 'driver';
+
+    if (!canDelete) {
+      res.status(access.hasAccess ? 403 : 404).json({
+        error: access.hasAccess ? 'Geen bewerkrechten voor dit voertuig' : 'Document not found',
+      });
       return;
     }
 
@@ -113,10 +120,7 @@ export class DocumentController {
       }
     }
 
-    db.run(
-      `DELETE FROM vehicle_documents WHERE id = ? ${isSharedRole ? '' : 'AND user_id = ?'}`,
-      isSharedRole ? [id] : [id, req.user?.userId]
-    );
+    db.run('DELETE FROM vehicle_documents WHERE id = ?', [id]);
 
     res.json({ success: true, message: 'Document deleted' });
   }

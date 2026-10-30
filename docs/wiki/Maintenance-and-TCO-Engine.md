@@ -51,3 +51,4 @@ Via de knop **PDF Dossier** op het Dashboard maak je een compleet Nederlands voe
 - **Onderhouds- & Reparatiehistorie** (inclusief garagenaam en kosten).
 - **Optioneel: Tankbeurtenregister**
 - **Optioneel: Facturen & Tankbonnen als Aparte Bijlagepagina's** — Gekoppelde PDF-facturen worden met `pdf-lib` pagina voor pagina op volledige A4-grootte achteraan het PDF-dossier samengevoegd met een eigen kopbalk.
+

@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import { db } from '../db/database.js';
 import { ImportService } from '../services/importService.js';
+import { getVehicleAccess } from '../utils/vehicleAccess.js';
 
 export class ImportController {
   public static async preview(req: Request, res: Response): Promise<void> {
@@ -18,9 +18,11 @@ export class ImportController {
       return;
     }
 
-    const vehicle = db.get('SELECT id FROM vehicles WHERE id = ? AND user_id = ?', [vehicleId, req.user?.userId]);
-    if (!vehicle) {
-      res.status(404).json({ error: 'Vehicle not found' });
+    const access = getVehicleAccess(vehicleId, req.user?.userId);
+    if ((!access.hasAccess || access.role === 'viewer') && req.user?.role !== 'admin') {
+      res.status(access.hasAccess ? 403 : 404).json({
+        error: access.hasAccess ? 'Geen bewerkrechten voor dit voertuig' : 'Vehicle not found',
+      });
       return;
     }
 
@@ -41,9 +43,11 @@ export class ImportController {
       return;
     }
 
-    const vehicle = db.get('SELECT id FROM vehicles WHERE id = ? AND user_id = ?', [vehicleId, req.user?.userId]);
-    if (!vehicle) {
-      res.status(404).json({ error: 'Vehicle not found' });
+    const access = getVehicleAccess(vehicleId, req.user?.userId);
+    if ((!access.hasAccess || access.role === 'viewer') && req.user?.role !== 'admin') {
+      res.status(access.hasAccess ? 403 : 404).json({
+        error: access.hasAccess ? 'Geen bewerkrechten voor dit voertuig' : 'Vehicle not found',
+      });
       return;
     }
 
@@ -59,4 +63,3 @@ export class ImportController {
     }
   }
 }
-

@@ -37,3 +37,4 @@ Klik in **Mijn Garage** op het **Deel-icoon (`Users`)** bij een voertuig om een 
 Ga je je auto verkopen? Via **Mijn Garage ➔ Verkooppagina & Showcase** maak je met één klik een professioneel, transparant verkoopdossier aan:
 - **Publieke Deellink (`/showcase/:slug`):** Deel een nette link op Marktplaats, AutoScout24 of via WhatsApp met vraagprijs, fotogalerij, RDW-specificaties, geverifieerde onderhoudshistorie, profieldieptes van de banden en directe contactknoppen (WhatsApp / Bellen / E-mail).
 - **1-Klik Standalone Website (.zip):** Download een compleet, statisch HTML/CSS/JS website-pakket inclusief alle geoptimaliseerde foto's. Deze `.zip` kun je zonder database of backend direct uploaden naar elk eigen domein, webhostingpakket, GitHub Pages of Cloudflare Pages!
+

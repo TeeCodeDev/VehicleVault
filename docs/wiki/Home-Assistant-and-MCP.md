@@ -70,3 +70,4 @@ Met de ingebouwde **MCP Server** kunnen AI-assistenten zoals **Claude Desktop** 
 - `log_fuel_entry` — Registreert een nieuwe tankbeurt of laadsessie.
 - `log_service_entry` — Registreert een uitgevoerde onderhoudsbeurt.
 - `check_maintenance_alerts` — Controleert welke onderdelen of keuringen binnenkort aandacht vragen.
+

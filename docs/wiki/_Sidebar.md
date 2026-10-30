@@ -7,3 +7,4 @@
 * **[🛞 Bandenbeheer & Ritten](Tire-Management-and-Trips)**
 * **[🏠 Home Assistant & MCP](Home-Assistant-and-MCP)**
 * **[🔔 Notificaties, Delen & Showcase](Notifications-and-Security)**
+

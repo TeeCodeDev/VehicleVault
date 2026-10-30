@@ -8,6 +8,7 @@ import { DATA_PATHS } from '../config/env.js';
 import { MaintenanceService } from '../services/maintenanceService.js';
 import { AiReceiptService } from '../services/aiReceiptService.js';
 import { TcoService } from '../services/tcoService.js';
+import { getVehicleAccess } from '../utils/vehicleAccess.js';
 
 const intervalSchema = z.object({
   vehicle_id: z.string().uuid(),
@@ -47,8 +48,8 @@ export class MaintenanceController {
 
   public static async listIntervals(req: Request, res: Response): Promise<void> {
     const { vehicleId } = req.params;
-    const vehicle = db.get('SELECT id FROM vehicles WHERE id = ? AND user_id = ?', [vehicleId, req.user?.userId]);
-    if (!vehicle) {
+    const access = getVehicleAccess(vehicleId, req.user?.userId);
+    if (!access.hasAccess && req.user?.role !== 'admin') {
       res.status(404).json({ error: 'Vehicle not found' });
       return;
     }
@@ -65,9 +66,11 @@ export class MaintenanceController {
     }
 
     const data = parse.data;
-    const vehicle = db.get('SELECT id FROM vehicles WHERE id = ? AND user_id = ?', [data.vehicle_id, req.user?.userId]);
-    if (!vehicle) {
-      res.status(404).json({ error: 'Vehicle not found' });
+    const access = getVehicleAccess(data.vehicle_id, req.user?.userId);
+    if ((!access.hasAccess || access.role === 'viewer') && req.user?.role !== 'admin') {
+      res.status(access.hasAccess ? 403 : 404).json({
+        error: access.hasAccess ? 'Geen bewerkrechten voor dit voertuig' : 'Vehicle not found',
+      });
       return;
     }
 
@@ -124,6 +127,11 @@ export class MaintenanceController {
 
   public static async listRecords(req: Request, res: Response): Promise<void> {
     const { vehicleId } = req.params;
+    const access = getVehicleAccess(vehicleId, req.user?.userId);
+    if (!access.hasAccess && req.user?.role !== 'admin') {
+      res.status(404).json({ error: 'Vehicle not found' });
+      return;
+    }
     const records = db.query(
       `SELECT s.*, c.name as category_name
        FROM service_records s

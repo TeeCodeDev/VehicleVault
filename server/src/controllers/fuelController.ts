@@ -130,16 +130,23 @@ export class FuelController {
 
   public static async delete(req: Request, res: Response): Promise<void> {
     const { id } = req.params;
-    const isShared = req.user?.role === 'admin' || req.user?.role === 'driver';
-    const entry = db.get<any>(
-      `SELECT f.id FROM fuel_entries f
-       JOIN vehicles v ON v.id = f.vehicle_id
-       WHERE f.id = ? ${isShared ? '' : 'AND v.user_id = ?'}`,
-      isShared ? [id] : [id, req.user?.userId]
-    );
+    const entry = db.get<{ id: string; vehicle_id: string }>('SELECT id, vehicle_id FROM fuel_entries WHERE id = ?', [id]);
 
     if (!entry) {
       res.status(404).json({ error: 'Fuel entry not found' });
+      return;
+    }
+
+    const access = getVehicleAccess(entry.vehicle_id, req.user?.userId);
+    const canModify =
+      (access.hasAccess && access.role !== 'viewer') ||
+      req.user?.role === 'admin' ||
+      req.user?.role === 'driver';
+
+    if (!canModify) {
+      res.status(access.hasAccess ? 403 : 404).json({
+        error: access.hasAccess ? 'Geen bewerkrechten voor dit voertuig' : 'Fuel entry not found',
+      });
       return;
     }
 
@@ -150,17 +157,24 @@ export class FuelController {
   public static async update(req: Request, res: Response): Promise<void> {
     const { id } = req.params;
     const data = req.body;
-    const isShared = req.user?.role === 'admin' || req.user?.role === 'driver';
 
-    const existing = db.get<{ id: string; vehicle_id: string }>(
-      `SELECT f.id, f.vehicle_id FROM fuel_entries f
-       JOIN vehicles v ON v.id = f.vehicle_id
-       WHERE f.id = ? ${isShared ? '' : 'AND v.user_id = ?'}`,
-      isShared ? [id] : [id, req.user?.userId]
-    );
+    const existing = db.get<{ id: string; vehicle_id: string }>('SELECT id, vehicle_id FROM fuel_entries WHERE id = ?', [id]);
 
     if (!existing) {
       res.status(404).json({ error: 'Fuel entry not found' });
+      return;
+    }
+
+    const access = getVehicleAccess(existing.vehicle_id, req.user?.userId);
+    const canModify =
+      (access.hasAccess && access.role !== 'viewer') ||
+      req.user?.role === 'admin' ||
+      req.user?.role === 'driver';
+
+    if (!canModify) {
+      res.status(access.hasAccess ? 403 : 404).json({
+        error: access.hasAccess ? 'Geen bewerkrechten voor dit voertuig' : 'Fuel entry not found',
+      });
       return;
     }
 

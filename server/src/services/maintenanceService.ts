@@ -118,12 +118,15 @@ export class MaintenanceService {
   }
 
   /**
-   * Retrieves all overdue or upcoming maintenance alerts fleet-wide.
+   * Retrieves all overdue or upcoming maintenance alerts fleet-wide (including shared vehicles).
    */
   public static getAllFleetMaintenanceAlerts(userId: string): any[] {
     const vehicles = db.query<any>(
-      `SELECT id, name, license_plate FROM vehicles WHERE user_id = ? AND status = 'active'`,
-      [userId]
+      `SELECT id, name, license_plate
+       FROM vehicles
+       WHERE (user_id = ? OR id IN (SELECT vehicle_id FROM vehicle_shares WHERE user_id = ?))
+         AND status = 'active'`,
+      [userId, userId]
     );
 
     const alerts: any[] = [];
@@ -148,4 +151,3 @@ export class MaintenanceService {
     return alerts;
   }
 }
-

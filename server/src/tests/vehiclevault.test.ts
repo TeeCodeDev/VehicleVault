@@ -44,6 +44,8 @@ import { ShowcaseZipService } from '../services/showcaseZipService.js';
 import { AuthController } from '../controllers/authController.js';
 import { FuelController } from '../controllers/fuelController.js';
 import { MaintenanceController } from '../controllers/maintenanceController.js';
+import { DocumentController } from '../controllers/documentController.js';
+import { AnalyticsController } from '../controllers/analyticsController.js';
 import { HaController } from '../controllers/haController.js';
 import { CalendarService } from '../services/calendarService.js';
 import { PdfService } from '../services/pdfService.js';
@@ -2020,6 +2022,101 @@ Date,Odometer,Fuel_amount,Price,Total_cost,Notes
         db.run('DELETE FROM tire_sets WHERE id = ?', [tireId]);
         db.run('DELETE FROM service_records WHERE id = ?', [recId]);
         if (fs.existsSync(sampleInvoicePath)) fs.unlinkSync(sampleInvoicePath);
+      }
+    });
+
+    it('should allow shared users to access documents, maintenance intervals/records, and TCO on a shared vehicle', async () => {
+      const fatherUserId = crypto.randomUUID();
+      const shareId = crypto.randomUUID();
+      const docId = crypto.randomUUID();
+      const now = new Date().toISOString();
+
+      db.run(
+        `INSERT INTO users (id, email, password_hash, role, created_at, updated_at)
+         VALUES (?, ?, 'hash', 'user', ?, ?)`,
+        [fatherUserId, `father-${Date.now()}@vehiclevault.nl`, now, now]
+      );
+      db.run(
+        `INSERT INTO vehicle_shares (id, vehicle_id, user_id, role, created_at)
+         VALUES (?, ?, ?, 'editor', ?)`,
+        [shareId, testVehicleId, fatherUserId, now]
+      );
+      db.run(
+        `INSERT INTO vehicle_documents (id, vehicle_id, user_id, name, category, file_path, file_size, created_at)
+         VALUES (?, ?, ?, 'Kentekenbewijs Kia', 'registration', 'kenteken.pdf', 1024, ?)`,
+        [docId, testVehicleId, testUserId, now]
+      );
+
+      try {
+        // 1. DocumentController.list as father
+        let docStatus = 200;
+        let docBody: any = null;
+        await DocumentController.list(
+          {
+            params: { vehicleId: testVehicleId },
+            query: {},
+            user: { userId: fatherUserId, email: 'father@test.nl', role: 'user' },
+          } as any,
+          {
+            status(code: number) {
+              docStatus = code;
+              return this;
+            },
+            json(payload: any) {
+              docBody = payload;
+            },
+          } as any
+        );
+        assert.equal(docStatus, 200);
+        assert.ok(Array.isArray(docBody?.documents));
+        assert.ok(docBody.documents.some((d: any) => d.id === docId));
+
+        // 2. MaintenanceController.listIntervals as father
+        let intStatus = 200;
+        let intBody: any = null;
+        await MaintenanceController.listIntervals(
+          {
+            params: { vehicleId: testVehicleId },
+            user: { userId: fatherUserId, email: 'father@test.nl', role: 'user' },
+          } as any,
+          {
+            status(code: number) {
+              intStatus = code;
+              return this;
+            },
+            json(payload: any) {
+              intBody = payload;
+            },
+          } as any
+        );
+        assert.equal(intStatus, 200);
+        assert.ok(Array.isArray(intBody?.intervals));
+
+        // 3. AnalyticsController.getTco as father
+        let tcoStatus = 200;
+        let tcoBody: any = null;
+        await AnalyticsController.getTco(
+          {
+            params: { vehicleId: testVehicleId },
+            query: {},
+            user: { userId: fatherUserId, email: 'father@test.nl', role: 'user' },
+          } as any,
+          {
+            status(code: number) {
+              tcoStatus = code;
+              return this;
+            },
+            json(payload: any) {
+              tcoBody = payload;
+            },
+          } as any
+        );
+        assert.equal(tcoStatus, 200);
+        assert.equal(tcoBody?.vehicleId, testVehicleId);
+      } finally {
+        db.run('DELETE FROM vehicle_documents WHERE id = ?', [docId]);
+        db.run('DELETE FROM vehicle_shares WHERE id = ?', [shareId]);
+        db.run('DELETE FROM users WHERE id = ?', [fatherUserId]);
       }
     });
   });

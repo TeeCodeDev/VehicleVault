@@ -35,3 +35,4 @@ Onder **Ritregistratie** houd je een sluitende rittenadministratie bij volgens d
   1. **Excel (`.xlsx`):** Opgemaakte werkmap met samenvattingsstatistieken en formules.
   2. **Fiscaal PDF Dossier:** Liggend A4-overzicht voor je boekhouding of belastingaangifte.
   3. **CSV (Puntkomma-gescheiden):** Direct te openen in Excel of boekhoudsoftware.
+

@@ -40,3 +40,4 @@ Klik hierop om een overzichtelijke modal te openen met:
 - Kostenoverzicht (*Totaalbedrag*, *Onderdelen*, *Arbeidsloon*).
 - Alle losse factuurregels met label (`ONDERDEEL` / `ARBEID`), vertaalde omschrijving, aantal, originele tekst en bedrag.
 - Directe knop om de originele PDF/foto-factuur in-app te bekijken.
+
