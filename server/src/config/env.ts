@@ -46,6 +46,20 @@ const envSchema = z.object({
   JWT_EXPIRES_IN: stringOrDefault('30d'),
   JWT_REFRESH_EXPIRES_IN_DAYS: numberOrDefault(90),
   CORS_ORIGIN: stringOrDefault('*'),
+  // WebAuthn / passkeys relying party. Both optional: without them the request host/origin is used.
+  RP_ID: z
+    .string()
+    .optional()
+    .transform((val) => (val && val.trim().length > 0 ? val.trim().toLowerCase() : undefined)),
+  RP_ORIGINS: z
+    .string()
+    .optional()
+    .transform((val) =>
+      (val || '')
+        .split(',')
+        .map((o) => o.trim().replace(/\/+$/, '').toLowerCase())
+        .filter((o) => o.length > 0)
+    ),
 });
 
 const parsedEnv = envSchema.safeParse(process.env);

@@ -56,6 +56,7 @@ import { useOutletContext, useSearchParams } from 'react-router-dom';
 import { apiFetch } from '../api/client.js';
 import { useTheme, ACCENT_COLOR_OPTIONS } from '../context/ThemeContext.js';
 import { useLanguage } from '../context/LanguageContext.js';
+import { PasskeySettings } from '../components/PasskeySettings.js';
 import { useAuth } from '../context/AuthContext.js';
 import { useModules } from '../context/ModuleContext.js';
 import { formatDisplayDate, formatDisplayDateTime, formatRelativeTime } from '../utils/format.js';
@@ -1855,6 +1856,9 @@ action:
               </div>
             )}
           </div>
+
+          {/* Passkeys */}
+          <PasskeySettings />
 
           {/* API Keys Management */}
           <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Lock, Mail, Loader2, AlertCircle } from 'lucide-react';
+import { Lock, Mail, Loader2, AlertCircle, Fingerprint } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.js';
+import { passkeyErrorMessage } from '../utils/passkeys.js';
 
 export const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -9,7 +10,10 @@ export const Login: React.FC = () => {
   const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const { login, user, authDisabled, hasUsers } = useAuth();
+  const [showRecovery, setShowRecovery] = useState(false);
+  const [recoveryCode, setRecoveryCode] = useState('');
+  const { login, loginWithPasskey, loginWithRecoveryCode, passkeyAvailable, passkeyUnavailableReason, user, authDisabled, hasUsers } =
+    useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -28,6 +32,34 @@ export const Login: React.FC = () => {
       navigate('/');
     } catch (err: any) {
       setError(err?.message || 'Inloggen mislukt. Controleer uw gegevens.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePasskey = async () => {
+    setError(null);
+    setLoading(true);
+    try {
+      await loginWithPasskey();
+      navigate('/');
+    } catch (err: any) {
+      setError(passkeyErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRecovery = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+    try {
+      await loginWithRecoveryCode(recoveryCode);
+      // Signed in without a device: send them to Instellingen to add a new passkey.
+      navigate('/settings?tab=users');
+    } catch (err: any) {
+      setError(err?.message || 'Deze herstelcode is niet geldig');
     } finally {
       setLoading(false);
     }
@@ -131,6 +163,61 @@ export const Login: React.FC = () => {
             <span>{loading ? 'Bezig met inloggen...' : 'Inloggen'}</span>
           </button>
         </form>
+
+        {hasUsers && (
+          <div className="mt-3 space-y-2 text-xs">
+            <button
+              type="button"
+              onClick={handlePasskey}
+              disabled={loading || !passkeyAvailable}
+              title={!passkeyAvailable ? passkeyUnavailableReason || undefined : undefined}
+              className="w-full py-2.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-900 rounded-xl font-bold transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+            >
+              <Fingerprint className="w-4 h-4" />
+              <span>Inloggen met passkey</span>
+            </button>
+            {!passkeyAvailable && passkeyUnavailableReason && (
+              <p className="text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">{passkeyUnavailableReason}</p>
+            )}
+
+            <div className="text-center pt-1">
+              <button
+                type="button"
+                aria-expanded={showRecovery}
+                aria-controls="recovery-panel"
+                onClick={() => setShowRecovery((v) => !v)}
+                className="text-[11px] font-bold text-slate-500 dark:text-slate-400 hover:underline"
+              >
+                Apparaat kwijt?
+              </button>
+            </div>
+            {/* Kept in the DOM and hidden with the attribute, so aria-controls always points at something real. */}
+            <form id="recovery-panel" hidden={!showRecovery} onSubmit={handleRecovery} className="space-y-2 [&[hidden]]:hidden">
+              <label className="block text-slate-700 dark:text-slate-300 font-semibold" htmlFor="recovery-code">
+                Herstelcode
+              </label>
+              <input
+                id="recovery-code"
+                type="text"
+                required
+                autoComplete="off"
+                autoCapitalize="characters"
+                spellCheck={false}
+                value={recoveryCode}
+                onChange={(e) => setRecoveryCode(e.target.value)}
+                placeholder="XXXX-XXXX-XXXX-XXXX"
+                className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 font-mono text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-sky-500 shadow-sm"
+              />
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-2 bg-slate-900 text-white hover:bg-black dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white rounded-xl font-bold transition disabled:opacity-50"
+              >
+                Inloggen met herstelcode
+              </button>
+            </form>
+          </div>
+        )}
 
         <div className="mt-6 text-center text-xs text-slate-500 dark:text-slate-400 border-t border-slate-100 dark:border-slate-800 pt-4">
           <span>Nog geen account aangemaakt? </span>
