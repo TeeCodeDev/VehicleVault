@@ -12,13 +12,12 @@ Create a `docker-compose.yml` file:
 services:
   vehiclevault:
     image: ghcr.io/teecodedev/vehiclevault:latest
-    container_name: vehiclevault
+    # container_name: vehiclevault # (Optional: omit to prevent container naming conflicts in Dockhand/Portainer)
     restart: unless-stopped
     ports:
-      - "${PORT:-3084}:${PORT:-3084}"
+      - "${PORT:-3084}:3084"
     environment:
       - NODE_ENV=production
-      - PORT=${PORT:-3084}
       - DATA_DIR=/data
       - JWT_SECRET=${JWT_SECRET:-change_this_to_a_long_random_secret_string}
       - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-change_this_to_another_long_random_secret_string}

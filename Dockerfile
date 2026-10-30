@@ -51,7 +51,7 @@ VOLUME ["/data"]
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD curl -f http://localhost:${PORT:-3084}/healthz || exit 1
+  CMD curl -f http://localhost:3084/healthz || exit 1
 
 # Start the unified VehicleVault server (serving REST API, MCP, and PWA)
 CMD ["node", "dist/index.js"]

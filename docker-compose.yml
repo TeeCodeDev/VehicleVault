@@ -5,20 +5,20 @@ services:
     # build:
     #   context: .
     #   dockerfile: Dockerfile
-    container_name: vehiclevault
+    # container_name: vehiclevault # (Optional: omit to prevent container naming conflicts during updates in Dockhand/Portainer)
     restart: unless-stopped
     ports:
-      - "${PORT:-3084}:${PORT:-3084}"
+      # Host port : Container internal port (change PORT in .env to change the host port, e.g. PORT=8080)
+      - "${PORT:-3084}:3084"
     environment:
       - NODE_ENV=production
-      - PORT=${PORT:-3084}
       - DATA_DIR=/data
       - JWT_SECRET=${JWT_SECRET:-change_this_to_a_random_secure_secret_in_production}
       - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-change_this_to_another_random_secure_secret}
     volumes:
       - ./data:/data
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:$${PORT:-3084}/healthz || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://localhost:3084/healthz || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3

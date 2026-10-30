@@ -32,7 +32,7 @@ const envSchema = z.object({
         ? (v as 'development' | 'production' | 'test')
         : 'production';
     }),
-  PORT: numberOrDefault(3001),
+  PORT: numberOrDefault(3084),
   DATA_DIR: z
     .string()
     .optional()

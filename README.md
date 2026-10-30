@@ -139,13 +139,12 @@ The fastest way to deploy VehicleVault is using the pre-built multi-arch image (
 services:
   vehiclevault:
     image: ghcr.io/teecodedev/vehiclevault:latest
-    container_name: vehiclevault
+    # container_name: vehiclevault # (Optional: omit to prevent container naming conflicts in Dockhand/Portainer)
     restart: unless-stopped
     ports:
-      - "${PORT:-3084}:${PORT:-3084}"
+      - "${PORT:-3084}:3084"
     environment:
       - NODE_ENV=production
-      - PORT=${PORT:-3084}
       - DATA_DIR=/data
       - JWT_SECRET=${JWT_SECRET:-change_this_to_a_random_secure_secret_in_production}
       - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-change_this_to_another_random_secure_secret}
