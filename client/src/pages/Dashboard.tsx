@@ -237,17 +237,30 @@ export const Dashboard: React.FC = () => {
           {/* Left: Vehicle Details & Quick Actions */}
           <div className="flex-1 min-w-0 space-y-4">
             <div>
-              <div className="flex items-center space-x-3 mb-2">
-                <span className="text-[11px] font-extrabold tracking-wider uppercase text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-950/60 px-2.5 py-0.5 rounded-full border border-sky-200 dark:border-sky-800/40">
-                  {selectedVehicle?.type === 'motorcycle'
-                    ? t('motorcycle')
-                    : selectedVehicle?.type === 'van'
-                    ? t('van')
-                    : selectedVehicle?.type === 'trailer'
-                    ? t('trailer')
-                    : t('car')}
-                </span>
-                <StatusBadge status={selectedVehicle?.status || 'active'} />
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center space-x-2.5">
+                  <span className="text-[11px] font-extrabold tracking-wider uppercase text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-950/60 px-2.5 py-0.5 rounded-full border border-sky-200 dark:border-sky-800/40">
+                    {selectedVehicle?.type === 'motorcycle'
+                      ? t('motorcycle')
+                      : selectedVehicle?.type === 'van'
+                      ? t('van')
+                      : selectedVehicle?.type === 'trailer'
+                      ? t('trailer')
+                      : t('car')}
+                  </span>
+                  <StatusBadge status={selectedVehicle?.status || 'active'} />
+                </div>
+
+                {/* Subtle, non-intrusive link to Showcase for when you actually sell the car */}
+                <button
+                  type="button"
+                  onClick={() => setIsShowcaseModalOpen(true)}
+                  className="inline-flex items-center space-x-1.5 px-2 py-1 text-[11px] font-medium text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 rounded-lg transition"
+                  title={lang === 'nl' ? 'Verkooppagina & Digitaal Voertuigpaspoort' : 'Sales Showcase & Vehicle Passport'}
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500/80" />
+                  <span className="hidden sm:inline">{lang === 'nl' ? 'Verkooppagina' : 'Sales Page'}</span>
+                </button>
               </div>
 
               <div className="flex flex-wrap items-center gap-3">
@@ -273,7 +286,7 @@ export const Dashboard: React.FC = () => {
                 to="/fuel"
                 className="px-4 py-2 bg-accent-600 hover:bg-accent-700 text-white rounded-xl text-xs font-bold inline-flex items-center space-x-2 transition shadow-sm hover:scale-[1.02]"
               >
-                <Fuel className="w-4 h-4 text-amber-300" />
+                <Fuel className="w-4 h-4 text-white" />
                 <span>{t('newFuelEntry')}</span>
               </Link>
 
@@ -303,15 +316,6 @@ export const Dashboard: React.FC = () => {
                 <Calendar className="w-3.5 h-3.5 text-emerald-500" />
                 <span>{lang === 'nl' ? 'Kalender (.ics)' : 'Calendar (.ics)'}</span>
               </a>
-
-              <button
-                onClick={() => setIsShowcaseModalOpen(true)}
-                className="px-3.5 py-2 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:hover:bg-amber-900/60 text-amber-800 dark:text-amber-300 rounded-xl text-xs font-bold inline-flex items-center space-x-1.5 transition border border-amber-200 dark:border-amber-800/60 shadow-2xs hover:scale-[1.02]"
-                title={lang === 'nl' ? 'Verkooppagina & Digitaal Voertuigpaspoort' : 'Sales Showcase & Digital Vehicle Passport'}
-              >
-                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                <span>{lang === 'nl' ? 'Verkooppagina & Showcase' : 'Sales Showcase'}</span>
-              </button>
             </div>
           </div>
 
