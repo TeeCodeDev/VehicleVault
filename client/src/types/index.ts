@@ -346,3 +346,45 @@ export interface TireSet {
   treadStatus?: 'ok' | 'warning' | 'critical' | 'unknown';
 }
 
+
+export type TripImportField = 'date' | 'from' | 'to' | 'start' | 'end' | 'distance' | 'purpose' | 'description' | 'return' | 'plate' | 'route';
+
+export interface TripImportRecord {
+  rowNumber: number;
+  date: string;
+  startOdometer: number;
+  endOdometer: number;
+  distanceKm: number;
+  fromLocation: string;
+  toLocation: string;
+  purpose: 'business' | 'commute' | 'private';
+  description: string;
+  isReturnTrip: boolean;
+  isValid: boolean;
+  isDuplicate: boolean;
+  section: number;
+  error?: string;
+  warning?: string;
+}
+
+export interface TripImportSection {
+  index: number;
+  label: string;
+  plate: string | null;
+  plateMatches: boolean | null;
+  rows: number;
+}
+
+export interface TripImportPreview {
+  format: 'csv' | 'xlsx';
+  headers: string[];
+  mapping: Partial<Record<TripImportField, string>>;
+  missingRequired: TripImportField[];
+  totalRows: number;
+  validRows: number;
+  errorRows: number;
+  duplicateRows: number;
+  sections: TripImportSection[];
+  ignoredRows: { rowNumber: number; reason: string; text: string }[];
+  records: TripImportRecord[];
+}
