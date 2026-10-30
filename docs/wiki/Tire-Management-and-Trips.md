@@ -1,38 +1,34 @@
-# 🛞 Bandenbeheer & Fiscale Ritregistratie
+# 🛞 Tire Management & Fiscal Trip Registration
 
 ---
 
-## 1. Bandenbeheer (`Tires`)
+## 1. Tire Set Management (`Bandenbeheer`)
 
-Onder **Bandenbeheer** beheer je al je bandensets (*Zomerbanden*, *Winterbanden* en *4-Seizoenenbanden*):
+Track your Summer, Winter, and All-Season tire sets with visual safety monitoring:
 
-### Technische Specificaties
-Per bandenset leg je vast:
-- **Merk & Model** (bijv. *Bridgestone Turanza 6*)
-- **Bandenmaat** (bijv. `205/60`), **Velgmaat** (`16"`), **Load/Speed Index** (`92V`) en **DOT-code** (`2324`)
-- **Opslaglocatie** (voor niet-gemonteerde sets, bijv. *Bandenhotel* of *Garage thuis*)
-
-### Live Gereden Kilometers & Bewerken
-- Zodra een bandenset als **Gemonteerd op voertuig** staat ingesteld, telt VehicleVault automatisch de sindsdien gereden kilometers (`huidige km-stand − km-stand bij montage`) op bij de reeds gereden kilometers op de set.
-- Via **Details Bewerken** kun je op elk moment zowel de **Reeds gereden km op deze set** als de **Km-stand voertuig bij montage** handmatig aanpassen.
-
-### 4-Wiel Profieldiepte & Veiligheidsbewaking
-Het interactieve onderstel-diagram toont de profieldiepte per wiel (`LV`, `RV`, `LA`, `RA` in mm):
-- 🟢 **Veilig profiel:** `≥ 3.0 mm` (`≥ 4.0 mm` voor winterbanden)
-- 🟠 **Vervangingsadvies:** `< 2.5 mm` (`< 4.0 mm` voor winterbanden)
-- 🔴 **APK Afkeur / Wettelijk minimum:** `< 1.6 mm`
+- **Detailed Specifications:**
+  - **Set Name & Season:** Summer, Winter, or All-Season (`4-Seizoenen`)
+  - **Brand & Model:** Separate fields (e.g., *Bridgestone* / *Turanza 6*)
+  - **Dimensions:** Tire Size (`205/60`), Rim Size (`16"`), Load/Speed Index (`92V`), and **DOT Code** (`2324`)
+  - **Storage Location:** Where unmounted sets are stored (e.g., *Garage rack*, *Tire hotel*)
+- **Dynamic Live Mileage (`Gereden Kilometers`):**
+  - For the currently **Mounted (`Gemonteerd`)** tire set, VehicleVault automatically calculates live driven mileage:
+    $$\text{Live km} = \text{Previously Driven km} + \max(0, \text{Current Vehicle Odometer} - \text{Mounted Odometer})$$
+  - You can also manually edit both the **Mounted Odometer (`KM-stand bij montage`)** and **Previously Driven km** at any time via **Edit Details (`Details Bewerken`)**.
+  - When swapping tire sets via **1-Click Tire Swap (`Bandenwissel`)**, the driven delta is automatically added to the unmounted set's cumulative total.
+- **4-Wheel Tread Depth Diagram (`Profieldiepte`):**
+  - Top-down vehicle chassis visualization for **Front-Left (`LV`)**, **Front-Right (`RV`)**, **Rear-Left (`LA`)**, and **Rear-Right (`RA`)** in millimeters (`mm`).
+  - Automatic alerts for the legal minimum (`< 1.6 mm` APK rejection), summer warning (`< 2.5 mm`), and winter optimal grip limit (`< 4.0 mm`).
 
 ---
 
-## 2. Fiscale Ritregistratie (`Trips`)
+## 2. Fiscal Trip Logging (`Ritregistratie`)
 
-Onder **Ritregistratie** houd je een sluitende rittenadministratie bij volgens de eisen van de Nederlandse **Belastingdienst**:
+Designed for Dutch **Belastingdienst** compliance and business mileage reimbursement:
 
-- **Classificatie:** *Zakelijk*, *Woon-werk* en *Privé*.
-- **Automatische Afstandsberekening:** Vul de begin- en eindkilometerstand in (of laat de beginstand automatisch overnemen van de vorige rit).
-- **1-Klik Retourrit:** Maak direct een terugreis aan met omgekeerde vertrek- en aankomstlocatie.
-- **Exportmogelijkheden:**
-  1. **Excel (`.xlsx`):** Opgemaakte werkmap met samenvattingsstatistieken en formules.
-  2. **Fiscaal PDF Dossier:** Liggend A4-overzicht voor je boekhouding of belastingaangifte.
-  3. **CSV (Puntkomma-gescheiden):** Direct te openen in Excel of boekhoudsoftware.
-
+- **Trip Attributes:** Date, Start Odometer, End Odometer, auto-calculated Distance (`km`), Departure Address, Destination Address, Purpose (**Business**, **Commute**, **Private**), Notes, and a **1-Click Return Trip (`Terugrit`)** toggle.
+- **Fiscal Summary KPIs:** Real-time breakdown of Total Distance, Business km, Commute km, Private km, and Business Usage Percentage.
+- **3 Export Formats:**
+  1. **Belastingdienst CSV (`.csv`):** UTF-8 BOM semicolon-delimited export with official Dutch fiscal headers.
+  2. **Formatted Excel Workbook (`.xlsx`):** Styled spreadsheet with summary KPIs and formulas.
+  3. **Landscape A4 Fiscal PDF Dossier (`.pdf`):** Ready for accountant or tax audit submission.

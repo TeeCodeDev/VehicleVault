@@ -1,43 +1,47 @@
-# 🤖 AI Tankbon & Buitenlandse Factuur Scanner
+# 🤖 AI Receipt & Maintenance Invoice Scanner
 
-VehicleVault bevat een multimodale AI Vision-pipeline die zowel **tankbonnen** als meerpagina **onderhoudsfacturen** (in elke taal) kan uitlezen, controleren en vertalen.
-
----
-
-## 1. AI Provider Inrichten
-
-Ga in VehicleVault naar **Instellingen ➔ AI & OCR Scanner**:
-1. Kies je gewenste AI-engine:
-   - **Google Gemini Vision** (aanbevolen: `gemini-2.5-flash` of `gemini-2.5-pro` — razendsnel en ondersteunt directe PDF-analyse).
-   - **OpenAI Vision** (`gpt-4o` of `gpt-4o-mini`).
-2. Vul je API-sleutel in en klik op **Verbinding Testen & Modellen Ophalen**.
-3. Klik op **Opslaan**. *(De API-sleutel wordt versleuteld/gemaskeerd opgeslagen in de database).*
-
-> **Geen AI-sleutel?** Geen probleem: voor tankbonnen valt VehicleVault automatisch terug op de lokaal ingebouwde **Tesseract.js OCR**-engine, en bij onderhoudsfacturen wordt het bestand direct gekoppeld zodat je de velden handmatig kunt invullen.
+VehicleVault includes a dual-purpose **AI Vision Extraction & Translation Engine** supporting **Google Gemini Vision** (`gemini-3.8-flash`), **OpenAI Vision** (`gpt-4o-mini` / `gpt-4o` / custom OpenAI-compatible endpoints), and a zero-cloud local **Tesseract.js OCR** fallback.
 
 ---
 
-## 2. Buitenlandse Onderhoudsfacturen Scannen & Vertalen
+## 1. Configuring AI Vision Providers
 
-Heb je een geïmporteerde auto met bijvoorbeeld **Duitse**, **Belgische/Franse** of **Engelse** onderhoudsfacturen?
+Navigate to **Settings → AI & OCR** to configure your preferred provider:
 
-1. Ga naar **Onderhoud** en klik op **Onderhoud / Factuur Scannen**.
-2. Sleep je PDF-factuur of foto in het drop-vak bovenaan het venster.
-3. De AI-scanner voert direct het volgende uit:
-   - **Taalherkenning & Vertaling:** Herkent de brontaal (bijv. *Duits*) en vertaalt zowel de hoofdtitel van de beurt als **elk afzonderlijk onderdeel en arbeidsloon** naar jouw ingestelde taal (*Nederlands* of *Engels*), met behoud van de originele omschrijving ter referentie.
-   - **BTW / MwSt Reconciliatie:** Controleert of de losse regels op de factuur exclusief BTW (bijv. 19% Duitse MwSt of 21% NL BTW) staan en rekent de uitsplitsing tussen *Onderdelen* en *Arbeidsloon* exact om naar het bruto eindbedrag.
-   - **Garage & Adres Uitlezen:** Leest de naam én het volledige adres van de uitvoerende garage of dealer uit en maakt er in het onderhoudspaspoort een klikbare **Google Maps**-link van.
-   - **Automatische Interval-Herkenning:** Vinkt op basis van de gevonden onderdelen (zoals *Motorolie 5W-30*, *Remvloeistof DOT 4*, *Luchtfilter*, *Bougies*) automatisch de juiste onderhoudsintervallen aan om te resetten.
-   - **Synchronisatie naar Documenten:** Slaat de factuur niet alleen op bij de onderhoudsbeurt, maar voegt deze ook direct met de juiste `DD-MM-YYYY`-datum toe onder **Documenten (Digitale Handschoenenkast)** in de categorie *Facturen & Bonnen*.
+1. **Google Gemini Vision (Recommended):**
+   - Paste your Google AI Studio API Key.
+   - Click **Fetch Available Models** to dynamically discover supported vision models (`gemini-3.8-flash`, `gemini-2.5-flash`, `gemini-2.5-pro`).
+   - Click **Test Connection** and **Save**.
+2. **OpenAI / Custom Compatible Endpoint:**
+   - Paste your OpenAI API Key, model name (`gpt-4o-mini`), and optional custom Base URL (e.g., OpenRouter, Ollama, or Azure OpenAI).
+3. **Local Tesseract OCR Fallback:**
+   - When no AI API key is configured, fuel receipts are processed locally on the server using Tesseract OCR and mathematical reconciliation rules.
 
 ---
 
-## 3. Uitgelezen Onderdelen Bekijken in Modal
+## 2. Smart Foreign Maintenance Invoice Scanner & Translator
 
-In de tabel **Volledig Onderhouds- & Reparatiepaspoort** verschijnt bij elke gescande factuur een knop **`Bekijk X uitgelezen & vertaalde onderdelen`**.
-Klik hierop om een overzichtelijke modal te openen met:
-- Datum, kilometerstand, garagegegevens en Google Maps-koppeling.
-- Kostenoverzicht (*Totaalbedrag*, *Onderdelen*, *Arbeidsloon*).
-- Alle losse factuurregels met label (`ONDERDEEL` / `ARBEID`), vertaalde omschrijving, aantal, originele tekst en bedrag.
-- Directe knop om de originele PDF/foto-factuur in-app te bekijken.
+Perfect for **imported vehicles** (e.g., from Germany, Belgium, or France) or complex multi-page workshop invoices:
 
+1. Go to **Maintenance (`Onderhoud & Historie`)** and click **Log Service (`Onderhoud Loggen`)**.
+2. Drag and drop a **PDF or photo** of a garage invoice into the **Smart AI Invoice Scanner** dropzone at the top of the modal.
+3. VehicleVault automatically extracts and translates into your active UI language (`NL` or `EN`):
+   - **Service Title & Summary** (e.g., `Inspektion mit Ölwechsel und Bremsflüssigkeit` → `Onderhoudsbeurt (90.000 km / 72 mnd) & Remvloeistof`)
+   - **Invoice Date (`YYYY-MM-DD`) & Odometer Reading (`km`)**
+   - **Garage / Dealership Name & Full Address** (automatically linked to Google Maps in your service table)
+   - **Parts Cost vs. Labor Cost** (automatically reconciling net line items with 19% German MwSt or 21% Dutch BTW into exact gross totals)
+   - **Every Individual Line Item:** Each part and labor operation is categorized (`PART` / `LABOR`), keeping both the translated description and the original foreign invoice text.
+4. **Dedicated Extracted Parts Modal:**
+   - In the service history table, click the **`X extracted & translated items`** button on any service record to open a clean modal showing the garage details, cost breakdown, and every individual translated part/labor line item.
+5. **Automatic Digital Glovebox Sync:**
+   - Every uploaded maintenance invoice is automatically copied and indexed under **Documents (`Documenten` → `Facturen & Bonnen`)** with a formatted `DD-MM-YYYY` date.
+
+---
+
+## 3. Fuel Receipt Scanner & GPS Station Lookup
+
+When logging a fill-up under **Fuel (`Tankbeurten`)**:
+- Upload or snap a photo of your fuel receipt.
+- The scanner extracts **Liters**, **Price per Liter (€/L)**, **Total Cost (€)**, **Date**, **Station Brand**, and **Station Address**.
+- If a dot-matrix receipt has partially faded digits, the mathematical reconciliation engine cross-checks `Liters × Price/L = Total Cost` to recover exact values.
+- You can also use **GPS Nearby Stations** or **Re-scan Receipt** on existing fuel entries at any time.

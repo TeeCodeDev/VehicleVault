@@ -1,73 +1,59 @@
-# 🏠 Home Assistant, Kalender (.ics) & MCP Server
+# 🏠 Home Assistant, Calendar Feed (`.ics`) & MCP Server
 
-VehicleVault is gebouwd voor naadloze integratie met je smart home, digitale agenda en AI-agents.
+VehicleVault integrates with your smart home, calendar apps, and AI coding/chat assistants.
 
 ---
 
-## 1. Home Assistant Integratie
+## 1. Home Assistant Integration
 
-### A. Uitgaande Sensoren (`GET /api/ha/sensors`)
-VehicleVault biedt een compleet JSON-endpoint voor Home Assistant `rest`-sensoren of de custom HACS-integratie.
-Maak eerst onder **Instellingen ➔ API-sleutels** een sleutel aan (`vkv_...`) en voeg het volgende toe aan je `configuration.yaml` in Home Assistant:
+Navigate to **Settings → Home Assistant** to generate ready-to-copy YAML snippets and API keys.
+
+### Outbound: Vehicle Sensors (`GET /api/integrations/ha/states`)
+Exposes all active vehicles with their current odometer, APK expiration date & countdown days, fuel consumption (`L/100km` and `km/L`), TCO metrics, and maintenance interval statuses:
 
 ```yaml
 rest:
-  - resource: "http://JOUW_SERVER_IP:3001/api/ha/sensors"
-    scan_interval: 300
+  - resource: "http://YOUR_VEHICLEVAULT_IP:3084/api/integrations/ha/states"
+    scan_interval: 3600
     headers:
-      X-API-Key: "vkv_JOUW_API_SLEUTEL"
+      X-API-Key: "vkv_your_generated_api_key"
     sensor:
-      - name: "Auto Kilometerstand"
-        value_template: "{{ value_json.vehicles[0].odometer }}"
-        unit_of_measurement: "km"
-        icon: mdi:counter
-      - name: "Auto APK Dagen Resterend"
-        value_template: "{{ value_json.vehicles[0].apk.days_remaining }}"
-        unit_of_measurement: "dagen"
-        icon: mdi:calendar-check
-      - name: "Auto Gemiddeld Verbruik"
-        value_template: "{{ value_json.vehicles[0].fuel_stats.consumption_l_per_100km }}"
-        unit_of_measurement: "L/100km"
-        icon: mdi:gas-station
+      - name: "VehicleVault Fleet"
+        value_template: "{{ value_json.count }}"
+        json_attributes:
+          - vehicles
 ```
 
-### B. Inkomende Kilometerstand Webhook (`POST /api/ha/odometer`)
-Heeft je auto een eigen integratie in Home Assistant (zoals Kia UVO / Hyundai Bluelink, Tesla, BMW ConnectedDrive, Volkswagen WeConnect of een OBD2-dongle)?
-Laat Home Assistant de actuele kilometerstand automatisch doorsturen naar VehicleVault zodat je onderhoudsintervallen én gemonteerde banden altijd realtime bijgewerkt zijn!
+### Inbound: Live Odometer Webhook (`POST /api/integrations/ha/odometer`)
+Automatically push your car's live odometer reading from Home Assistant (e.g., via Kia UVO / Hyundai Bluelink, Tesla, BMW ConnectedDrive, Volkswagen WeConnect, or ESPHome OBD2) into VehicleVault:
 
 ```yaml
 rest_command:
   vehiclevault_update_odometer:
-    url: "http://JOUW_SERVER_IP:3001/api/ha/odometer"
+    url: "http://YOUR_VEHICLEVAULT_IP:3084/api/integrations/ha/odometer"
     method: POST
     headers:
-      X-API-Key: "vkv_JOUW_API_SLEUTEL"
+      X-API-Key: "vkv_your_generated_api_key"
       Content-Type: "application/json"
-    payload: >
-      {
-        "licensePlate": "NBL-41-K",
-        "odometer": {{ states('sensor.kia_niro_odometer') | float(0) }}
-      }
+    payload: '{"license_plate": "K-123-BB", "odometer": {{ states("sensor.car_odometer") | int }}}'
 ```
 
 ---
 
-## 2. Kalender Feed (`.ics` / RFC 5545)
+## 2. RFC 5545 Calendar Export (`.ics`)
 
-Via **Instellingen ➔ Notificaties & Integraties** (of op het Dashboard) kun je een standaard `.ics` kalenderbestand downloaden of koppelen. Hierin staan:
-- APK / Keuring vervaldatums (met herinneringsalarmen op 30 dagen en 7 dagen vooraf).
-- Geplande onderhoudsdeadlines op basis van je ingestelde tijdsintervallen.
+Subscribe to or download your vehicle's inspection and maintenance schedule in **Google Calendar**, **Apple Calendar**, **Outlook**, or **Nextcloud**:
+- **Per-Vehicle or Fleet-Wide `.ics`:** Available via `GET /api/vehicles/:id/calendar.ics` or from the **My Garage** page.
+- Includes upcoming **APK / MOT / TÜV expiration dates**, **time-based maintenance intervals**, and **document expiration reminders** with built-in `VALARM` notifications (30 days and 7 days prior).
 
 ---
 
 ## 3. Model Context Protocol (MCP) Server
 
-Met de ingebouwde **MCP Server** kunnen AI-assistenten zoals **Claude Desktop** of **Antigravity** direct vragen beantwoorden over je wagenpark of tankbeurten en onderhoud registreren.
+VehicleVault includes a native **MCP Server** (`POST /api/mcp` and `stdio`) so AI assistants like **Claude Desktop** and **Antigravity** can query and log vehicle data directly:
 
-### Beschikbare MCP Tools
-- `list_vehicles` — Toont alle actieve voertuigen met km-stand en APK-status.
-- `get_vehicle_summary` — Geeft gedetailleerde TCO, verbruik en onderhoudsstatus van een voertuig.
-- `log_fuel_entry` — Registreert een nieuwe tankbeurt of laadsessie.
-- `log_service_entry` — Registreert een uitgevoerde onderhoudsbeurt.
-- `check_maintenance_alerts` — Controleert welke onderdelen of keuringen binnenkort aandacht vragen.
-
+- `list_vehicles`: List all active vehicles and current odometer readings
+- `get_vehicle_summary`: Retrieve complete TCO, fuel economy, APK status, and maintenance health
+- `log_fuel_entry`: Record a new fuel fill-up or EV charge session
+- `log_service_entry`: Log a maintenance or repair entry
+- `check_maintenance_alerts`: Inspect upcoming or overdue service intervals across your fleet

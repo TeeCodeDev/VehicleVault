@@ -1,54 +1,48 @@
-# 🛠️ Onderhoud, Vaste Lasten & TCO Engine
+# 🛠️ Maintenance, Pure TCO & PDF Dossier Export
 
-VehicleVault berekent de werkelijke **Total Cost of Ownership (TCO)** van je voertuig en bewaakt alle onderhoudsintervallen op basis van zowel afstand als tijd.
-
----
-
-## 1. Dual-Trigger Onderhoudsintervallen
-
-Elk onderdeel (zoals *Motorolie & Oliefilter*, *Remvloeistof*, *Bougies*, *Lucht- & Interieurfilter*, *Transmissievloeistof*) wordt bewaakt op twee assen:
-- **Afstand (km):** bijv. elke `15.000 km`.
-- **Tijd (maanden):** bijv. elke `12 maanden`.
-
-Wat het eerst wordt bereikt, bepaalt het voortgangspercentage en de status:
-- 🟢 **Goed (< 90%)**
-- 🟠 **Binnenkort (90% – 99% of binnen 30 dagen / 1.000 km)**
-- 🔴 **Verlopen (≥ 100%)**
-
-### Meerdere Intervallen Tegelijk Resetten
-Bij een grote beurt worden vaak meerdere onderdelen tegelijk vervangen. In het venster *Onderhoud Registreren / Bewerken* kun je met **checkboxes meerdere intervallen tegelijk aanvinken**. VehicleVault werkt elk aangevinkt interval bij naar de datum en kilometerstand van de meest recente gekoppelde beurt — ook als je oudere facturen later toevoegt.
+VehicleVault combines a proactive **Dual-Trigger Maintenance Engine** with a **Pure Ownership Total Cost of Ownership (TCO)** calculator and a **Full-Attachment PDF Dossier Generator**.
 
 ---
 
-## 2. Aankoopgegevens & Vorige Eigenaar (Zuivere TCO)
+## 1. Dual-Trigger Maintenance Intervals
 
-Wanneer je een gebruikte of geïmporteerde auto koopt, wil je wél de oude onderhoudsfacturen van de vorige eigenaar in je **Onderhoudspaspoort** hebben (voor een sluitende historie en juiste interval-standen), maar die oude rekeningen heb jij natuurlijk niet zelf betaald.
+Every maintenance item (e.g., *Engine Oil & Filter*, *Timing Belt*, *Brake Fluid*, *Cabin Filter*, *Spark Plugs*) tracks both **Distance (`km`)** and **Time (`months`)**:
 
-Daarom werkt VehicleVault met een **TCO-startpunt**:
-1. Bij **Mijn Garage ➔ Voertuig Bewerken** stel je onder *Aankoopgegevens & TCO-startpunt* je **Aankoopdatum** (standaard ingevuld vanuit de RDW `datum_tenaamstelling`), **Aankoopstand (km)** en **Aankoopprijs (€)** in.
-2. Voer je een onderhoudsfactuur in met een datum **vóór jouw aankoopdatum** of een kilometerstand **lager dan jouw aankoopstand**? Dan vinkt VehicleVault automatisch **`Historische beurt / Vorige eigenaar (buiten eigen TCO houden)`** aan.
-3. Deze beurten krijgen in het overzicht het label `Vorige eigenaar (buiten TCO)`: ze blijven volledig zichtbaar in het paspoort en werken je onderhoudsintervallen bij, maar tellen **niet** mee in je eigen onderhoudskosten, maandelijkse uitgaven of TCO per kilometer.
+$$\text{Usage \%} = \max\left(\frac{\text{Current Odometer} - \text{Last Service Odometer}}{\text{Interval km}}, \frac{\text{Days Elapsed}}{\text{Interval Months} \times 30.44}\right) \times 100$$
 
----
+- **Green (`Good`):** `< 90%` elapsed
+- **Amber (`Due Soon`):** `90% – 99%` elapsed
+- **Red (`Overdue`):** `>= 100%` elapsed
 
-## 3. Vaste Lasten (`Recurring Expenses`)
-
-Onder **Vaste Lasten** registreer je periodieke kosten zoals:
-- Motorrijtuigenbelasting (MRB / Wegenbelasting)
-- Autoverzekering (WA / Allrisk)
-- Pechhulp (ANWB / merk-mobiliteitsgarantie)
-- Abonnementen & Lease
-
-Of je nu maandelijks, per kwartaal of jaarlijks betaalt: de TCO-engine rekent de bedragen automatisch om naar de exacte bezitsperiode.
+### Multi-Interval Reset from a Single Service Record
+A major garage service often covers multiple maintenance intervals at once. When logging or editing a service record:
+- Select **multiple intervals** via the checkboxes under **Reset Maintenance Intervals**.
+- When scanning an invoice with AI, VehicleVault automatically pre-selects all matching intervals based on the translated invoice line items.
+- Saving the record updates `last_service_date` and `last_service_odometer` across all selected intervals simultaneously (only advancing an interval if the record is newer than its current baseline).
 
 ---
 
-## 4. PDF Voertuigdossier Exporteren
+## 2. Pure Ownership TCO & Pre-Ownership History
 
-Via de knop **PDF Dossier** op het Dashboard maak je een compleet Nederlands voertuigrapport aan:
-- **Voertuigspecificaties & Huidige Kilometerstand**
-- **Optioneel: Huidige Bandenset & Profieldieptes** (`LV`, `RV`, `LA`, `RA` in mm, maat, DOT-code en gereden kilometers).
-- **Onderhouds- & Reparatiehistorie** (inclusief garagenaam en kosten).
-- **Optioneel: Tankbeurtenregister**
-- **Optioneel: Facturen & Tankbonnen als Aparte Bijlagepagina's** — Gekoppelde PDF-facturen worden met `pdf-lib` pagina voor pagina op volledige A4-grootte achteraan het PDF-dossier samengevoegd met een eigen kopbalk.
+When you buy a used or imported car, you often digitize historical invoices from the previous owner to keep the service book complete. However, those historical bills were not paid by you and should not inflate your personal TCO.
 
+### How Pre-Ownership Filtering Works
+1. In **My Garage (`Mijn Garage`) → Edit Vehicle**, configure the **Purchase & TCO Baseline** section:
+   - **Purchase Date (`Aankoopdatum / Tenaamstelling`):** Auto-filled from the RDW `datum_tenaamstelling` for Dutch plates, or set manually.
+   - **Initial Odometer (`Kilometerstand bij aanschaf`):** Your odometer reading when taking ownership.
+   - **Purchase Price (`Aankoopprijs`).**
+2. Any service record dated **before your Purchase Date** or logged at an **odometer reading lower than your Initial Odometer** (or manually toggled with *"Previous owner / Exclude from TCO"*) is automatically badged as **`Vorige eigenaar (buiten TCO)`**.
+3. These records remain **100% visible** in your Maintenance Passport and still update your maintenance intervals, but are **excluded from TCO financial totals, cost-per-km, and monthly spend charts**.
+
+---
+
+## 3. PDF Vehicle Dossier Export with Full-Page Invoices
+
+From the **Dashboard** or **TCO & Analytics** page, click **Export PDF Dossier**:
+
+- **Optional Sections:**
+  - **Current Tires & Tread Depth (`Huidige Bandenset & Profieldiepte`):** Includes the mounted tire set's brand, model, tire size, rim size, load/speed index, DOT code, driven km, and 4-wheel tread depths (`LV`, `RV`, `LA`, `RA`).
+  - **Fuel History Summary (`Tankhistorie`).**
+  - **Attached Receipts & Maintenance Invoices (`Gekoppelde Bonnen & Facturen`).**
+- **Full-Page Merged PDF & Image Attachments (`pdf-lib`):**
+  - Instead of listing a filename, VehicleVault embeds every attached `.pdf` maintenance invoice (all pages) and image invoice as **full-size separate pages** at the end of the PDF dossier, complete with an identification banner showing the service date, title, and garage name.

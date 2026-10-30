@@ -1,2 +1,2 @@
-**VehicleVault v2.0.0** — Open-Source Self-Hosted Vehicle Lifecycle & TCO Platform • [GitHub Repository](https://github.com/TeeCodeDev/VehicleVault) • [Support op Ko-fi](https://ko-fi.com/D1D51ZGUNL)
-
+---
+**VehicleVault v2.0.0** — Self-Hosted Vehicle Management, AI Invoice Translator, TCO & Model Context Protocol • [GitHub Repository](https://github.com/TeeCodeDev/VehicleVault)
