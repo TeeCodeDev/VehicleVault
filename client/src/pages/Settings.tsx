@@ -57,6 +57,8 @@ import { apiFetch } from '../api/client.js';
 import { useTheme, ACCENT_COLOR_OPTIONS } from '../context/ThemeContext.js';
 import { useLanguage } from '../context/LanguageContext.js';
 import { PasskeySettings } from '../components/PasskeySettings.js';
+import { WebPushSettings } from '../components/WebPushSettings.js';
+import { EMAIL_PRESETS, applyEmailPreset } from '../utils/emailPresets.js';
 import { useAuth } from '../context/AuthContext.js';
 import { useModules } from '../context/ModuleContext.js';
 import { formatDisplayDate, formatDisplayDateTime, formatRelativeTime } from '../utils/format.js';
@@ -146,7 +148,7 @@ export const Settings: React.FC = () => {
   const [creatingUser, setCreatingUser] = useState(false);
 
   // Notifications State
-  const [notifProvider, setNotifProvider] = useState<'none' | 'email' | 'pushover' | 'ntfy' | 'gotify' | 'webhook'>('none');
+  const [notifProvider, setNotifProvider] = useState<'none' | 'email' | 'webpush' | 'pushover' | 'ntfy' | 'gotify' | 'webhook'>('none');
   const [pushoverUserKey, setPushoverUserKey] = useState('');
   const [pushoverApiToken, setPushoverApiToken] = useState('');
   const [pushoverDevice, setPushoverDevice] = useState('');
@@ -171,6 +173,7 @@ export const Settings: React.FC = () => {
   const [smtpFrom, setSmtpFrom] = useState('');
   const [smtpTo, setSmtpTo] = useState('');
   const [showSmtpPass, setShowSmtpPass] = useState(false);
+  const [smtpPreset, setSmtpPreset] = useState<string | null>(null);
 
   // User Password Reset Modal State
   const [resetModalUser, setResetModalUser] = useState<{ id: string; email: string; resetLink?: string } | null>(null);
@@ -1979,9 +1982,10 @@ action:
             </div>
 
             {/* Provider Buttons */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
               {[
                 { id: 'none', label: 'Uitgeschakeld' },
+                { id: 'webpush', label: 'Web Push (PWA)' },
                 { id: 'email', label: 'E-mail (SMTP)' },
                 { id: 'pushover', label: 'Pushover' },
                 { id: 'ntfy', label: 'Ntfy.sh / Self-Hosted' },
@@ -2004,6 +2008,8 @@ action:
             </div>
 
             {/* Provider Specific Inputs */}
+            {notifProvider === 'webpush' && <WebPushSettings />}
+
             {notifProvider === 'pushover' && (
               <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/50 border border-slate-200/80 dark:border-slate-800/80 space-y-3 text-xs">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -2054,6 +2060,43 @@ action:
                   <span className="text-[11px] block mt-0.5">
                     Deze SMTP-serverconfiguratie wordt gebruikt voor periodieke APK &amp; onderhoudswaarschuwingen én voor het versturen van <strong>wachtwoordherstel-links</strong> naar gebruikers.
                   </span>
+                </div>
+
+                <div>
+                  <span className="font-semibold text-slate-700 dark:text-slate-300 block mb-1.5">
+                    {lang === 'nl' ? 'Snelle presets (vult server, poort en versleuteling in)' : 'Quick presets (fills server, port and encryption)'}
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    {EMAIL_PRESETS.map((preset) => (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        onClick={() => {
+                          const next = applyEmailPreset(preset, { user: smtpUser, from: smtpFrom });
+                          setSmtpHost(next.host);
+                          setSmtpPort(next.port);
+                          setSmtpSecure(next.secure);
+                          setSmtpFrom(next.from);
+                          setSmtpPreset(preset.id);
+                        }}
+                        className={`px-3 py-1.5 rounded-lg border font-bold transition ${
+                          smtpHost === preset.host && smtpPort === preset.port
+                            ? 'border-purple-500 bg-purple-50/60 dark:bg-purple-950/40 text-slate-900 dark:text-white ring-1 ring-purple-500'
+                            : 'border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                        }`}
+                      >
+                        {preset.label}
+                      </button>
+                    ))}
+                  </div>
+                  {(() => {
+                    const active = EMAIL_PRESETS.find((p) => p.id === smtpPreset && p.host === smtpHost);
+                    return active ? (
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
+                        {lang === 'nl' ? active.nl : active.en}
+                      </p>
+                    ) : null;
+                  })()}
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">

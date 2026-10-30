@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vehiclevault-cache-v2';
+const CACHE_NAME = 'vehiclevault-cache-v3';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -79,6 +79,57 @@ self.addEventListener('fetch', (event) => {
         });
         return networkResponse;
       });
+    })
+  );
+});
+
+// Web Push: the server sends a JSON payload ({ title, body, tag, url }) through the browser's push service.
+// Browsers (iOS in particular) require every push to result in a visible notification.
+self.addEventListener('push', (event) => {
+  let data = {};
+  if (event.data) {
+    try {
+      data = event.data.json();
+    } catch {
+      data = { body: event.data.text() };
+    }
+  }
+
+  const title = data.title || 'VehicleVault';
+  const options = {
+    body: data.body || '',
+    icon: '/icon-192.png',
+    badge: '/icon-192.png',
+    tag: data.tag || undefined,
+    renotify: Boolean(data.tag),
+    requireInteraction: data.priority === 'urgent',
+    data: { url: typeof data.url === 'string' ? data.url : '/' }
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+
+  // Only ever open pages of this app, whatever the payload says.
+  let target = new URL('/', self.location.origin);
+  try {
+    const requested = new URL(event.notification.data?.url || '/', self.location.origin);
+    if (requested.origin === self.location.origin) target = requested;
+  } catch {}
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windows) => {
+      for (const client of windows) {
+        if (new URL(client.url).origin === target.origin && 'focus' in client) {
+          return client.focus().then((focused) => {
+            if ('navigate' in focused && focused.url !== target.href) return focused.navigate(target.href);
+            return focused;
+          });
+        }
+      }
+      return self.clients.openWindow(target.href);
     })
   );
 });

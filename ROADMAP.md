@@ -39,8 +39,9 @@ Dit document bevat de geplande features en ideeën voor toekomstige releases van
   - Doordat de kilometerstand dagelijks op de achtergrond synchroon blijft, lopen ook alle **onderhoudsintervallen (km-triggers)** en **bandenslijtage-berekeningen** altijd real-time gelijk met de auto, zelfs tussen twee tankbeurten in.
 
 ### 5. Native Web Push (VAPID) Notificaties in de PWA & E-mail Presets (Gmail / Microsoft 365)
-- **Native PWA Web Push:** Naast Ntfy, Gotify, Pushover, Webhooks en SMTP ook directe browser/PWA push-notificaties ondersteunen via de Web Push standaard (VAPID-keys in de Service Worker), zodat je op iOS/Android/Desktop meldingen vanuit de geïnstalleerde PWA kunt ontvangen zonder externe notificatieservice.
-- **E-mail Presets & OAuth2 / Graph opties:** Snelle 1-klik presets in de UI voor o.a. **Gmail** (`smtp.gmail.com`) en **Microsoft 365 / Outlook.com** (`smtp.office365.com` / Microsoft Graph API).
+- ✅ **Native PWA Web Push:** Gerealiseerd. Browser/PWA push-notificaties via de Web Push standaard (VAPID, Service Worker), zonder externe notificatieservice.
+- ✅ **E-mail Presets:** Gerealiseerd. 1-klik SMTP-presets voor **Gmail**, **Microsoft 365** en **Outlook.com**.
+- **Nog open — OAuth2 / Microsoft Graph:** Verzenden via OAuth2 of de Microsoft Graph API in plaats van SMTP met (app-)wachtwoord.
 
 ### 6. Native Passkey / WebAuthn Ondersteuning
 - **Passkeys (FaceID / TouchID / Windows Hello / YubiKey):** Naast de bestaande ondersteuning voor Reverse Proxy SSO (Authelia, Authentik, Pangolin, Cloudflare Access) ook directe ingebouwde WebAuthn / Passkey-authenticatie toevoegen voor passwordless inloggen.

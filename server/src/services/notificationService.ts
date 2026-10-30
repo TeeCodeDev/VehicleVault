@@ -1,9 +1,10 @@
 import { db } from '../db/database.js';
 import { RdwService } from './rdwService.js';
 import { EmailService } from './emailService.js';
+import { PushService } from './pushService.js';
 
 export interface NotificationSettings {
-  provider: 'none' | 'email' | 'pushover' | 'ntfy' | 'gotify' | 'webhook';
+  provider: 'none' | 'email' | 'webpush' | 'pushover' | 'ntfy' | 'gotify' | 'webhook';
   pushoverUserKey?: string;
   pushoverApiToken?: string;
   pushoverDevice?: string;
@@ -211,6 +212,11 @@ export class NotificationService {
           throw new Error(`Webhook error (${res.status}): ${await res.text()}`);
         }
         return { success: true, message: 'Webhook alert succesvol verzonden' };
+      }
+
+      if (config.provider === 'webpush') {
+        const res = await PushService.sendToAll(title, message, priority);
+        return { success: res.success, message: res.message };
       }
 
       if (config.provider === 'email') {
