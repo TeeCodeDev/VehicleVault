@@ -130,31 +130,35 @@
 
 ---
 
-## 🚀 Quick Start with Docker
+## 🚀 Quick Start with Docker (Dockhand, Portainer, Dockge, Compose)
 
-The fastest way to deploy VehicleVault is with Docker Compose.
+The fastest way to deploy VehicleVault is using the pre-built multi-arch image (`linux/amd64` & `linux/arm64`) from GitHub Container Registry (`ghcr.io/teecodedev/vehiclevault:latest`). No local `Dockerfile` or `git clone` is required!
 
-### 1. Clone the Repository
-```bash
-git clone https://github.com/TeeCodeDev/VehicleVault.git
-cd VehicleVault
-cp .env.example .env
+### 1. Create `docker-compose.yml` (or paste into Dockhand / Portainer / Dockge)
+```yaml
+services:
+  vehiclevault:
+    image: ghcr.io/teecodedev/vehiclevault:latest
+    container_name: vehiclevault
+    restart: unless-stopped
+    ports:
+      - "3084:3084"
+    environment:
+      - NODE_ENV=production
+      - PORT=3084
+      - DATA_DIR=/data
+      - JWT_SECRET=change_this_to_a_random_secure_secret_in_production
+      - JWT_REFRESH_SECRET=change_this_to_another_random_secure_secret
+    volumes:
+      - ./data:/data
 ```
 
-### 2. Configure Secrets in `.env`
-Generate two secure keys for authentication:
-```bash
-# On Linux/macOS
-openssl rand -hex 32
-```
-Paste the generated secrets into `JWT_SECRET` and `JWT_REFRESH_SECRET` in `.env`.
-
-### 3. Launch the Stack
+### 2. Launch the Stack
 ```bash
 docker compose up -d
 ```
 
-Visit **`http://localhost:3001`** in your browser.
+Visit **`http://localhost:3084`** in your browser.
 The first account registered automatically receives **Administrator** rights.
 
 All persistent files (SQLite database, vehicle photos, receipt scans, documents, and invoices) are stored in `./data`.

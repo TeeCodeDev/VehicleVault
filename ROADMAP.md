@@ -38,3 +38,8 @@ Dit document bevat de geplande features en ideeën voor toekomstige releases van
       3. **iOS Opdrachten (Apple Shortcuts) / Android Tasker** (bijv. automatisch bij loskoppelen van CarPlay of Bluetooth in de auto).
   - Doordat de kilometerstand dagelijks op de achtergrond synchroon blijft, lopen ook alle **onderhoudsintervallen (km-triggers)** en **bandenslijtage-berekeningen** altijd real-time gelijk met de auto, zelfs tussen twee tankbeurten in.
 
+### 5. Native Web Push (VAPID) Notificaties in de PWA & E-mail Presets (Gmail / Microsoft 365)
+- **Native PWA Web Push:** Naast Ntfy, Gotify, Pushover, Webhooks en SMTP ook directe browser/PWA push-notificaties ondersteunen via de Web Push standaard (VAPID-keys in de Service Worker), zodat je op iOS/Android/Desktop meldingen vanuit de geïnstalleerde PWA kunt ontvangen zonder externe notificatieservice.
+- **E-mail Presets & OAuth2 / Graph opties:** Snelle 1-klik presets in de UI voor o.a. **Gmail** (`smtp.gmail.com`) en **Microsoft 365 / Outlook.com** (`smtp.office365.com` / Microsoft Graph API).
+
+
