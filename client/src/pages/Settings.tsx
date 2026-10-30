@@ -145,7 +145,10 @@ export const Settings: React.FC = () => {
   const [creatingUser, setCreatingUser] = useState(false);
 
   // Notifications State
-  const [notifProvider, setNotifProvider] = useState<'none' | 'email' | 'ntfy' | 'gotify' | 'webhook'>('none');
+  const [notifProvider, setNotifProvider] = useState<'none' | 'email' | 'pushover' | 'ntfy' | 'gotify' | 'webhook'>('none');
+  const [pushoverUserKey, setPushoverUserKey] = useState('');
+  const [pushoverApiToken, setPushoverApiToken] = useState('');
+  const [pushoverDevice, setPushoverDevice] = useState('');
   const [ntfyUrl, setNtfyUrl] = useState('');
   const [ntfyToken, setNtfyToken] = useState('');
   const [gotifyUrl, setGotifyUrl] = useState('');
@@ -553,6 +556,9 @@ export const Settings: React.FC = () => {
     try {
       const res = await apiFetch<any>('/api/notifications/settings');
       setNotifProvider(res.provider || 'none');
+      setPushoverUserKey(res.pushoverUserKey || '');
+      setPushoverApiToken(res.pushoverApiToken || '');
+      setPushoverDevice(res.pushoverDevice || '');
       setNtfyUrl(res.ntfyUrl || '');
       setNtfyToken(res.ntfyToken || '');
       setGotifyUrl(res.gotifyUrl || '');
@@ -578,6 +584,9 @@ export const Settings: React.FC = () => {
         method: 'PUT',
         body: JSON.stringify({
           provider: notifProvider,
+          pushoverUserKey,
+          pushoverApiToken,
+          pushoverDevice,
           ntfyUrl,
           ntfyToken,
           gotifyUrl,
@@ -1966,10 +1975,11 @@ action:
             </div>
 
             {/* Provider Buttons */}
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
               {[
                 { id: 'none', label: 'Uitgeschakeld' },
                 { id: 'email', label: 'E-mail (SMTP)' },
+                { id: 'pushover', label: 'Pushover' },
                 { id: 'ntfy', label: 'Ntfy.sh / Self-Hosted' },
                 { id: 'gotify', label: 'Gotify' },
                 { id: 'webhook', label: 'Aangepaste Webhook' },
@@ -1990,6 +2000,49 @@ action:
             </div>
 
             {/* Provider Specific Inputs */}
+            {notifProvider === 'pushover' && (
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/50 border border-slate-200/80 dark:border-slate-800/80 space-y-3 text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                      Pushover User Key *
+                    </label>
+                    <input
+                      type="text"
+                      value={pushoverUserKey}
+                      onChange={(e) => setPushoverUserKey(e.target.value)}
+                      placeholder="30-karakter User of Group Key"
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                      Pushover Application API Token *
+                    </label>
+                    <input
+                      type="password"
+                      value={pushoverApiToken}
+                      onChange={(e) => setPushoverApiToken(e.target.value)}
+                      placeholder="30-karakter Application Token"
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 font-mono"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                    Apparaatnaam (Optioneel — laat leeg voor al je Pushover-apparaten)
+                  </label>
+                  <input
+                    type="text"
+                    value={pushoverDevice}
+                    onChange={(e) => setPushoverDevice(e.target.value)}
+                    placeholder="Optionele specifieke apparaatnaam"
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 font-mono"
+                  />
+                </div>
+              </div>
+            )}
+
             {notifProvider === 'email' && (
               <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/50 border border-slate-200/80 dark:border-slate-800/80 space-y-4 text-xs">
                 <div className="p-3 bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800 rounded-lg text-sky-800 dark:text-sky-300">

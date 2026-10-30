@@ -846,6 +846,31 @@ Date,Odometer,Fuel_amount,Price,Total_cost,Notes
       assert.equal(settings.smtpHost, 'smtp.invalid.local');
       assert.equal(settings.smtpTo, 'recipient@example.com');
     });
+
+    it('should configure, persist, and validate Pushover notification settings', async () => {
+      NotificationService.saveSettings({
+        provider: 'pushover',
+        pushoverUserKey: 'uQiRzpo4DXghDmr9QzzfQu27cmVRsG',
+        pushoverApiToken: 'azGDORePK8gMaC0QOYAMyEEuzJnyUi',
+        pushoverDevice: 'iphone',
+      });
+
+      const settings = NotificationService.getSettings();
+      assert.equal(settings.provider, 'pushover');
+      assert.equal(settings.pushoverUserKey, 'uQiRzpo4DXghDmr9QzzfQu27cmVRsG');
+      assert.equal(settings.pushoverApiToken, 'azGDORePK8gMaC0QOYAMyEEuzJnyUi');
+      assert.equal(settings.pushoverDevice, 'iphone');
+
+      // Validate missing keys rejection
+      NotificationService.saveSettings({
+        provider: 'pushover',
+        pushoverUserKey: '',
+        pushoverApiToken: '',
+      });
+      const res = await NotificationService.send('Test', 'Bericht');
+      assert.equal(res.success, false);
+      assert.ok(res.message.includes('Pushover vereist'));
+    });
   });
 
   describe('Password Reset & Forgotten Password Flow', () => {
