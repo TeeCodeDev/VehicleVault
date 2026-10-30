@@ -44,6 +44,11 @@
 - **Public Vehicle Passport (`/showcase/:slug`):** Shareable sales page with photo gallery, RDW specs, verified maintenance timeline, tire status, and WhatsApp/Phone/Email contact buttons.
 - **1-Click Static Website ZIP:** Export a standalone HTML5/CSS3/JS website package ready to host on any static web server.
 
+### 👥 Multi-User Vehicle Isolation, Sharing & RBAC
+- **Strict Per-User Garage Isolation:** Each user account maintains its own private fleet by default.
+- **Granular Vehicle Sharing (`vehicle_shares`):** Share individual vehicles with family members or co-drivers as **`editor`** or **`viewer`** with full access across Fuel Logs, Maintenance History & Intervals, Digital Glovebox (`Documenten`), Tire Management, Fixed Expenses, and TCO Analytics.
+- **Role-Based Access Control:** Supports **`admin`**, **`user`**, and simplified mobile **`driver`** roles, plus zero-config reverse proxy SSO (`Remote-Email` / Pangolin / Authelia / Authentik).
+
 ### 🏠 Home Assistant, Calendar (`.ics`), Notifications & MCP Server
 - **Push & Email Notifications:** Native support for **Pushover**, **Ntfy**, **Gotify**, **Custom Webhooks**, and **SMTP Email** for approaching APK inspections, maintenance intervals, and expiring documents.
 - **Home Assistant Integration:** Outbound REST sensor payload (`GET /api/ha/sensors`) and inbound live odometer webhook (`POST /api/ha/odometer`).
@@ -58,5 +63,5 @@
 docker pull ghcr.io/teecodedev/vehiclevault:latest
 ```
 
-See the **[README](https://github.com/TeeCodeDev/VehicleVault#readme)** and **[Wiki Documentation](https://github.com/TeeCodeDev/VehicleVault/tree/main/docs/wiki/Home.md)** for full setup instructions.
+See the **[README](https://github.com/TeeCodeDev/VehicleVault#readme)** and **[GitHub Wiki](https://github.com/TeeCodeDev/VehicleVault/wiki)** for full setup instructions.
 

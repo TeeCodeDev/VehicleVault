@@ -5,7 +5,7 @@
 
   [![Release](https://img.shields.io/badge/Release-v2.0.0-0ea5e9.svg)](https://github.com/TeeCodeDev/VehicleVault/releases)
   [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-  [![Tests](https://img.shields.io/badge/Tests-72%2F72%20Passing-emerald.svg)](server/src/tests/vehiclevault.test.ts)
+  [![Tests](https://img.shields.io/badge/Tests-73%2F73%20Passing-emerald.svg)](server/src/tests/vehiclevault.test.ts)
   [![Node.js](https://img.shields.io/badge/Node.js-24%20LTS-green.svg)](https://nodejs.org/)
   [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue.svg)](https://www.typescriptlang.org/)
   [![React](https://img.shields.io/badge/React-19-cyan.svg)](https://react.dev/)
@@ -206,7 +206,7 @@ curl -H "X-API-Key: vkv_YOUR_KEY" http://localhost:3001/api/mcp/tools
 # 1. Install workspace dependencies
 npm install
 
-# 2. Run automated test suite (72/72 tests passing)
+# 2. Run automated test suite (73/73 tests passing)
 npm test
 
 # 3. Build both client and server
