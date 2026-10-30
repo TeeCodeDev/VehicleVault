@@ -18,8 +18,9 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
   vehicleName,
 }) => {
   const { t, lang } = useLanguage();
+  const [includeTires, setIncludeTires] = useState(true);
   const [includeFuel, setIncludeFuel] = useState(true);
-  const [includeReceipts, setIncludeReceipts] = useState(false);
+  const [includeReceipts, setIncludeReceipts] = useState(true);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [loading, setLoading] = useState(false);
@@ -36,6 +37,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
         method: 'POST',
         body: JSON.stringify({
           vehicleId,
+          includeTires,
           includeFuel,
           includeReceipts,
           startDate: startDate || undefined,
@@ -118,6 +120,20 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
             <label className="flex items-center space-x-2.5 cursor-pointer">
               <input
                 type="checkbox"
+                checked={includeTires}
+                onChange={(e) => setIncludeTires(e.target.checked)}
+                className="rounded border-slate-300 dark:border-slate-700 text-accent-600 focus:ring-accent-500"
+              />
+              <span className="text-slate-700 dark:text-slate-300 font-medium">
+                {lang === 'nl'
+                  ? 'Huidige bandenset & profieldieptes opnemen'
+                  : 'Include current tires & tread depths'}
+              </span>
+            </label>
+
+            <label className="flex items-center space-x-2.5 cursor-pointer">
+              <input
+                type="checkbox"
                 checked={includeFuel}
                 onChange={(e) => setIncludeFuel(e.target.checked)}
                 className="rounded border-slate-300 dark:border-slate-700 text-accent-600 focus:ring-accent-500"
@@ -132,7 +148,11 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
                 onChange={(e) => setIncludeReceipts(e.target.checked)}
                 className="rounded border-slate-300 dark:border-slate-700 text-accent-600 focus:ring-accent-500"
               />
-              <span className="text-slate-700 dark:text-slate-300 font-medium">{t('includeReceipts')}</span>
+              <span className="text-slate-700 dark:text-slate-300 font-medium">
+                {lang === 'nl'
+                  ? 'Facturen & tankbonnen als aparte bijlagepagina\'s toevoegen'
+                  : t('includeReceipts')}
+              </span>
             </label>
           </div>
         </div>

@@ -46,6 +46,8 @@ import { FuelController } from '../controllers/fuelController.js';
 import { MaintenanceController } from '../controllers/maintenanceController.js';
 import { HaController } from '../controllers/haController.js';
 import { CalendarService } from '../services/calendarService.js';
+import { PdfService } from '../services/pdfService.js';
+import { PDFDocument as PdfLibDocument } from 'pdf-lib';
 import { DATA_PATHS } from '../config/env.js';
 import { EmailService } from '../services/emailService.js';
 
@@ -1964,6 +1966,60 @@ Date,Odometer,Fuel_amount,Price,Total_cost,Notes
         assert.equal(updated2.last_service_odometer, 66018);
       } finally {
         db.run('DELETE FROM maintenance_intervals WHERE id IN (?, ?)', [int1, int2]);
+      }
+    });
+
+    it('should include current tires and append PDF invoices as separate pages in PDF dossier export', async () => {
+      const tireId = crypto.randomUUID();
+      const recId = crypto.randomUUID();
+      const sampleInvoiceName = `test-invoice-${Date.now()}.pdf`;
+      const sampleInvoicePath = path.join(DATA_PATHS.invoices, sampleInvoiceName);
+
+      // Create a valid 2-page PDF invoice with pdf-lib
+      const samplePdf = await PdfLibDocument.create();
+      const p1 = samplePdf.addPage([595, 842]);
+      p1.drawText('CAR Avenue Autohaus Invoice - Page 1', { x: 50, y: 750, size: 16 });
+      const p2 = samplePdf.addPage([595, 842]);
+      p2.drawText('CAR Avenue Autohaus Invoice - Page 2', { x: 50, y: 750, size: 16 });
+      const samplePdfBytes = await samplePdf.save();
+      fs.writeFileSync(sampleInvoicePath, Buffer.from(samplePdfBytes));
+
+      db.run(
+        `INSERT INTO tire_sets (id, vehicle_id, name, season, brand, model, tire_size, rim_size, speed_index, dot_code, status, total_km, tread_depth_fl, tread_depth_fr, tread_depth_rl, tread_depth_rr, created_at)
+         VALUES (?, ?, 'Huidig', 'all_season', 'Bridgestone', 'Turanza 6', '205/60', '16', '92V', '2324', 'mounted', 1000, 7.5, 7.5, 7.5, 7.5, ?)`,
+        [tireId, testVehicleId, new Date().toISOString()]
+      );
+
+      db.run(
+        `INSERT INTO service_records (id, vehicle_id, service_item, date, odometer, performing_party, cost, garage_name, invoice_path, created_at)
+         VALUES (?, ?, 'Onderhoudsbeurt 90.000 km', '2026-08-17', 66018, 'garage', 636.25, 'CAR Avenue Autohaus GmbH', ?, ?)`,
+        [recId, testVehicleId, sampleInvoiceName, new Date().toISOString()]
+      );
+
+      try {
+        const bufferWithoutReceipts = await PdfService.generateDossier({
+          vehicleId: testVehicleId,
+          includeTires: true,
+          includeFuel: true,
+          includeReceipts: false,
+        });
+        const docWithout = await PdfLibDocument.load(bufferWithoutReceipts);
+        const basePageCount = docWithout.getPageCount();
+
+        const bufferWithReceipts = await PdfService.generateDossier({
+          vehicleId: testVehicleId,
+          includeTires: true,
+          includeFuel: true,
+          includeReceipts: true,
+        });
+        const docWith = await PdfLibDocument.load(bufferWithReceipts);
+
+        // The 2-page PDF invoice must be appended as 2 separate pages at the end of the dossier
+        assert.equal(docWith.getPageCount(), basePageCount + 2);
+      } finally {
+        db.run('DELETE FROM tire_sets WHERE id = ?', [tireId]);
+        db.run('DELETE FROM service_records WHERE id = ?', [recId]);
+        if (fs.existsSync(sampleInvoicePath)) fs.unlinkSync(sampleInvoicePath);
       }
     });
   });
