@@ -11,6 +11,8 @@ import {
   UploadCloud,
   File,
   Eye,
+  LayoutList,
+  LayoutGrid,
 } from 'lucide-react';
 import { Vehicle, VehicleDocument } from '../types/index.js';
 import { apiFetch } from '../api/client.js';
@@ -34,6 +36,14 @@ export const Documents: React.FC = () => {
   const [documents, setDocuments] = useState<VehicleDocument[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeCategory, setActiveCategory] = useState<DocCategory>('all');
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>(() => {
+    return (localStorage.getItem('vv_documents_view') as 'list' | 'grid') || 'list';
+  });
+
+  const handleSetViewMode = (mode: 'list' | 'grid') => {
+    setViewMode(mode);
+    localStorage.setItem('vv_documents_view', mode);
+  };
 
   // Document preview state
   const [previewDoc, setPreviewDoc] = useState<{
@@ -55,6 +65,7 @@ export const Documents: React.FC = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [compressing, setCompressing] = useState(false);
   const [compressionRatio, setCompressionRatio] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   useEffect(() => {
     if (selectedVehicle) {
@@ -74,31 +85,68 @@ export const Documents: React.FC = () => {
     }
   };
 
+  const processSelectedFile = async (file: File) => {
+    setCompressionRatio(null);
+    if (!docName) {
+      const cleanName = file.name.replace(/\.[^/.]+$/, '');
+      setDocName(cleanName);
+    }
+    if (file.type.startsWith('image/') || /\.(jpe?g|png|webp|heic)$/i.test(file.name)) {
+      setCompressing(true);
+      try {
+        const origKb = (file.size / 1024).toFixed(0);
+        const compressed = await compressImage(file, 1600, 2200, 0.82);
+        const compKb = (compressed.size / 1024).toFixed(0);
+        setDocFile(compressed);
+        setCompressionRatio(`${origKb} KB → ${compKb} KB`);
+      } catch (err) {
+        console.warn('Compression error, using raw file', err);
+        setDocFile(file);
+      } finally {
+        setCompressing(false);
+      }
+    } else {
+      setDocFile(file);
+    }
+  };
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setCompressionRatio(null);
-      if (!docName) {
-        const cleanName = file.name.replace(/\.[^/.]+$/, '');
-        setDocName(cleanName);
+      await processSelectedFile(e.target.files[0]);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isDragging) setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+    setIsDragging(false);
+  };
+
+  const handleDrop = async (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const file = e.dataTransfer.files[0];
+      const validExtensions = ['.pdf', '.jpg', '.jpeg', '.png', '.webp', '.heic'];
+      const lower = file.name.toLowerCase();
+      const isSupported = validExtensions.some((ext) => lower.endsWith(ext)) || file.type.startsWith('image/') || file.type === 'application/pdf';
+      if (!isSupported) {
+        alert(
+          lang === 'nl'
+            ? 'Alleen PDF- of afbeeldingsbestanden (.pdf, .jpg, .png, .webp) zijn toegestaan.'
+            : 'Only PDF or image files (.pdf, .jpg, .png, .webp) are supported.'
+        );
+        return;
       }
-      if (file.type.startsWith('image/') || /\.(jpe?g|png|webp|heic)$/i.test(file.name)) {
-        setCompressing(true);
-        try {
-          const origKb = (file.size / 1024).toFixed(0);
-          const compressed = await compressImage(file, 1600, 2200, 0.82);
-          const compKb = (compressed.size / 1024).toFixed(0);
-          setDocFile(compressed);
-          setCompressionRatio(`${origKb} KB → ${compKb} KB`);
-        } catch (err) {
-          console.warn('Compression error, using raw file', err);
-          setDocFile(file);
-        } finally {
-          setCompressing(false);
-        }
-      } else {
-        setDocFile(file);
-      }
+      await processSelectedFile(file);
     }
   };
 
@@ -128,6 +176,7 @@ export const Documents: React.FC = () => {
       setDocExpiresAt('');
       setCompressionRatio(null);
       setDocCategory('registration');
+      setIsDragging(false);
       await loadDocuments(selectedVehicle.id);
     } catch (err: any) {
       alert(err?.message || 'Upload mislukt. Controleer bestandsformaat (PDF, JPG, PNG) en bestandsgrootte (max 30MB).');
@@ -247,37 +296,67 @@ export const Documents: React.FC = () => {
         </button>
       </div>
 
-      {/* Filter Tabs */}
-      <div className="flex items-center space-x-1.5 overflow-x-auto pb-1 scrollbar-none">
-        {categories.map((cat) => {
-          const count = cat.key === 'all' ? documents.length : documents.filter((d) => d.category === cat.key).length;
-          const isActive = activeCategory === cat.key;
-          return (
-            <button
-              key={cat.key}
-              onClick={() => setActiveCategory(cat.key)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center space-x-1.5 ${
-                isActive
-                  ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm'
-                  : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-800'
-              }`}
-            >
-              <span>{cat.label}</span>
-              <span
-                className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+      {/* Filter Tabs & View Toggle */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="flex items-center space-x-1.5 overflow-x-auto pb-1 scrollbar-none">
+          {categories.map((cat) => {
+            const count = cat.key === 'all' ? documents.length : documents.filter((d) => d.category === cat.key).length;
+            const isActive = activeCategory === cat.key;
+            return (
+              <button
+                key={cat.key}
+                onClick={() => setActiveCategory(cat.key)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center space-x-1.5 ${
                   isActive
-                    ? 'bg-white/20 text-white dark:bg-slate-900/20 dark:text-slate-900'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
+                    ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm'
+                    : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-800'
                 }`}
               >
-                {count}
-              </span>
-            </button>
-          );
-        })}
+                <span>{cat.label}</span>
+                <span
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                    isActive
+                      ? 'bg-white/20 text-white dark:bg-slate-900/20 dark:text-slate-900'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
+                  }`}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* View Switcher */}
+        <div className="flex items-center space-x-1 bg-white dark:bg-slate-900 p-1 rounded-xl border border-slate-200/80 dark:border-slate-800 self-end sm:self-auto shrink-0 shadow-2xs">
+          <button
+            type="button"
+            onClick={() => handleSetViewMode('list')}
+            className={`p-1.5 rounded-lg text-xs font-semibold transition ${
+              viewMode === 'list'
+                ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white shadow-2xs'
+                : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
+            }`}
+            title={lang === 'nl' ? 'Lijstweergave' : 'List view'}
+          >
+            <LayoutList className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => handleSetViewMode('grid')}
+            className={`p-1.5 rounded-lg text-xs font-semibold transition ${
+              viewMode === 'grid'
+                ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white shadow-2xs'
+                : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
+            }`}
+            title={lang === 'nl' ? 'Rasterweergave' : 'Grid view'}
+          >
+            <LayoutGrid className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
-      {/* Documents Grid */}
+      {/* Documents Content */}
       {loading ? (
         <div className="p-12 text-center text-xs text-slate-400 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800">
           {t('loading')}
@@ -299,6 +378,139 @@ export const Documents: React.FC = () => {
             <span>{t('uploadDocument')}</span>
           </button>
         </div>
+      ) : viewMode === 'list' ? (
+        <div className="space-y-2.5">
+          {filteredDocuments.map((doc) => {
+            const badge = getCategoryBadge(doc.category);
+            const isPdf = doc.mime_type?.includes('pdf') || doc.file_path.endsWith('.pdf');
+            const isImage = doc.mime_type?.includes('image') || /\.(jpg|jpeg|png|webp|heic)$/i.test(doc.file_path);
+            const downloadUrl = `/uploads/documents/${doc.file_path}`;
+
+            return (
+              <div
+                key={doc.id}
+                className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 rounded-2xl p-3.5 sm:p-4 shadow-2xs hover:shadow-xs transition-all flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 group"
+              >
+                {/* Left: Icon + Title + Metadata (ALL ALIGNED TOGETHER) */}
+                <div className="flex items-start sm:items-center space-x-3.5 min-w-0 flex-1">
+                  <div
+                    className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 border ${
+                      isPdf
+                        ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-500 border-rose-200/60 dark:border-rose-900/40'
+                        : isImage
+                        ? 'bg-sky-50 dark:bg-sky-950/40 text-sky-500 border-sky-200/60 dark:border-sky-900/40'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700'
+                    }`}
+                  >
+                    {isPdf ? (
+                      <FileText className="w-5 h-5 text-rose-500" />
+                    ) : isImage ? (
+                      <FileCheck className="w-5 h-5 text-sky-500" />
+                    ) : (
+                      <File className="w-5 h-5 text-slate-500" />
+                    )}
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center space-x-2">
+                      <h4
+                        className="text-sm font-bold text-slate-900 dark:text-white truncate group-hover:text-sky-600 dark:group-hover:text-sky-400 transition"
+                        title={doc.name}
+                      >
+                        {doc.name}
+                      </h4>
+                    </div>
+
+                    <div className="flex items-center flex-wrap gap-2 mt-1 text-xs text-slate-500 dark:text-slate-400">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold border ${badge.badgeClass}`}>
+                        {badge.label}
+                      </span>
+
+                      {doc.expires_at && (() => {
+                        const exp = new Date(doc.expires_at);
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        const days = Math.ceil((exp.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                        const isExpired = days < 0;
+                        const isDueSoon = days >= 0 && days <= 30;
+
+                        return (
+                          <span
+                            className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold border ${
+                              isExpired
+                                ? 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800'
+                                : isDueSoon
+                                ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800'
+                                : 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
+                            }`}
+                            title={`Vervaldatum: ${formatDisplayDate(doc.expires_at)}`}
+                          >
+                            {isExpired
+                              ? (lang === 'nl' ? `Verlopen (${formatDisplayDate(doc.expires_at)})` : `Expired (${formatDisplayDate(doc.expires_at)})`)
+                              : isDueSoon
+                              ? (lang === 'nl' ? `Verloopt over ${days}d` : `Expires in ${days}d`)
+                              : (lang === 'nl' ? `Geldig t/m ${formatDisplayDate(doc.expires_at)}` : `Valid until ${formatDisplayDate(doc.expires_at)}`)}
+                          </span>
+                        );
+                      })()}
+
+                      <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500">
+                        {formatFileSize(doc.file_size)} • {formatDisplayDate(doc.created_at)}
+                      </span>
+
+                      {doc.notes && (
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400 italic truncate max-w-xs" title={doc.notes}>
+                          • "{doc.notes}"
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right: Actions */}
+                <div className="flex items-center justify-end space-x-1.5 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-slate-800/80 flex-shrink-0">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setPreviewDoc({
+                        isOpen: true,
+                        title: doc.name,
+                        url: downloadUrl,
+                        fileSize: doc.file_size,
+                        date: formatDisplayDate(doc.created_at),
+                        notes: doc.notes || undefined,
+                      })
+                    }
+                    className="px-3 py-1.5 bg-sky-50 hover:bg-sky-100 dark:bg-sky-950/40 dark:hover:bg-sky-900/50 text-sky-700 dark:text-sky-300 rounded-xl transition inline-flex items-center space-x-1.5 font-bold text-xs border border-sky-200/60 dark:border-sky-800/40 shadow-2xs"
+                    title={lang === 'nl' ? 'Bekijk direct in-app' : 'Preview in-app'}
+                  >
+                    <Eye className="w-3.5 h-3.5 text-sky-500" />
+                    <span>{lang === 'nl' ? 'Bekijken' : 'Preview'}</span>
+                  </button>
+
+                  <a
+                    href={downloadUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl transition inline-flex items-center space-x-1.5 font-semibold text-xs border border-slate-200/60 dark:border-slate-700"
+                    title={t('downloadDocument')}
+                  >
+                    <Download className="w-3.5 h-3.5 text-slate-500" />
+                    <span>{t('download')}</span>
+                  </a>
+
+                  <button
+                    onClick={() => handleDelete(doc.id)}
+                    className="p-1.5 text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition"
+                    title={t('delete')}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredDocuments.map((doc) => {
@@ -310,12 +522,20 @@ export const Documents: React.FC = () => {
             return (
               <div
                 key={doc.id}
-                className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4.5 shadow-sm hover:border-slate-300 dark:hover:border-slate-700 transition flex flex-col justify-between group"
+                className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 shadow-sm hover:border-slate-300 dark:hover:border-slate-700 transition flex flex-col justify-between group"
               >
                 <div>
                   <div className="flex items-start justify-between gap-2 mb-2.5">
-                    <div className="flex items-center space-x-2.5">
-                      <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center flex-shrink-0 text-slate-600 dark:text-slate-300">
+                    <div className="flex items-start space-x-3 min-w-0">
+                      <div
+                        className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 border ${
+                          isPdf
+                            ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-500 border-rose-200/60 dark:border-rose-900/40'
+                            : isImage
+                            ? 'bg-sky-50 dark:bg-sky-950/40 text-sky-500 border-sky-200/60 dark:border-sky-900/40'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700'
+                        }`}
+                      >
                         {isPdf ? (
                           <FileText className="w-5 h-5 text-rose-500" />
                         ) : isImage ? (
@@ -324,12 +544,15 @@ export const Documents: React.FC = () => {
                           <File className="w-5 h-5 text-slate-500" />
                         )}
                       </div>
-                      <div>
-                        <h4 className="text-xs font-bold text-slate-900 dark:text-white line-clamp-1 group-hover:text-sky-600 dark:group-hover:text-sky-400 transition" title={doc.name}>
+                      <div className="min-w-0 flex-1">
+                        <h4
+                          className="text-xs font-bold text-slate-900 dark:text-white truncate group-hover:text-sky-600 dark:group-hover:text-sky-400 transition"
+                          title={doc.name}
+                        >
                           {doc.name}
                         </h4>
-                        <div className="flex items-center flex-wrap gap-1 mt-0.5">
-                          <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold border ${badge.badgeClass}`}>
+                        <div className="flex items-center flex-wrap gap-1 mt-1">
+                          <span className={`inline-block px-2 py-0.5 rounded-md text-[10px] font-bold border ${badge.badgeClass}`}>
                             {badge.label}
                           </span>
                           {doc.expires_at && (() => {
@@ -342,7 +565,7 @@ export const Documents: React.FC = () => {
 
                             return (
                               <span
-                                className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                                className={`inline-block px-2 py-0.5 rounded-md text-[10px] font-bold border ${
                                   isExpired
                                     ? 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800'
                                     : isDueSoon
@@ -352,10 +575,10 @@ export const Documents: React.FC = () => {
                                 title={`Vervaldatum: ${formatDisplayDate(doc.expires_at)}`}
                               >
                                 {isExpired
-                                  ? (lang === 'nl' ? `Verlopen (${formatDisplayDate(doc.expires_at)})` : `Expired (${formatDisplayDate(doc.expires_at)})`)
+                                  ? (lang === 'nl' ? `Verlopen` : `Expired`)
                                   : isDueSoon
-                                  ? (lang === 'nl' ? `Verloopt over ${days}d` : `Expires in ${days}d`)
-                                  : (lang === 'nl' ? `Geldig t/m ${formatDisplayDate(doc.expires_at)}` : `Valid until ${formatDisplayDate(doc.expires_at)}`)}
+                                  ? (lang === 'nl' ? `${days}d` : `${days}d`)
+                                  : (lang === 'nl' ? `Geldig` : `Valid`)}
                               </span>
                             );
                           })()}
@@ -365,7 +588,7 @@ export const Documents: React.FC = () => {
 
                     <button
                       onClick={() => handleDelete(doc.id)}
-                      className="text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition opacity-0 group-hover:opacity-100"
+                      className="text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
                       title={t('delete')}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -373,14 +596,14 @@ export const Documents: React.FC = () => {
                   </div>
 
                   {doc.notes && (
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 mt-1 mb-2 italic">
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 mt-2 mb-1 p-2 bg-slate-50 dark:bg-slate-950/40 rounded-lg italic">
                       "{doc.notes}"
                     </p>
                   )}
                 </div>
 
-                <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-500">
-                  <div className="space-x-2">
+                <div className="pt-3 mt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-500">
+                  <div className="space-x-1.5 font-medium">
                     <span>{formatFileSize(doc.file_size)}</span>
                     <span>•</span>
                     <span>{formatDisplayDate(doc.created_at)}</span>
@@ -399,7 +622,7 @@ export const Documents: React.FC = () => {
                           notes: doc.notes || undefined,
                         })
                       }
-                      className="p-1.5 bg-sky-50 hover:bg-sky-100 dark:bg-sky-950/40 dark:hover:bg-sky-900/50 text-sky-700 dark:text-sky-300 rounded-lg transition inline-flex items-center space-x-1 font-bold text-[11px] border border-sky-200/60 dark:border-sky-800/40"
+                      className="px-2.5 py-1.5 bg-sky-50 hover:bg-sky-100 dark:bg-sky-950/40 dark:hover:bg-sky-900/50 text-sky-700 dark:text-sky-300 rounded-lg transition inline-flex items-center space-x-1 font-bold text-[11px] border border-sky-200/60 dark:border-sky-800/40"
                       title={lang === 'nl' ? 'Bekijk direct in-app' : 'Preview in-app'}
                     >
                       <Eye className="w-3.5 h-3.5 text-sky-500" />
@@ -410,10 +633,10 @@ export const Documents: React.FC = () => {
                       href={downloadUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="p-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg transition inline-flex items-center space-x-1 font-semibold text-[11px]"
+                      className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg transition inline-flex items-center space-x-1 font-semibold text-[11px] border border-slate-200/60 dark:border-slate-700"
                       title={t('downloadDocument')}
                     >
-                      <Download className="w-3.5 h-3.5" />
+                      <Download className="w-3.5 h-3.5 text-slate-500" />
                       <span>{t('download')}</span>
                     </a>
                   </div>
@@ -447,13 +670,25 @@ export const Documents: React.FC = () => {
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                   {lang === 'nl' ? 'Bestand (.pdf, .jpg, .png, .webp) *' : 'File (.pdf, .jpg, .png, .webp) *'}
                 </label>
-                <label className="border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-sky-500 rounded-xl p-4 flex flex-col items-center justify-center text-center cursor-pointer transition bg-slate-50/50 dark:bg-slate-950/40">
-                  <UploadCloud className="w-7 h-7 text-slate-400 mb-1" />
-                  <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                    {docFile ? docFile.name : t('dragOrClickDocument')}
+                <label
+                  onDragOver={handleDragOver}
+                  onDragEnter={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  className={`border-2 border-dashed rounded-2xl p-5 flex flex-col items-center justify-center text-center cursor-pointer transition-all ${
+                    isDragging
+                      ? 'border-sky-500 bg-sky-50/90 dark:bg-sky-950/70 ring-4 ring-sky-500/20 scale-[1.01]'
+                      : 'border-slate-300 dark:border-slate-700 hover:border-sky-500 bg-slate-50/50 dark:bg-slate-950/40'
+                  }`}
+                >
+                  <UploadCloud className={`w-8 h-8 mb-1.5 transition ${isDragging ? 'text-sky-500 scale-110 animate-bounce' : 'text-slate-400'}`} />
+                  <span className={`text-xs font-semibold ${isDragging ? 'text-sky-600 dark:text-sky-400 font-bold' : 'text-slate-700 dark:text-slate-300'}`}>
+                    {isDragging
+                      ? (lang === 'nl' ? 'Laat bestand hier los om te uploaden' : 'Drop file here to upload')
+                      : (docFile ? docFile.name : t('dragOrClickDocument'))}
                   </span>
-                  {docFile && (
-                    <span className="text-[10px] text-slate-400 mt-0.5">
+                  {docFile && !isDragging && (
+                    <span className="text-[10px] text-slate-400 mt-0.5 font-mono">
                       {formatFileSize(docFile.size)}
                     </span>
                   )}
@@ -472,7 +707,7 @@ export const Documents: React.FC = () => {
                     accept=".pdf,.jpg,.jpeg,.png,.webp,.heic"
                     onChange={handleFileChange}
                     className="hidden"
-                    required
+                    required={!docFile}
                   />
                 </label>
               </div>
@@ -528,7 +763,7 @@ export const Documents: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  {t('notes')} ({t('vehicleNotes')})
+                  {lang === 'nl' ? 'Notities (optioneel)' : 'Notes (optional)'}
                 </label>
                 <textarea
                   rows={2}
