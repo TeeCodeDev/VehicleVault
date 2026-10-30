@@ -6,9 +6,9 @@ import { RdwService } from '../services/rdwService.js';
 import { MaintenanceService } from '../services/maintenanceService.js';
 
 export class HaController {
-  public static getSensors(_req: Request, res: Response): void {
+  public static getSensors(req: Request, res: Response): void {
     try {
-      const payload = HaService.getSensorsPayload();
+      const payload = HaService.getSensorsPayload(req.user?.userId);
       res.json(payload);
     } catch (err: any) {
       console.error('Home Assistant sensors endpoint error:', err);
@@ -19,6 +19,7 @@ export class HaController {
   public static async updateOdometer(req: Request, res: Response): Promise<void> {
     try {
       const { vehicle_id, license_plate, odometer, source } = req.body;
+      const userId = req.user?.userId;
 
       const odoNum = parseFloat(odometer);
       if (isNaN(odoNum) || odoNum < 0) {
@@ -28,16 +29,36 @@ export class HaController {
 
       let vehicle: any = null;
       if (vehicle_id) {
-        vehicle = db.get<any>('SELECT * FROM vehicles WHERE id = ?', [vehicle_id]);
+        vehicle = userId
+          ? db.get<any>(
+              `SELECT * FROM vehicles
+               WHERE id = ? AND (user_id = ? OR id IN (SELECT vehicle_id FROM vehicle_shares WHERE shared_with_user_id = ? AND permission = 'write'))`,
+              [vehicle_id, userId, userId]
+            )
+          : db.get<any>('SELECT * FROM vehicles WHERE id = ?', [vehicle_id]);
       } else if (license_plate) {
         const clean = RdwService.normalizePlate(license_plate);
-        vehicle = db.get<any>(
-          'SELECT * FROM vehicles WHERE UPPER(REPLACE(REPLACE(license_plate, "-", ""), " ", "")) = ?',
-          [clean]
-        );
+        vehicle = userId
+          ? db.get<any>(
+              `SELECT * FROM vehicles
+               WHERE UPPER(REPLACE(REPLACE(license_plate, "-", ""), " ", "")) = ?
+                 AND (user_id = ? OR id IN (SELECT vehicle_id FROM vehicle_shares WHERE shared_with_user_id = ? AND permission = 'write'))`,
+              [clean, userId, userId]
+            )
+          : db.get<any>(
+              'SELECT * FROM vehicles WHERE UPPER(REPLACE(REPLACE(license_plate, "-", ""), " ", "")) = ?',
+              [clean]
+            );
       } else {
-        // Fallback: If only 1 active vehicle exists in database, use it
-        const all = db.query<any>("SELECT * FROM vehicles WHERE status = 'active' LIMIT 2");
+        // Fallback: If only 1 active vehicle exists for this user, use it
+        const all = userId
+          ? db.query<any>(
+              `SELECT * FROM vehicles
+               WHERE status = 'active' AND (user_id = ? OR id IN (SELECT vehicle_id FROM vehicle_shares WHERE shared_with_user_id = ? AND permission = 'write'))
+               LIMIT 2`,
+              [userId, userId]
+            )
+          : db.query<any>("SELECT * FROM vehicles WHERE status = 'active' LIMIT 2");
         if (all.length === 1) {
           vehicle = all[0];
         }

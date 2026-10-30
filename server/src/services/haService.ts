@@ -42,24 +42,42 @@ export interface HaVehicleSensorData {
 }
 
 export class HaService {
-  public static getSensorsPayload(): {
+  public static getSensorsPayload(userId?: string): {
     status: string;
     version: string;
     timestamp: string;
     total_vehicles: number;
     vehicles: HaVehicleSensorData[];
   } {
-    const vehicles = db.query<any>(`
-      SELECT v.*,
-        MAX(COALESCE(f.max_f, 0), COALESCE(s.max_s, 0), COALESCE(o.max_o, 0), v.initial_odometer) as current_odometer
-      FROM vehicles v
-      LEFT JOIN (SELECT vehicle_id, MAX(odometer) as max_f FROM fuel_entries GROUP BY vehicle_id) f ON f.vehicle_id = v.id
-      LEFT JOIN (SELECT vehicle_id, MAX(odometer) as max_s FROM service_records GROUP BY vehicle_id) s ON s.vehicle_id = v.id
-      LEFT JOIN (SELECT vehicle_id, MAX(odometer) as max_o FROM odometer_logs GROUP BY vehicle_id) o ON o.vehicle_id = v.id
-      WHERE v.status = 'active'
-      GROUP BY v.id
-      ORDER BY v.created_at ASC
-    `);
+    const vehicles = userId
+      ? db.query<any>(
+          `
+          SELECT v.*,
+            MAX(COALESCE(f.max_f, 0), COALESCE(s.max_s, 0), COALESCE(o.max_o, 0), COALESCE(t.max_t, 0), v.initial_odometer) as current_odometer
+          FROM vehicles v
+          LEFT JOIN (SELECT vehicle_id, MAX(odometer) as max_f FROM fuel_entries GROUP BY vehicle_id) f ON f.vehicle_id = v.id
+          LEFT JOIN (SELECT vehicle_id, MAX(odometer) as max_s FROM service_records GROUP BY vehicle_id) s ON s.vehicle_id = v.id
+          LEFT JOIN (SELECT vehicle_id, MAX(odometer) as max_o FROM odometer_logs GROUP BY vehicle_id) o ON o.vehicle_id = v.id
+          LEFT JOIN (SELECT vehicle_id, MAX(end_odometer) as max_t FROM trips GROUP BY vehicle_id) t ON t.vehicle_id = v.id
+          WHERE v.status = 'active'
+            AND (v.user_id = ? OR v.id IN (SELECT vehicle_id FROM vehicle_shares WHERE shared_with_user_id = ?))
+          GROUP BY v.id
+          ORDER BY v.created_at ASC
+          `,
+          [userId, userId]
+        )
+      : db.query<any>(`
+          SELECT v.*,
+            MAX(COALESCE(f.max_f, 0), COALESCE(s.max_s, 0), COALESCE(o.max_o, 0), COALESCE(t.max_t, 0), v.initial_odometer) as current_odometer
+          FROM vehicles v
+          LEFT JOIN (SELECT vehicle_id, MAX(odometer) as max_f FROM fuel_entries GROUP BY vehicle_id) f ON f.vehicle_id = v.id
+          LEFT JOIN (SELECT vehicle_id, MAX(odometer) as max_s FROM service_records GROUP BY vehicle_id) s ON s.vehicle_id = v.id
+          LEFT JOIN (SELECT vehicle_id, MAX(odometer) as max_o FROM odometer_logs GROUP BY vehicle_id) o ON o.vehicle_id = v.id
+          LEFT JOIN (SELECT vehicle_id, MAX(end_odometer) as max_t FROM trips GROUP BY vehicle_id) t ON t.vehicle_id = v.id
+          WHERE v.status = 'active'
+          GROUP BY v.id
+          ORDER BY v.created_at ASC
+        `);
 
     const resultVehicles: HaVehicleSensorData[] = vehicles.map((v) => {
       // 1. APK calculation

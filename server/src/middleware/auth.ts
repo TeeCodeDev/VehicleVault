@@ -138,8 +138,45 @@ export function getProxyUser(req: Request): AuthenticatedUser | null {
 }
 
 export function requireAuth(req: Request, res: Response, next: NextFunction): void {
+  const authHeader = req.headers.authorization;
+  const apiKeyHeader = req.headers['x-api-key'] as string | undefined;
+
+  let explicitToken: string | undefined;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    explicitToken = authHeader.substring(7).trim();
+  } else if (apiKeyHeader) {
+    explicitToken = apiKeyHeader.trim();
+  }
+
+  // 0. If an explicit API Key (vkv_) is provided, ALWAYS authenticate as the owner of that API key first!
+  if (explicitToken && explicitToken.startsWith('vkv_')) {
+    const keyHash = hashToken(explicitToken);
+    const keyRecord = db.get<{ id: string; user_id: string; email: string; role: string }>(
+      `SELECT k.id, k.user_id, u.email, u.role
+       FROM api_keys k
+       JOIN users u ON u.id = k.user_id
+       WHERE k.key_hash = ?`,
+      [keyHash]
+    );
+
+    if (!keyRecord) {
+      res.status(401).json({ error: 'Unauthorized: Invalid or revoked API key' });
+      return;
+    }
+
+    db.run('UPDATE api_keys SET last_used_at = ? WHERE id = ?', [new Date().toISOString(), keyRecord.id]);
+
+    req.user = {
+      userId: keyRecord.user_id,
+      email: keyRecord.email,
+      role: keyRecord.role,
+      isApiKey: true,
+    };
+    return next();
+  }
+
   // 1. Check for reverse proxy authentication headers (Pangolin, Authelia, Authentik, etc.)
-  // Proxy headers ALWAYS take precedence because the proxy specifies the exact identity of the caller!
+  // Proxy headers take precedence for browser sessions because the proxy specifies the exact identity of the caller!
   const proxyUser = getProxyUser(req);
   if (proxyUser) {
     req.user = proxyUser;
@@ -152,16 +189,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
     return next();
   }
 
-  const authHeader = req.headers.authorization;
-  const apiKeyHeader = req.headers['x-api-key'] as string | undefined;
-
-  let token: string | undefined;
-
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    token = authHeader.substring(7).trim();
-  } else if (apiKeyHeader) {
-    token = apiKeyHeader.trim();
-  }
+  const token = explicitToken;
 
   if (!token) {
     res.status(401).json({ error: 'Unauthorized: Missing authorization token or API key' });
