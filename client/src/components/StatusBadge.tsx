@@ -39,7 +39,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, label, size = 
 
   return (
     <span
-      className={`inline-flex items-center font-medium rounded-full border shadow-sm ${colorClasses} ${sizeClasses}`}
+      className={`inline-flex items-center font-medium rounded-full border shadow-sm whitespace-nowrap shrink-0 ${colorClasses} ${sizeClasses}`}
     >
       {defaultLabel}
     </span>

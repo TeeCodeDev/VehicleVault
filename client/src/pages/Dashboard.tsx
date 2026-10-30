@@ -281,41 +281,43 @@ export const Dashboard: React.FC = () => {
             </div>
 
             {/* Quick Action Buttons */}
-            <div className="flex flex-wrap items-center gap-2.5 pt-1">
+            <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2 sm:gap-2.5 pt-1">
               <Link
                 to="/fuel"
-                className="px-4 py-2 bg-accent-600 hover:bg-accent-700 text-white rounded-xl text-xs font-bold inline-flex items-center space-x-2 transition shadow-sm hover:scale-[1.02]"
+                className="w-full sm:w-auto px-4 py-2 bg-accent-600 hover:bg-accent-700 text-white rounded-xl text-xs font-bold inline-flex items-center justify-center space-x-2 transition shadow-sm hover:scale-[1.01]"
               >
-                <Fuel className="w-4 h-4 text-white" />
+                <Fuel className="w-4 h-4 text-white shrink-0" />
                 <span>{t('newFuelEntry')}</span>
               </Link>
 
-              <Link
-                to="/maintenance"
-                className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-xl text-xs font-semibold inline-flex items-center space-x-1.5 transition border border-slate-200 dark:border-slate-700/60"
-              >
-                <Wrench className="w-3.5 h-3.5" />
-                <span>{t('logService')}</span>
-              </Link>
+              <div className="grid grid-cols-3 gap-2 w-full sm:flex sm:w-auto sm:items-center sm:gap-2.5">
+                <Link
+                  to="/maintenance"
+                  className="w-full sm:w-auto px-2.5 sm:px-3.5 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-xl text-xs font-semibold inline-flex items-center justify-center space-x-1.5 transition border border-slate-200 dark:border-slate-700/60"
+                >
+                  <Wrench className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">{lang === 'nl' ? 'Onderhoud' : 'Service'}</span>
+                </Link>
 
-              <button
-                onClick={() => setIsPdfModalOpen(true)}
-                className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-xl text-xs font-semibold inline-flex items-center space-x-1.5 transition border border-slate-200 dark:border-slate-700/60"
-                title={t('exportPdf')}
-              >
-                <FileDown className="w-3.5 h-3.5 text-sky-500" />
-                <span>{lang === 'nl' ? 'PDF Dossier' : 'Service Dossier'}</span>
-              </button>
+                <button
+                  onClick={() => setIsPdfModalOpen(true)}
+                  className="w-full sm:w-auto px-2.5 sm:px-3.5 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-xl text-xs font-semibold inline-flex items-center justify-center space-x-1.5 transition border border-slate-200 dark:border-slate-700/60"
+                  title={t('exportPdf')}
+                >
+                  <FileDown className="w-3.5 h-3.5 text-sky-500 shrink-0" />
+                  <span className="truncate">{lang === 'nl' ? 'PDF Dossier' : 'Dossier'}</span>
+                </button>
 
-              <a
-                href={selectedVehicle ? `/api/vehicles/${selectedVehicle.id}/calendar.ics` : '/api/vehicles/calendar.ics'}
-                download={selectedVehicle ? `vehiclevault-${selectedVehicle.name.toLowerCase().replace(/\s+/g, '-')}.ics` : 'vehiclevault-calendar.ics'}
-                className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-xl text-xs font-semibold inline-flex items-center space-x-1.5 transition border border-slate-200 dark:border-slate-700/60"
-                title={lang === 'nl' ? 'Exporteer APK, beurten en documenten naar je Apple/Google/Outlook kalender' : 'Export inspection, service and documents to Apple/Google/Outlook Calendar'}
-              >
-                <Calendar className="w-3.5 h-3.5 text-emerald-500" />
-                <span>{lang === 'nl' ? 'Kalender (.ics)' : 'Calendar (.ics)'}</span>
-              </a>
+                <a
+                  href={selectedVehicle ? `/api/vehicles/${selectedVehicle.id}/calendar.ics` : '/api/vehicles/calendar.ics'}
+                  download={selectedVehicle ? `vehiclevault-${selectedVehicle.name.toLowerCase().replace(/\s+/g, '-')}.ics` : 'vehiclevault-calendar.ics'}
+                  className="w-full sm:w-auto px-2.5 sm:px-3.5 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-xl text-xs font-semibold inline-flex items-center justify-center space-x-1.5 transition border border-slate-200 dark:border-slate-700/60"
+                  title={lang === 'nl' ? 'Exporteer APK, beurten en documenten naar je Apple/Google/Outlook kalender' : 'Export inspection, service and documents to Apple/Google/Outlook Calendar'}
+                >
+                  <Calendar className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                  <span className="truncate">{lang === 'nl' ? 'Kalender' : 'Calendar'}</span>
+                </a>
+              </div>
             </div>
           </div>
 
@@ -356,28 +358,35 @@ export const Dashboard: React.FC = () => {
         </div>
 
         {/* Inspection Status */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-4 rounded-xl shadow-sm transition-colors">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-1">
-            <span className="text-xs font-semibold">{inspTerm.short} {lang === 'nl' ? 'Keuring' : 'Inspection'}</span>
-            <div className="w-7 h-7 rounded-lg bg-amber-50 dark:bg-amber-950/60 flex items-center justify-center text-amber-600 dark:text-amber-400">
-              <Calendar className="w-4 h-4" />
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-4 rounded-xl shadow-sm transition-colors flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-1.5 min-h-[22px]">
+              <span className="text-xs font-semibold truncate mr-1">
+                {inspTerm.short} {lang === 'nl' ? 'Keuring' : 'Inspection'}
+              </span>
+              {apkStatus?.isOverdue ? (
+                <StatusBadge status="overdue" label={inspTerm.badgeOverdue} />
+              ) : apkStatus?.isDueSoon ? (
+                <StatusBadge status="warning" label={inspTerm.badgeDueSoon} />
+              ) : selectedVehicle?.apk_expiration_date ? (
+                <StatusBadge status="good" label={inspTerm.badgeValid} />
+              ) : (
+                <div className="w-6 h-6 rounded-lg bg-amber-50 dark:bg-amber-950/60 flex items-center justify-center text-amber-600 dark:text-amber-400">
+                  <Calendar className="w-3.5 h-3.5" />
+                </div>
+              )}
+            </div>
+
+            <div className="text-lg sm:text-2xl font-black text-slate-900 dark:text-white font-mono whitespace-nowrap tracking-tight my-0.5">
+              {formatDisplayDate(selectedVehicle?.apk_expiration_date)}
             </div>
           </div>
-          <div className="text-base font-extrabold text-slate-900 dark:text-white flex items-center space-x-2">
-            <span>{formatDisplayDate(selectedVehicle?.apk_expiration_date)}</span>
-            {apkStatus?.isOverdue ? (
-              <StatusBadge status="overdue" label={inspTerm.overdue} />
-            ) : apkStatus?.isDueSoon ? (
-              <StatusBadge status="warning" label={inspTerm.dueSoon} />
-            ) : selectedVehicle?.apk_expiration_date ? (
-              <StatusBadge status="good" label={inspTerm.valid} />
-            ) : null}
-          </div>
-          <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium mt-1">
-            <span>
+
+          <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium pt-1 border-t border-slate-100 dark:border-slate-800/80 mt-1">
+            <span className="truncate">
               {apkStatus?.daysRemaining !== null && apkStatus?.daysRemaining !== undefined
                 ? apkStatus.isOverdue
-                  ? `${Math.abs(apkStatus.daysRemaining)} ${lang === 'nl' ? 'dagen verlopen!' : 'days overdue!'}`
+                  ? `${Math.abs(apkStatus.daysRemaining)} ${lang === 'nl' ? 'd verlopen!' : 'd overdue!'}`
                   : t('daysRemaining', { days: apkStatus.daysRemaining })
                 : '—'}
             </span>
@@ -385,7 +394,7 @@ export const Dashboard: React.FC = () => {
               <button
                 onClick={handleSyncApk}
                 disabled={syncingApk}
-                className="text-sky-600 dark:text-sky-400 hover:underline inline-flex items-center space-x-1"
+                className="text-sky-600 dark:text-sky-400 hover:underline inline-flex items-center space-x-1 shrink-0 ml-1"
                 title={inspTerm.syncLabel}
               >
                 <RefreshCw className={`w-3 h-3 ${syncingApk ? 'animate-spin' : ''}`} />

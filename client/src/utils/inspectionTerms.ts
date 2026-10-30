@@ -11,6 +11,9 @@ export interface InspectionTerm {
   dueSoon: string;      // "APK Verloopt Binnenkort", "Keuring Binnenkort", etc.
   overdue: string;      // "APK Verlopen!", "Keuring Verlopen!", etc.
   valid: string;        // "APK Geldig", "Keuring In Orde", etc.
+  badgeValid: string;   // "Geldig", "Valid"
+  badgeDueSoon: string; // "Binnenkort", "Due Soon"
+  badgeOverdue: string; // "Verlopen!", "Overdue!"
   syncLabel: string;    // "RDW APK Synchroniseren"
 }
 
@@ -25,6 +28,9 @@ export function getInspectionTerm(country?: string | null, lang: string = 'nl'):
       dueSoon: lang === 'nl' ? 'Keuring Verloopt Binnenkort' : 'Inspection Due Soon',
       overdue: lang === 'nl' ? 'Keuring Verlopen!' : 'Inspection Overdue!',
       valid: lang === 'nl' ? 'Keuring In Orde' : 'Inspection Valid',
+      badgeValid: lang === 'nl' ? 'Geldig' : 'Valid',
+      badgeDueSoon: lang === 'nl' ? 'Binnenkort' : 'Due Soon',
+      badgeOverdue: lang === 'nl' ? 'Verlopen!' : 'Overdue!',
       syncLabel: lang === 'nl' ? 'Keuring Synchroniseren' : 'Sync Inspection',
     };
   }
@@ -37,6 +43,9 @@ export function getInspectionTerm(country?: string | null, lang: string = 'nl'):
       dueSoon: lang === 'nl' ? 'TÜV Binnenkort' : 'TÜV Due Soon',
       overdue: lang === 'nl' ? 'TÜV Verlopen!' : 'TÜV Overdue!',
       valid: lang === 'nl' ? 'TÜV Geldig' : 'TÜV Valid',
+      badgeValid: lang === 'nl' ? 'Geldig' : 'Valid',
+      badgeDueSoon: lang === 'nl' ? 'Binnenkort' : 'Due Soon',
+      badgeOverdue: lang === 'nl' ? 'Verlopen!' : 'Overdue!',
       syncLabel: lang === 'nl' ? 'TÜV Synchroniseren' : 'Sync TÜV',
     };
   }
@@ -49,6 +58,9 @@ export function getInspectionTerm(country?: string | null, lang: string = 'nl'):
       dueSoon: 'MOT Due Soon',
       overdue: 'MOT Overdue!',
       valid: 'MOT Valid',
+      badgeValid: 'Valid',
+      badgeDueSoon: 'Due Soon',
+      badgeOverdue: 'Overdue!',
       syncLabel: 'Sync Inspection',
     };
   }
@@ -61,6 +73,9 @@ export function getInspectionTerm(country?: string | null, lang: string = 'nl'):
     dueSoon: lang === 'nl' ? 'APK Verloopt Binnenkort' : 'APK Due Soon',
     overdue: lang === 'nl' ? 'APK Verlopen!' : 'APK Overdue!',
     valid: lang === 'nl' ? 'APK Geldig' : 'APK Valid',
+    badgeValid: lang === 'nl' ? 'Geldig' : 'Valid',
+    badgeDueSoon: lang === 'nl' ? 'Binnenkort' : 'Due Soon',
+    badgeOverdue: lang === 'nl' ? 'Verlopen!' : 'Overdue!',
     syncLabel: lang === 'nl' ? 'RDW APK Synchroniseren' : 'Sync RDW APK',
   };
 }
