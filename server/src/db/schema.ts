@@ -465,6 +465,41 @@ export function initializeDatabase(): void {
     CREATE INDEX IF NOT EXISTS idx_password_resets_token_hash ON password_resets (token_hash);
   `);
 
+  // 17. Passkeys (WebAuthn), single-use challenges and recovery codes
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS passkey_credentials (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      public_key TEXT NOT NULL,
+      counter INTEGER NOT NULL DEFAULT 0,
+      transports TEXT,
+      device_type TEXT,
+      backed_up INTEGER NOT NULL DEFAULT 0,
+      label TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      last_used_at TEXT,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_passkey_credentials_user ON passkey_credentials (user_id);
+
+    CREATE TABLE IF NOT EXISTS auth_challenges (
+      challenge TEXT PRIMARY KEY,
+      purpose TEXT NOT NULL,
+      user_id TEXT,
+      expires_at TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS recovery_codes (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      code_hash TEXT UNIQUE NOT NULL,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_recovery_codes_user ON recovery_codes (user_id);
+  `);
+
   // Auto-migrate legacy single vehicle image into vehicle_photos if missing
   try {
     const vehiclesWithImage = db.query<any>("SELECT id, image_path, created_at FROM vehicles WHERE image_path IS NOT NULL AND image_path != ''");

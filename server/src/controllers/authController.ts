@@ -12,6 +12,8 @@ import {
   hashToken,
   generateApiKey,
 } from '../utils/token.js';
+import { isSecureRequest, startSession } from '../utils/session.js';
+import { requestOrigin, classifyPasskeyOrigin } from '../utils/passkeyHost.js';
 
 const registerSchema = z.object({
   email: z.string().email(),
@@ -27,10 +29,6 @@ const loginSchema = z.object({
 const createApiKeySchema = z.object({
   name: z.string().min(1).max(50),
 });
-
-function isSecureRequest(req: Request): boolean {
-  return req.secure || req.headers['x-forwarded-proto'] === 'https';
-}
 
 export class AuthController {
   public static async register(req: Request, res: Response): Promise<void> {
@@ -63,25 +61,8 @@ export class AuthController {
         [userId, email.toLowerCase(), passwordHash, role, now, now]
       );
 
-      const accessToken = generateAccessToken({ userId, email: email.toLowerCase(), role });
-      const { token: refreshToken, hash: refreshHash, expiresAt } = generateRefreshToken();
-
-      db.run(
-        'INSERT INTO refresh_tokens (id, user_id, token_hash, expires_at, created_at) VALUES (?, ?, ?, ?, ?)',
-        [crypto.randomUUID(), userId, refreshHash, expiresAt, now]
-      );
-
-      res.cookie('refresh_token', refreshToken, {
-        httpOnly: true,
-        secure: isSecureRequest(req),
-        sameSite: 'lax',
-        maxAge: 90 * 24 * 60 * 60 * 1000,
-      });
-
-      res.status(201).json({
-        accessToken,
-        user: { id: userId, email: email.toLowerCase(), role },
-      });
+      const session = startSession(req, res, { id: userId, email: email.toLowerCase(), role });
+      res.status(201).json(session);
     } catch (err: any) {
       console.error('Registration error:', err);
       res.status(500).json({ error: err?.message || 'Registratie mislukt door een serverfout' });
@@ -104,29 +85,7 @@ export class AuthController {
         return;
       }
 
-      const accessToken = generateAccessToken({ userId: user.id, email: user.email, role: user.role });
-      const { token: refreshToken, hash: refreshHash, expiresAt } = generateRefreshToken();
-      const now = new Date().toISOString();
-
-      db.run(
-        'INSERT INTO refresh_tokens (id, user_id, token_hash, expires_at, created_at) VALUES (?, ?, ?, ?, ?)',
-        [crypto.randomUUID(), user.id, refreshHash, expiresAt, now]
-      );
-
-      // Track last login and active timestamp
-      db.run('UPDATE users SET last_login_at = ?, last_active_at = ? WHERE id = ?', [now, now, user.id]);
-
-      res.cookie('refresh_token', refreshToken, {
-        httpOnly: true,
-        secure: isSecureRequest(req),
-        sameSite: 'lax',
-        maxAge: 90 * 24 * 60 * 60 * 1000,
-      });
-
-      res.json({
-        accessToken,
-        user: { id: user.id, email: user.email, role: user.role },
-      });
+      res.json(startSession(req, res, user, { trackLogin: true }));
     } catch (err: any) {
       console.error('Login error:', err);
       res.status(500).json({ error: err?.message || 'Inloggen mislukt door een serverfout' });
@@ -207,11 +166,14 @@ export class AuthController {
 
       const disabled = isAuthDisabled();
       const user = disabled ? getDefaultUser() : null;
+      const passkey = classifyPasskeyOrigin(requestOrigin(req));
       res.json({
         authDisabled: disabled,
         isProxyAuth: false,
         hasUsers,
         user,
+        passkeyAvailable: passkey.available,
+        passkeyUnavailableReason: passkey.reason,
       });
     } catch (err: any) {
       res.status(500).json({ error: err?.message || 'Failed to check auth status' });
