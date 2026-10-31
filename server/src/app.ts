@@ -112,8 +112,28 @@ export function createApp(): express.Application {
   const clientDist = possiblePaths.find((p) => fs.existsSync(p));
 
   if (clientDist) {
-    app.use(express.static(clientDist));
-    app.get('*', (_req: Request, res: Response) => {
+    app.use(
+      express.static(clientDist, {
+        setHeaders: (res, filePath) => {
+          const name = path.basename(filePath);
+          if (filePath.includes(`${path.sep}assets${path.sep}`)) {
+            // Hashed file names: never change under the same name
+            res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+          } else if (name === 'sw.js' || name === 'index.html' || name === 'manifest.json') {
+            // The entry points of an update: browsers and proxies must ask every time
+            res.setHeader('Cache-Control', 'no-cache');
+          }
+        },
+      })
+    );
+    app.get('*', (req: Request, res: Response) => {
+      // A missing file must be a 404, not the index page: the service worker and the browser would otherwise
+      // take that HTML for the script or stylesheet they asked for (typically a bundle of an older build).
+      if (req.path.startsWith('/assets/') || /\.(js|mjs|css|map|json|txt|png|jpe?g|gif|svg|ico|webp|woff2?|ttf)$/i.test(req.path)) {
+        res.status(404).type('text/plain').send('Not found');
+        return;
+      }
+      res.setHeader('Cache-Control', 'no-cache');
       res.sendFile(path.join(clientDist, 'index.html'));
     });
   }
