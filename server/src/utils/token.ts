@@ -57,6 +57,22 @@ export function hashToken(token: string): string {
   return crypto.createHash('sha256').update(token).digest('hex');
 }
 
+export function generate2FaTempToken(payload: { userId: string; email: string }): string {
+  return jwt.sign({ ...payload, purpose: '2fa_login' }, getJwtSecret(), { expiresIn: '5m' });
+}
+
+export function verify2FaTempToken(token: string): { userId: string; email: string; purpose: string } | null {
+  try {
+    const decoded = jwt.verify(token, getJwtSecret()) as any;
+    if (decoded && decoded.purpose === '2fa_login' && decoded.userId) {
+      return decoded;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export function generateApiKey(name: string): { rawKey: string; keyHash: string; prefix: string } {
   const randomPart = crypto.randomBytes(24).toString('hex');
   const rawKey = `vkv_${randomPart}`;

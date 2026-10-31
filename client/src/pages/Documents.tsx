@@ -13,6 +13,7 @@ import {
   Eye,
   LayoutList,
   LayoutGrid,
+  Tag,
 } from 'lucide-react';
 import { Vehicle, VehicleDocument } from '../types/index.js';
 import { apiFetch } from '../api/client.js';
@@ -21,6 +22,7 @@ import { compressImage } from '../utils/imageCompressor.js';
 import { formatDisplayDate } from '../utils/format.js';
 import { DatePicker } from '../components/DatePicker.js';
 import { DocumentPreviewModal } from '../components/DocumentPreviewModal.js';
+import { VignetteManager } from '../components/VignetteManager.js';
 
 interface ContextType {
   vehicles: Vehicle[];
@@ -33,6 +35,7 @@ export const Documents: React.FC = () => {
   const { selectedVehicle } = useOutletContext<ContextType>();
   const { t, lang } = useLanguage();
 
+  const [activeSection, setActiveSection] = useState<'documents' | 'vignettes'>('documents');
   const [documents, setDocuments] = useState<VehicleDocument[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeCategory, setActiveCategory] = useState<DocCategory>('all');
@@ -331,26 +334,62 @@ export const Documents: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center space-x-2">
-            <FolderLock className="w-5 h-5 text-sky-500" />
-            <span>{t('documentsTitle')}</span>
-          </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            {t('documentsSubtitle')} • <span className="font-semibold text-slate-700 dark:text-slate-300">{selectedVehicle.name}</span>
-          </p>
-        </div>
+      {/* Top Section Switcher: Documenten vs Tolvignetten */}
+      <div className="flex items-center space-x-1.5 bg-slate-100 dark:bg-slate-900/60 p-1 rounded-xl border border-slate-200 dark:border-slate-800 w-fit">
+        <button
+          type="button"
+          onClick={() => setActiveSection('documents')}
+          className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 ${
+            activeSection === 'documents'
+              ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs'
+              : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+          }`}
+        >
+          <FolderLock className="w-3.5 h-3.5 text-sky-500" />
+          <span>{lang === 'nl' ? 'Documenten & Facturen' : 'Documents & Invoices'}</span>
+          <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-100 dark:bg-slate-950 text-slate-600 dark:text-slate-400 font-mono">
+            {documents.length}
+          </span>
+        </button>
 
         <button
-          onClick={() => setIsUploadModalOpen(true)}
-          className="px-4 py-2 bg-accent-600 hover:bg-accent-700 text-white rounded-xl text-xs font-bold inline-flex items-center space-x-1.5 transition shadow-sm hover:scale-[1.02] self-start sm:self-auto"
+          type="button"
+          onClick={() => setActiveSection('vignettes')}
+          className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 ${
+            activeSection === 'vignettes'
+              ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs'
+              : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+          }`}
         >
-          <Plus className="w-4 h-4" />
-          <span>{t('uploadDocument')}</span>
+          <Tag className="w-3.5 h-3.5 text-amber-500" />
+          <span>{lang === 'nl' ? 'Tolvignetten & Milieustickers' : 'Vignettes & Badges'}</span>
         </button>
       </div>
+
+      {activeSection === 'vignettes' ? (
+        <VignetteManager vehicle={selectedVehicle} />
+      ) : (
+        <>
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center space-x-2">
+                <FolderLock className="w-5 h-5 text-sky-500" />
+                <span>{t('documentsTitle')}</span>
+              </h1>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                {t('documentsSubtitle')} • <span className="font-semibold text-slate-700 dark:text-slate-300">{selectedVehicle.name}</span>
+              </p>
+            </div>
+
+            <button
+              onClick={() => setIsUploadModalOpen(true)}
+              className="px-4 py-2 bg-accent-600 hover:bg-accent-700 text-white rounded-xl text-xs font-bold inline-flex items-center space-x-1.5 transition shadow-sm hover:scale-[1.02] self-start sm:self-auto"
+            >
+              <Plus className="w-4 h-4" />
+              <span>{t('uploadDocument')}</span>
+            </button>
+          </div>
 
       {/* Filter Tabs & View Toggle */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -727,6 +766,8 @@ export const Documents: React.FC = () => {
             );
           })}
         </div>
+      )}
+        </>
       )}
 
       {/* Upload Document Modal */}

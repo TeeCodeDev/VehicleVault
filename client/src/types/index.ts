@@ -172,6 +172,26 @@ export interface VehicleDocument {
   created_at: string;
 }
 
+export interface VehicleVignette {
+  id: string;
+  vehicle_id: string;
+  user_id: string;
+  country: string;
+  vignette_type: 'toll_digital' | 'toll_sticker' | 'emission_sticker' | 'other';
+  name: string;
+  valid_from?: string | null;
+  valid_until?: string | null;
+  cost: number;
+  reference_number?: string | null;
+  document_id?: string | null;
+  document_name?: string | null;
+  document_file_path?: string | null;
+  notes?: string | null;
+  created_at: string;
+  status?: 'active' | 'expiring_soon' | 'expired' | 'future' | 'lifetime';
+  days_remaining?: number | null;
+}
+
 export interface FuelTripMetric {
   date: string;
   odometer: number;

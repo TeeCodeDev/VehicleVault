@@ -10,7 +10,8 @@ interface AuthContextType {
   hasUsers: boolean;
   passkeyAvailable: boolean;
   passkeyUnavailableReason: string | null;
-  login: (email: string, pass: string, rememberMe?: boolean) => Promise<void>;
+  login: (email: string, pass: string, rememberMe?: boolean) => Promise<{ requires2FA?: boolean; tempToken?: string } | void>;
+  verify2Fa: (tempToken: string, code: string) => Promise<any>;
   register: (email: string, pass: string) => Promise<void>;
   loginWithPasskey: () => Promise<void>;
   loginWithRecoveryCode: (code: string) => Promise<void>;
@@ -99,12 +100,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [checkAuth, authDisabled]);
 
   const login = async (email: string, pass: string, rememberMe = true) => {
-    const res = await apiFetch<{ accessToken: string; user: User }>('/api/auth/login', {
+    const res = await apiFetch<any>('/api/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password: pass, rememberMe }),
     });
+    if (res?.requires2FA) {
+      return { requires2FA: true, tempToken: res.tempToken };
+    }
     setAuthToken(res.accessToken);
     setUser(res.user);
+  };
+
+  const verify2Fa = async (tempToken: string, code: string) => {
+    const res = await apiFetch<any>('/api/auth/2fa/verify', {
+      method: 'POST',
+      body: JSON.stringify({ tempToken, code }),
+    });
+    setAuthToken(res.accessToken);
+    setUser(res.user);
+    return res;
   };
 
   const loginWithPasskey = async () => {
@@ -155,6 +169,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           passkeyUnavailableReason ||
           (serverPasskeyAvailable && !passkeysSupported() ? 'Deze browser ondersteunt geen passkeys.' : null),
         login,
+        verify2Fa,
         register,
         loginWithPasskey,
         loginWithRecoveryCode,

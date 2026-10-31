@@ -24,6 +24,7 @@ import backupRoutes from './routes/backupRoutes.js';
 import expenseRoutes from './routes/expenseRoutes.js';
 import tripRoutes from './routes/tripRoutes.js';
 import tireRoutes from './routes/tireRoutes.js';
+import vignetteRoutes from './routes/vignetteRoutes.js';
 import { ShowcaseController } from './controllers/showcaseController.js';
 
 export function createApp(): express.Application {
@@ -117,6 +118,7 @@ export function createApp(): express.Application {
   app.use('/api/expenses', expenseRoutes);
   app.use('/api/trips', tripRoutes);
   app.use('/api/tires', tireRoutes);
+  app.use('/api/vignettes', vignetteRoutes);
 
   // Public Unauthenticated Showcase Endpoint
   app.get('/api/public/showcase/:slug', ShowcaseController.getPublic);

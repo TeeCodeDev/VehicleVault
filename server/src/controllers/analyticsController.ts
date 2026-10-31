@@ -35,6 +35,102 @@ export class AnalyticsController {
     }
   }
 
+  public static async getFleetTco(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = req.user?.userId;
+      const role = req.user?.role;
+
+      let vehicles: any[] = [];
+      if (role === 'admin') {
+        vehicles = db.query('SELECT * FROM vehicles WHERE status = "active"');
+      } else {
+        vehicles = db.query(`
+          SELECT v.* FROM vehicles v
+          LEFT JOIN vehicle_shares vs ON vs.vehicle_id = v.id AND vs.user_id = ?
+          WHERE v.status = "active" AND (v.user_id = ? OR vs.id IS NOT NULL)
+        `, [userId, userId]);
+      }
+
+      const { startDate, endDate, includeFixedExpenses, includePurchasePrice } = req.query;
+
+      const fleetSummaries: any[] = [];
+      let fleetTotalCost = 0;
+      let fleetFuelTotal = 0;
+      let fleetServiceTotal = 0;
+      let fleetFixedExpensesTotal = 0;
+      let fleetTotalDistanceKm = 0;
+
+      const combinedMonthly: Record<string, { month: string; fuel: number; regularMaintenance: number; unscheduledRepairs: number; fixedExpenses: number; total: number }> = {};
+
+      for (const v of vehicles) {
+        try {
+          const s = TcoService.calculateTco({
+            vehicleId: v.id,
+            startDate: startDate ? String(startDate) : undefined,
+            endDate: endDate ? String(endDate) : undefined,
+            includePurchasePrice: includePurchasePrice === 'true',
+            includeFixedExpenses: includeFixedExpenses !== 'false',
+          });
+
+          fleetSummaries.push({
+            id: v.id,
+            name: v.name,
+            license_plate: v.license_plate,
+            type: v.type,
+            totalCost: s.totalCost,
+            fuelTotal: s.fuelTotal,
+            serviceTotal: s.serviceTotal,
+            fixedExpensesTotal: s.fixedExpensesTotal,
+            costPerKm: s.costPerKm,
+            totalDistanceKm: s.totalDistanceKm,
+            avgLPer100Km: s.avgLPer100Km,
+          });
+
+          fleetTotalCost += s.totalCost;
+          fleetFuelTotal += s.fuelTotal;
+          fleetServiceTotal += s.serviceTotal;
+          fleetFixedExpensesTotal += s.fixedExpensesTotal;
+          fleetTotalDistanceKm += s.totalDistanceKm;
+
+          for (const mb of s.monthlyBreakdown) {
+            if (!combinedMonthly[mb.month]) {
+              combinedMonthly[mb.month] = {
+                month: mb.month,
+                fuel: 0,
+                regularMaintenance: 0,
+                unscheduledRepairs: 0,
+                fixedExpenses: 0,
+                total: 0,
+              };
+            }
+            combinedMonthly[mb.month].fuel += mb.fuel;
+            combinedMonthly[mb.month].regularMaintenance += mb.regularMaintenance;
+            combinedMonthly[mb.month].unscheduledRepairs += mb.unscheduledRepairs;
+            combinedMonthly[mb.month].fixedExpenses += mb.fixedExpenses;
+            combinedMonthly[mb.month].total += mb.total;
+          }
+        } catch {}
+      }
+
+      const monthlyBreakdown = Object.values(combinedMonthly).sort((a, b) => a.month.localeCompare(b.month));
+      const fleetCostPerKm = fleetTotalDistanceKm > 0 ? fleetTotalCost / fleetTotalDistanceKm : 0;
+
+      res.json({
+        fleetTotalCost,
+        fleetFuelTotal,
+        fleetServiceTotal,
+        fleetFixedExpensesTotal,
+        fleetTotalDistanceKm,
+        fleetCostPerKm,
+        vehicleCount: vehicles.length,
+        vehicles: fleetSummaries,
+        monthlyBreakdown,
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err?.message || 'Error calculating Fleet TCO' });
+    }
+  }
+
   public static async exportPdf(req: Request, res: Response): Promise<void> {
     const { vehicleId, includeTires, includeFuel, includeReceipts, startDate, endDate } = req.body;
 

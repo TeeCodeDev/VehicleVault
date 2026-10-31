@@ -25,6 +25,23 @@ export function initializeDatabase(): void {
     );
   `);
 
+  if (!columnExists('users', 'two_factor_enabled')) {
+    db.exec('ALTER TABLE users ADD COLUMN two_factor_enabled INTEGER NOT NULL DEFAULT 0;');
+  }
+  if (!columnExists('users', 'two_factor_secret')) {
+    db.exec('ALTER TABLE users ADD COLUMN two_factor_secret TEXT;');
+  }
+  if (!columnExists('users', 'two_factor_backup_codes')) {
+    db.exec('ALTER TABLE users ADD COLUMN two_factor_backup_codes TEXT;');
+  }
+  if (!columnExists('users', 'oidc_id')) {
+    db.exec('ALTER TABLE users ADD COLUMN oidc_id TEXT;');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_users_oidc_id ON users (oidc_id);');
+  }
+  if (!columnExists('users', 'oidc_provider')) {
+    db.exec('ALTER TABLE users ADD COLUMN oidc_provider TEXT;');
+  }
+
   // 2. Refresh tokens
   db.exec(`
     CREATE TABLE IF NOT EXISTS refresh_tokens (
@@ -319,10 +336,10 @@ export function initializeDatabase(): void {
         );
     `);
 
-    const docsWithoutDate = db.query<any>(
-      "SELECT id, name, created_at FROM vehicle_documents WHERE document_date IS NULL OR document_date = ''"
+    const allDocs = db.query<any>(
+      "SELECT id, name, document_date, created_at FROM vehicle_documents"
     );
-    for (const d of docsWithoutDate) {
+    for (const d of allDocs) {
       let parsedDate: string | null = null;
       const dmyMatch = d.name ? d.name.match(/\b([0-3]?[0-9])[-/.]([0-1]?[0-9])[-/.]([12][0-9]{3})\b/) : null;
       if (dmyMatch) {
@@ -336,10 +353,10 @@ export function initializeDatabase(): void {
           parsedDate = `${ymdMatch[1]}-${ymdMatch[2].padStart(2, '0')}-${ymdMatch[3].padStart(2, '0')}`;
         }
       }
-      if (!parsedDate && d.created_at) {
+      if (!parsedDate && (!d.document_date || d.document_date === '') && d.created_at) {
         parsedDate = d.created_at.split('T')[0];
       }
-      if (parsedDate) {
+      if (parsedDate && parsedDate !== d.document_date) {
         db.run('UPDATE vehicle_documents SET document_date = ? WHERE id = ?', [parsedDate, d.id]);
       }
     }
@@ -517,6 +534,29 @@ export function initializeDatabase(): void {
       FOREIGN KEY (vehicle_id) REFERENCES vehicles(id) ON DELETE CASCADE
     );
     CREATE INDEX IF NOT EXISTS idx_vehicle_showcases_slug ON vehicle_showcases (public_slug);
+  `);
+
+  // 15b. Vehicle toll vignettes & environmental badges
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS vehicle_vignettes (
+      id TEXT PRIMARY KEY,
+      vehicle_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      country TEXT NOT NULL,
+      vignette_type TEXT NOT NULL DEFAULT 'toll_digital',
+      name TEXT NOT NULL,
+      valid_from TEXT,
+      valid_until TEXT,
+      cost REAL NOT NULL DEFAULT 0,
+      reference_number TEXT,
+      document_id TEXT,
+      notes TEXT,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (vehicle_id) REFERENCES vehicles(id) ON DELETE CASCADE,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_vehicle_vignettes_vehicle ON vehicle_vignettes (vehicle_id);
+    CREATE INDEX IF NOT EXISTS idx_vehicle_vignettes_valid_until ON vehicle_vignettes (valid_until);
   `);
 
   // 16. Password reset tokens

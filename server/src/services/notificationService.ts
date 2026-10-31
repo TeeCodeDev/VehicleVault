@@ -393,6 +393,48 @@ export class NotificationService {
       }
     }
 
+    // 4. Check for expiring vignettes / environmental badges (<= 30 days and <= 7 days)
+    try {
+      const expiringVignettes = db.query<any>(`
+        SELECT vg.*, v.name as vehicle_name, v.license_plate
+        FROM vehicle_vignettes vg
+        JOIN vehicles v ON v.id = vg.vehicle_id
+        WHERE vg.valid_until IS NOT NULL AND vg.valid_until != '' AND v.status = 'active'
+      `);
+
+      for (const vig of expiringVignettes) {
+        const untilDate = new Date(vig.valid_until);
+        if (!isNaN(untilDate.getTime())) {
+          const diffMs = untilDate.getTime() - new Date(todayStr).getTime();
+          const daysRemaining = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+          if (daysRemaining <= 30) {
+            const cacheKey = `notif_vignette_${vig.id}_${todayStr}`;
+            const alreadySent = db.get<{ value: string }>('SELECT value FROM system_settings WHERE key = ?', [cacheKey]);
+
+            if (!alreadySent) {
+              const urgency = daysRemaining <= 7 ? 'urgent' : 'high';
+              const title = `🏷️ Vignet Verlopen / Herinnering: ${vig.name} (${vig.vehicle_name})`;
+              const msg = daysRemaining < 0
+                ? `Het tolvignet / milieusticker "${vig.name}" (${vig.country}) voor ${vig.vehicle_name} is sinds ${Math.abs(daysRemaining)} dagen verlopen!`
+                : `Het tolvignet / milieusticker "${vig.name}" (${vig.country}) voor ${vig.vehicle_name} verloopt over ${daysRemaining} dagen (${vig.valid_until}).`;
+
+              await this.send(title, msg, urgency, ['vignette', 'warning']);
+              db.run('INSERT OR REPLACE INTO system_settings (key, value, updated_at) VALUES (?, ?, ?)', [
+                cacheKey,
+                'sent',
+                new Date().toISOString(),
+              ]);
+              count++;
+              details.push(`Vignet alert verzonden voor ${vig.name}`);
+            }
+          }
+        }
+      }
+    } catch {
+      // Ignore if table not yet created
+    }
+
     return { alertsSent: count, details };
   }
 }

@@ -11,6 +11,7 @@ import {
   generateRefreshToken,
   hashToken,
   generateApiKey,
+  generate2FaTempToken,
 } from '../utils/token.js';
 import { isSecureRequest, startSession } from '../utils/session.js';
 import { requestOrigin, classifyPasskeyOrigin } from '../utils/passkeyHost.js';
@@ -82,6 +83,16 @@ export class AuthController {
 
       if (!user || !(await comparePassword(password, user.password_hash))) {
         res.status(401).json({ error: 'Ongeldig e-mailadres of wachtwoord' });
+        return;
+      }
+
+      if (user.two_factor_enabled === 1) {
+        const tempToken = generate2FaTempToken({ userId: user.id, email: user.email });
+        res.json({
+          requires2FA: true,
+          tempToken,
+          message: 'Voer de 6-cijferige verificatiecode uit je authenticator-app in.',
+        });
         return;
       }
 

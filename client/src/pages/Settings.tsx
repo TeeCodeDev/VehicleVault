@@ -57,6 +57,8 @@ import { apiFetch } from '../api/client.js';
 import { useTheme, ACCENT_COLOR_OPTIONS } from '../context/ThemeContext.js';
 import { useLanguage } from '../context/LanguageContext.js';
 import { PasskeySettings } from '../components/PasskeySettings.js';
+import { TwoFactorSettings } from '../components/TwoFactorSettings.js';
+import { OidcSettings } from '../components/OidcSettings.js';
 import { MailSettings } from '../components/MailSettings.js';
 import { WebPushSettings } from '../components/WebPushSettings.js';
 import { useAuth } from '../context/AuthContext.js';
@@ -1838,6 +1840,12 @@ action:
 
           {/* Passkeys */}
           <PasskeySettings />
+
+          {/* Two-Factor Authentication (TOTP 2FA) */}
+          <TwoFactorSettings />
+
+          {/* OpenID Connect / SSO */}
+          <OidcSettings />
 
           {/* API Keys Management */}
           <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
