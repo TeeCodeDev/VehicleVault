@@ -26,8 +26,8 @@ export async function apiFetch<T = any>(endpoint: string, options: RequestInit =
 
   let res = await fetch(endpoint, { credentials: 'same-origin', ...options, headers });
 
-  // Handle token expiration & automatic refresh
-  if (res.status === 401 && endpoint !== '/api/auth/login' && endpoint !== '/api/auth/refresh') {
+  // Handle token expiration & automatic refresh if we had an active token
+  if (token && res.status === 401 && endpoint !== '/api/auth/login' && endpoint !== '/api/auth/refresh') {
     try {
       const refreshRes = await fetch('/api/auth/refresh', { method: 'POST', credentials: 'same-origin' });
       if (refreshRes.ok) {
@@ -43,6 +43,8 @@ export async function apiFetch<T = any>(endpoint: string, options: RequestInit =
       setAuthToken(null);
       window.dispatchEvent(new Event('auth:unauthorized'));
     }
+  } else if (!token && res.status === 401) {
+    window.dispatchEvent(new Event('auth:unauthorized'));
   }
 
   if (!res.ok) {
