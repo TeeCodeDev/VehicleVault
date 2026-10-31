@@ -34,7 +34,7 @@ interface ContextType {
 
 export const Trips: React.FC = () => {
   const { selectedVehicle } = useOutletContext<ContextType>();
-  const { lang } = useLanguage();
+  const { t, lang } = useLanguage();
 
   const [trips, setTrips] = useState<Trip[]>([]);
   const [summary, setSummary] = useState<TripSummary | null>(null);
@@ -384,7 +384,7 @@ export const Trips: React.FC = () => {
             className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl text-xs font-bold transition"
           >
             <Upload className="w-3.5 h-3.5" />
-            <span>Importeren</span>
+            <span>{t('importTrips')}</span>
           </button>
 
           {/* Export Dropdown */}

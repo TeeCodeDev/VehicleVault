@@ -13,7 +13,7 @@ interface PasskeyList {
 }
 
 export const PasskeySettings: React.FC = () => {
-  const { lang } = useLanguage();
+  const { t, lang } = useLanguage();
   const { passkeyAvailable, passkeyUnavailableReason, authDisabled } = useAuth();
   const nl = lang === 'nl';
 
@@ -62,7 +62,7 @@ export const PasskeySettings: React.FC = () => {
   };
 
   const handleRename = (p: PasskeyItem) => {
-    const next = prompt(nl ? 'Nieuwe naam voor deze passkey' : 'New name for this passkey', p.label);
+    const next = prompt(t('passkeyRenamePrompt'), p.label);
     if (!next || next.trim() === p.label) return;
     run(async () => {
       await apiFetch(`/api/auth/passkeys/${encodeURIComponent(p.id)}`, {
@@ -74,7 +74,7 @@ export const PasskeySettings: React.FC = () => {
   };
 
   const handleDelete = (p: PasskeyItem) => {
-    if (!confirm(nl ? `Passkey "${p.label}" verwijderen?` : `Remove passkey "${p.label}"?`)) return;
+    if (!confirm(t('passkeyDeleteConfirm').replace('{label}', p.label))) return;
     run(async () => {
       await apiFetch(`/api/auth/passkeys/${encodeURIComponent(p.id)}`, { method: 'DELETE' });
       await load();
@@ -82,7 +82,7 @@ export const PasskeySettings: React.FC = () => {
   };
 
   const handleRegenerate = () => {
-    if (!confirm(nl ? 'Nieuwe herstelcodes maken? De oude codes werken dan niet meer.' : 'Create new recovery codes? The old ones will stop working.')) return;
+    if (!confirm(t('passkeyRegenerateConfirm'))) return;
     run(async () => {
       const res = await apiFetch<{ recoveryCodes: string[] }>('/api/auth/passkeys/recovery-codes', { method: 'POST' });
       setCodes(res.recoveryCodes);
@@ -103,12 +103,10 @@ export const PasskeySettings: React.FC = () => {
     <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
       <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center space-x-2">
         <Fingerprint className="w-4 h-4 text-sky-500" />
-        <span>{nl ? 'Passkeys' : 'Passkeys'}</span>
+        <span>{t('passkeys')}</span>
       </h2>
       <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-        {nl
-          ? 'Log in met vingerafdruk, gezicht of apparaatcode in plaats van een wachtwoord. Je wachtwoord blijft werken.'
-          : 'Sign in with a fingerprint, face or device PIN instead of a password. Your password keeps working.'}
+        {t('passkeysDescription')}
       </p>
 
       {error && (
@@ -121,7 +119,7 @@ export const PasskeySettings: React.FC = () => {
       {codes && (
         <div className="p-4 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl space-y-2">
           <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300 block">
-            {nl ? 'Bewaar deze herstelcodes nu. Ze worden maar één keer getoond.' : 'Save these recovery codes now. They are shown only once.'}
+            {t('saveRecoveryCodesPrompt')}
           </span>
           <ul className="grid grid-cols-1 sm:grid-cols-2 gap-1 font-mono text-xs text-slate-900 dark:text-white">
             {codes.map((c) => (
@@ -137,14 +135,14 @@ export const PasskeySettings: React.FC = () => {
               className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition flex items-center space-x-1"
             >
               {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-              <span>{copied ? (nl ? 'Gekopieerd' : 'Copied') : nl ? 'Kopiëren' : 'Copy'}</span>
+              <span>{copied ? t('copied') : t('copy')}</span>
             </button>
             <button
               type="button"
               onClick={() => setCodes(null)}
               className="px-3 py-1.5 bg-slate-900 text-white hover:bg-black dark:bg-slate-100 dark:text-slate-900 rounded-lg text-xs font-bold transition"
             >
-              {nl ? 'Ik heb ze bewaard' : "I've saved them"}
+              {t('savedThem')}
             </button>
           </div>
         </div>
@@ -160,7 +158,7 @@ export const PasskeySettings: React.FC = () => {
         <input
           type="text"
           maxLength={50}
-          placeholder={nl ? 'Naam (bijv. Telefoon, Laptop)' : 'Name (e.g. Phone, Laptop)'}
+          placeholder={t('passkeyNamePlaceholder')}
           value={label}
           onChange={(e) => setLabel(e.target.value)}
           className="flex-1 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-sky-500"
@@ -171,22 +169,22 @@ export const PasskeySettings: React.FC = () => {
           className="px-4 py-2 bg-slate-900 text-white hover:bg-black dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white rounded-xl text-xs font-bold transition flex items-center space-x-1.5 disabled:opacity-50"
         >
           {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
-          <span>{nl ? 'Passkey toevoegen' : 'Add passkey'}</span>
+          <span>{t('addPasskey')}</span>
         </button>
       </form>
 
       <div className="divide-y divide-slate-100 dark:divide-slate-800/60">
         {data.passkeys.length === 0 ? (
-          <p className="text-xs text-slate-400 py-3 text-center">{nl ? 'Nog geen passkeys toegevoegd.' : 'No passkeys added yet.'}</p>
+          <p className="text-xs text-slate-400 py-3 text-center">{t('noPasskeysYet')}</p>
         ) : (
           data.passkeys.map((p) => (
             <div key={p.id} className="py-2.5 flex items-center justify-between text-xs">
               <div>
                 <span className="font-bold text-slate-900 dark:text-white block">{p.label}</span>
                 <span className="text-slate-400 text-[11px]">
-                  {nl ? 'Toegevoegd' : 'Added'} {formatDate(p.createdAt)}
-                  {p.lastUsedAt ? ` · ${nl ? 'laatst gebruikt' : 'last used'} ${formatDate(p.lastUsedAt)}` : ''}
-                  {p.backedUp ? ` · ${nl ? 'gesynchroniseerd' : 'synced'}` : ''}
+                  {t('passkeyAdded')} {formatDate(p.createdAt)}
+                  {p.lastUsedAt ? ` · ${t('passkeyLastUsed')} ${formatDate(p.lastUsedAt)}` : ''}
+                  {p.backedUp ? ` · ${t('passkeySynced')}` : ''}
                 </span>
               </div>
               <div className="flex items-center">
@@ -194,7 +192,7 @@ export const PasskeySettings: React.FC = () => {
                   type="button"
                   onClick={() => handleRename(p)}
                   disabled={busy}
-                  aria-label={nl ? 'Naam wijzigen' : 'Rename'}
+                  aria-label={t('passkeyRename')}
                   className="p-1.5 text-slate-400 hover:text-sky-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
                 >
                   <Pencil className="w-3.5 h-3.5" />
@@ -203,7 +201,7 @@ export const PasskeySettings: React.FC = () => {
                   type="button"
                   onClick={() => handleDelete(p)}
                   disabled={busy}
-                  aria-label={nl ? 'Verwijderen' : 'Remove'}
+                  aria-label={t('delete')}
                   className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
                 >
                   <Trash2 className="w-3.5 h-3.5" />

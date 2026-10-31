@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Lock, Mail, Loader2, AlertCircle, Fingerprint } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.js';
+import { useLanguage } from '../context/LanguageContext.js';
 import { passkeyErrorMessage } from '../utils/passkeys.js';
 
 export const Login: React.FC = () => {
+  const { t, lang } = useLanguage();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(true);
@@ -44,7 +46,7 @@ export const Login: React.FC = () => {
       await loginWithPasskey();
       navigate('/');
     } catch (err: any) {
-      setError(passkeyErrorMessage(err));
+      setError(passkeyErrorMessage(err, lang));
     } finally {
       setLoading(false);
     }
@@ -59,7 +61,7 @@ export const Login: React.FC = () => {
       // Signed in without a device: send them to Instellingen to add a new passkey.
       navigate('/settings?tab=users');
     } catch (err: any) {
-      setError(err?.message || 'Deze herstelcode is niet geldig');
+      setError(err?.message || t('invalidRecoveryCode'));
     } finally {
       setLoading(false);
     }
@@ -72,7 +74,7 @@ export const Login: React.FC = () => {
           <img src="/icon-512.png" alt="VehicleVault" className="w-16 h-16 object-contain mb-3 drop-shadow-md" />
           <h1 className="text-xl font-black tracking-tight text-slate-900 dark:text-white">VehicleVault</h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Log in op uw self-hosted wagenparkdashboard
+            {t('loginTitle')}
           </p>
         </div>
 
@@ -174,7 +176,7 @@ export const Login: React.FC = () => {
               className="w-full py-2.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-900 rounded-xl font-bold transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
             >
               <Fingerprint className="w-4 h-4" />
-              <span>Inloggen met passkey</span>
+              <span>{t('loginWithPasskey')}</span>
             </button>
             {!passkeyAvailable && passkeyUnavailableReason && (
               <p className="text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">{passkeyUnavailableReason}</p>
@@ -188,13 +190,13 @@ export const Login: React.FC = () => {
                 onClick={() => setShowRecovery((v) => !v)}
                 className="text-[11px] font-bold text-slate-500 dark:text-slate-400 hover:underline"
               >
-                Apparaat kwijt?
+                {t('lostDevice')}
               </button>
             </div>
             {/* Kept in the DOM and hidden with the attribute, so aria-controls always points at something real. */}
             <form id="recovery-panel" hidden={!showRecovery} onSubmit={handleRecovery} className="space-y-2 [&[hidden]]:hidden">
               <label className="block text-slate-700 dark:text-slate-300 font-semibold" htmlFor="recovery-code">
-                Herstelcode
+                {t('recoveryCode')}
               </label>
               <input
                 id="recovery-code"
@@ -213,7 +215,7 @@ export const Login: React.FC = () => {
                 disabled={loading}
                 className="w-full py-2 bg-slate-900 text-white hover:bg-black dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white rounded-xl font-bold transition disabled:opacity-50"
               >
-                Inloggen met herstelcode
+                {t('loginWithRecoveryCode')}
               </button>
             </form>
           </div>
