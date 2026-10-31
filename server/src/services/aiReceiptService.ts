@@ -96,6 +96,50 @@ function getMimeType(filePath: string): string {
 }
 
 /**
+ * Build the `user` content part that carries the scanned document for an OpenAI chat completion.
+ *
+ * OpenAI's `image_url` part only accepts images (png/jpeg/webp/gif). A PDF sent that way is rejected with
+ * `400 Invalid MIME type. Only image types are supported.`, so PDFs go in as a `file` part instead
+ * (supported by vision-capable models such as gpt-4o and gpt-4o-mini).
+ */
+export function buildOpenAiMediaPart(base64Data: string, mimeType: string): Record<string, unknown> {
+  const dataUrl = `data:${mimeType};base64,${base64Data}`;
+  if (mimeType === 'application/pdf') {
+    return { type: 'file', file: { filename: 'document.pdf', file_data: dataUrl } };
+  }
+  return { type: 'image_url', image_url: { url: dataUrl } };
+}
+
+/** Extra hint appended to an OpenAI error when a PDF was sent, since not every model/endpoint accepts PDF input. */
+export function openAiPdfHint(mimeType: string): string {
+  return mimeType === 'application/pdf'
+    ? ' (Tip: PDF-invoer werkt alleen met OpenAI-modellen die bestanden ondersteunen, zoals gpt-4o of gpt-4o-mini op api.openai.com. Upload anders een foto of schermafbeelding van de factuur.)'
+    : '';
+}
+
+/**
+ * OpenAI only understands png/jpeg/webp/gif images and PDFs. Convert anything else (HEIC/HEIF from an
+ * iPhone) to JPEG first. Gemini accepts HEIC natively, so this is only used on the OpenAI path.
+ */
+export async function prepareMediaForOpenAi(
+  fileBuffer: Buffer,
+  mimeType: string
+): Promise<{ base64Data: string; mimeType: string }> {
+  if (mimeType === 'image/heic' || mimeType === 'image/heif') {
+    try {
+      const { default: sharp } = await import('sharp');
+      const jpeg = await sharp(fileBuffer).rotate().jpeg({ quality: 90 }).toBuffer();
+      return { base64Data: jpeg.toString('base64'), mimeType: 'image/jpeg' };
+    } catch {
+      throw new Error(
+        'OpenAI ondersteunt geen HEIC-afbeeldingen en de conversie naar JPEG is mislukt. Maak een JPEG/PNG-foto of upload een PDF.'
+      );
+    }
+  }
+  return { base64Data: fileBuffer.toString('base64'), mimeType };
+}
+
+/**
  * Format petrol station brand/name to clean Title Case (e.g. "FIETEN OLIE" -> "Fieten Olie")
  */
 export function formatStationName(val?: string | null): string | null {
@@ -427,9 +471,10 @@ export class AiReceiptService {
     }
 
     if (settings.provider === 'openai' && settings.openaiApiKey) {
+      const media = await prepareMediaForOpenAi(fileBuffer, mimeType);
       return this.analyzeWithOpenAi(
-        base64Data,
-        mimeType,
+        media.base64Data,
+        media.mimeType,
         settings.openaiApiKey,
         settings.openaiModel,
         settings.openaiBaseUrl
@@ -691,12 +736,7 @@ Return ONLY a valid JSON object with the following fields:
           role: 'user',
           content: [
             { type: 'text', text: 'Extract fuel receipt details.' },
-            {
-              type: 'image_url',
-              image_url: {
-                url: `data:${mimeType};base64,${base64Data}`,
-              },
-            },
+            buildOpenAiMediaPart(base64Data, mimeType),
           ],
         },
       ],
@@ -722,7 +762,7 @@ Return ONLY a valid JSON object with the following fields:
 
       if (!res.ok) {
         const errText = await res.text();
-        throw new Error(`OpenAI API returned status ${res.status}: ${errText}`);
+        throw new Error(`OpenAI API returned status ${res.status}: ${errText}${openAiPdfHint(mimeType)}`);
       }
 
       const resJson = await res.json() as any;
@@ -874,9 +914,10 @@ Return ONLY a valid JSON object with the following fields:
     }
 
     if (settings.provider === 'openai' && settings.openaiApiKey) {
+      const media = await prepareMediaForOpenAi(fileBuffer, mimeType);
       return this.analyzeInvoiceWithOpenAi(
-        base64Data,
-        mimeType,
+        media.base64Data,
+        media.mimeType,
         settings.openaiApiKey,
         settings.openaiModel,
         settings.openaiBaseUrl,
@@ -1034,12 +1075,7 @@ Output strictly raw JSON without markdown fences.`;
           role: 'user',
           content: [
             { type: 'text', text: 'Extract and translate maintenance invoice details.' },
-            {
-              type: 'image_url',
-              image_url: {
-                url: `data:${mimeType};base64,${base64Data}`,
-              },
-            },
+            buildOpenAiMediaPart(base64Data, mimeType),
           ],
         },
       ],
@@ -1065,7 +1101,7 @@ Output strictly raw JSON without markdown fences.`;
 
       if (!res.ok) {
         const errText = await res.text();
-        throw new Error(`OpenAI API status ${res.status}: ${errText}`);
+        throw new Error(`OpenAI API status ${res.status}: ${errText}${openAiPdfHint(mimeType)}`);
       }
 
       const resJson = await res.json() as any;
