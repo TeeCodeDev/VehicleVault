@@ -342,14 +342,15 @@ export class OidcController {
 
         db.run(
           `INSERT INTO users (id, email, password_hash, role, oidc_id, oidc_provider, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, 'oidc', ?, ?)`,
-          [userId, userEmail, placeholderPasswordHash, role, sub || userEmail, now, now]
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          [userId, userEmail, placeholderPasswordHash, role, sub || userEmail, 'oidc', now, now]
         );
 
         user = db.get<any>('SELECT * FROM users WHERE id = ?', [userId]);
       } else if (!user.oidc_id && sub) {
-        db.run('UPDATE users SET oidc_id = ?, oidc_provider = "oidc", updated_at = ? WHERE id = ?', [
+        db.run('UPDATE users SET oidc_id = ?, oidc_provider = ?, updated_at = ? WHERE id = ?', [
           sub,
+          'oidc',
           now,
           user.id,
         ]);

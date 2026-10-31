@@ -143,5 +143,32 @@ describe('VehicleVault v2.1 Advanced Security & Vignette Engine', () => {
     db.run('DELETE FROM vehicles WHERE id = ?', [vehicleId]);
     db.run('DELETE FROM users WHERE id = ?', [userId]);
   });
+
+  it('should create and link OIDC identity to existing user without SQL column quoting error', () => {
+    const userId = crypto.randomUUID();
+    const email = `oidc-test-${Date.now()}@example.com`;
+    const now = new Date().toISOString();
+
+    // 1. Create standard user
+    db.run(
+      `INSERT INTO users (id, email, password_hash, role, created_at, updated_at)
+       VALUES (?, ?, 'hash', 'user', ?, ?)`,
+      [userId, email, now, now]
+    );
+
+    // 2. Link OIDC identity (which previously failed if "oidc" had double quotes)
+    const oidcSub = `sub-${Date.now()}`;
+    db.run(
+      'UPDATE users SET oidc_id = ?, oidc_provider = ?, updated_at = ? WHERE id = ?',
+      [oidcSub, 'oidc', now, userId]
+    );
+
+    const user = db.get<any>('SELECT * FROM users WHERE id = ?', [userId]);
+    assert.strictEqual(user.oidc_id, oidcSub);
+    assert.strictEqual(user.oidc_provider, 'oidc');
+
+    // Clean up
+    db.run('DELETE FROM users WHERE id = ?', [userId]);
+  });
 });
 
