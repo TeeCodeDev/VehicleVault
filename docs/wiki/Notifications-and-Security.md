@@ -19,7 +19,23 @@ Under **Settings → Meldingen (Notifications)**, configure automated alerts for
 | **E-mail** | Sent through **SMTP** or **Microsoft Graph** (see below). Recipients (`To`) may be several addresses separated by commas |
 
 ### E-mail settings
-Under **Settings → Notifications → E-mail**, one configuration serves the alert e-mails and the password-reset links.
+Under **Settings → Notifications → E-mail**, one configuration serves the alert e-mails and the password-reset links. Pick how VehicleVault sends: **Microsoft 365**, **Gmail**, **SMTP**, or **Microsoft Graph with your own app** (advanced). Everything is done in the page; nothing needs to be edited in a file.
+
+**Microsoft 365 — sign in with your account (no app registration)**
+1. Choose **Microsoft 365** and press **Aanmelden bij Microsoft 365**. VehicleVault asks Microsoft for a code and shows it.
+2. Open the Microsoft page that is shown, enter the code, sign in with the account the mail should come from (a work or school account with an Exchange Online mailbox) and allow sending mail.
+3. The page sees it is done and shows *Aangemeld als …*. **Check connection** and **Send test mail** confirm it.
+
+VehicleVault only asks for `Mail.Send` (it can send as that account, never read mail) and keeps just the refresh token, encrypted with a key derived from `JWT_SECRET`. By default it uses Microsoft's own public client "Microsoft Graph Command Line Tools", so there is nothing to register. If your organization blocks that client, create an app registration as a *public client* (device code flow on) with the delegated `Mail.Send` permission and enter its client ID (and tenant) under *Geavanceerd*. A personal Outlook.com account does not work here: use SMTP. If the sign-in expires (new password, revoked, 90 days unused) the page says so and you sign in again. Revoke it at Microsoft (*My account → My apps*) or with **Uit de app verwijderen**.
+
+**Gmail — connect with Google**
+Google's device-code flow does not allow the Gmail scopes, so Gmail uses the authorization-code flow with an OAuth client of your own. That is a one-time step in Google Cloud, explained in the page:
+1. Create a project, enable the **Gmail API**.
+2. OAuth consent screen: *External*, add the `gmail.send` scope and set the publishing status to **In production**. With *Testing*, Google expires the sign-in after 7 days.
+3. Credentials → *OAuth client ID* → *Web application* and add the redirect URL the page shows (it is `<your address>/api/notifications/mail/google/callback`; copy it with the button).
+4. Paste the client ID and secret, press **Verbinden met Google**, sign in and allow sending mail. Google warns that the app is not verified: choose *Advanced → continue*, it is your own app.
+
+Google only accepts an `https` redirect URL (or `localhost`). Behind a reverse proxy, set `PUBLIC_URL` to the address people use, so the shown URL is right. The client secret and the refresh token are stored encrypted; only `gmail.send` is requested.
 
 **SMTP** — Host, port (`587` STARTTLS / `465` SSL), user, password, sender (`From`). One-click presets fill in host, port and encryption:
 
@@ -31,7 +47,7 @@ Under **Settings → Notifications → E-mail**, one configuration serves the al
 
 Under *Advanced*: **Require STARTTLS** (refuse to send unencrypted) and **Ignore certificate errors** (own mail server with a self-signed certificate only).
 
-**Microsoft Graph** — sends with app-only credentials, so no SMTP AUTH and no password of a person:
+**Microsoft Graph with your own app (advanced)** — sends with app-only credentials, so no SMTP AUTH and no password of a person:
 1. Microsoft Entra ID → *App registrations* → *New registration* (single tenant). Note the **Application (client) ID** and **Directory (tenant) ID**.
 2. *Certificates & secrets* → *New client secret*. Copy the **value** straight away.
 3. *API permissions* → *Microsoft Graph* → *Application permissions* → **Mail.Send** → *Grant admin consent*.

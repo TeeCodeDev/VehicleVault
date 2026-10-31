@@ -3,8 +3,13 @@ import type { Transporter } from 'nodemailer';
 import { db } from '../db/database.js';
 import { GraphMailService, type GraphConfig } from './graphMailService.js';
 import { describeSmtpError, formatFailure } from './mailErrors.js';
+import { MailConnections } from './mailConnections.js';
+import { MicrosoftError } from './microsoftMailService.js';
+import { GoogleError } from './googleMailService.js';
 
-export type MailTransport = 'smtp' | 'graph';
+/** smtp: own or provider server; graph: Microsoft app registration (app-only); microsoft / gmail: signed in as the account. */
+export type MailTransport = 'smtp' | 'graph' | 'microsoft' | 'gmail';
+const TRANSPORTS: MailTransport[] = ['smtp', 'graph', 'microsoft', 'gmail'];
 
 const escapeHtml = (value: string): string =>
   value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -85,7 +90,8 @@ export class EmailService {
   }
 
   public static getTransport(): MailTransport {
-    return this.getSetting('mail_transport', 'MAIL_TRANSPORT', 'smtp') === 'graph' ? 'graph' : 'smtp';
+    const value = this.getSetting('mail_transport', 'MAIL_TRANSPORT', 'smtp') as MailTransport;
+    return TRANSPORTS.includes(value) ? value : 'smtp';
   }
 
   public static getGraphConfig(): GraphConfig {
@@ -104,7 +110,7 @@ export class EmailService {
     graphClientSecret?: string;
     graphSender?: string;
   }): void {
-    if (config.transport !== undefined) this.setSetting('mail_transport', config.transport === 'graph' ? 'graph' : 'smtp');
+    if (config.transport !== undefined) this.setSetting('mail_transport', TRANSPORTS.includes(config.transport) ? config.transport : 'smtp');
     if (config.graphTenantId !== undefined) this.setSetting('graph_tenant_id', config.graphTenantId.trim());
     if (config.graphClientId !== undefined) this.setSetting('graph_client_id', config.graphClientId.trim());
     if (config.graphSender !== undefined) this.setSetting('graph_sender', config.graphSender.trim());
@@ -149,9 +155,24 @@ export class EmailService {
 
   /** True when mail can be sent with the selected transport (SMTP or Microsoft Graph). */
   public static isConfigured(): boolean {
-    return this.getTransport() === 'graph'
-      ? GraphMailService.isConfigured(this.getGraphConfig())
-      : this.isSmtpConfigured();
+    switch (this.getTransport()) {
+      case 'graph':
+        return GraphMailService.isConfigured(this.getGraphConfig());
+      case 'microsoft':
+        return MailConnections.microsoft() !== null;
+      case 'gmail':
+        return MailConnections.google() !== null;
+      default:
+        return this.isSmtpConfigured();
+    }
+  }
+
+  /** The address mail goes out from for the signed-in transports. */
+  public static signedInAddress(): string | undefined {
+    const transport = this.getTransport();
+    if (transport === 'microsoft') return MailConnections.microsoft()?.mailbox;
+    if (transport === 'gmail') return MailConnections.google()?.account;
+    return undefined;
   }
 
   public static getTransporter(): Transporter {
@@ -185,8 +206,31 @@ export class EmailService {
   }
 
   public static async verifyConnection(): Promise<{ success: boolean; message: string }> {
-    if (this.getTransport() === 'graph') {
+    const transport = this.getTransport();
+    if (transport === 'graph') {
       return GraphMailService.verify(this.getGraphConfig());
+    }
+    if (transport === 'microsoft') {
+      const client = MailConnections.microsoft();
+      if (!client) return { success: false, message: 'Microsoft 365 is niet ingesteld. Meld eerst aan.' };
+      try {
+        const check = await client.check();
+        return check.canSend
+          ? { success: true, message: `Aangemeld bij Microsoft 365; VehicleVault mag mail versturen als ${client.mailbox}.` }
+          : { success: false, message: 'Aangemeld, maar zonder het recht om mail te versturen (Mail.Send). Meld opnieuw aan en geef toestemming.' };
+      } catch (err: any) {
+        return { success: false, message: err instanceof MicrosoftError ? err.message : 'Controle van Microsoft 365 is mislukt.' };
+      }
+    }
+    if (transport === 'gmail') {
+      const client = MailConnections.google();
+      if (!client) return { success: false, message: 'Gmail is niet ingesteld. Verbind eerst met Google.' };
+      try {
+        await client.check();
+        return { success: true, message: `Verbonden met Google; VehicleVault mag mail versturen als ${client.account}.` };
+      } catch (err: any) {
+        return { success: false, message: err instanceof GoogleError ? err.message : 'Controle van Gmail is mislukt.' };
+      }
     }
 
     const config = this.getSmtpConfig();
@@ -212,11 +256,33 @@ export class EmailService {
     if (!this.isConfigured()) {
       return {
         success: false,
-        message:
-          this.getTransport() === 'graph'
-            ? 'Microsoft Graph e-mailinstellingen zijn nog niet volledig ingevuld in de instellingen.'
-            : 'SMTP e-mailinstellingen zijn nog niet geconfigureerd in de instellingen.',
+        message: {
+          graph: 'Microsoft Graph e-mailinstellingen zijn nog niet volledig ingevuld in de instellingen.',
+          microsoft: 'Microsoft 365 is niet ingesteld. Meld aan onder Instellingen → Notificaties → E-mail.',
+          gmail: 'Gmail is niet ingesteld. Verbind met Google onder Instellingen → Notificaties → E-mail.',
+          smtp: 'SMTP e-mailinstellingen zijn nog niet geconfigureerd in de instellingen.',
+        }[this.getTransport()],
       };
+    }
+
+    if (this.getTransport() === 'microsoft' || this.getTransport() === 'gmail') {
+      const recipients = splitRecipients(options.to);
+      if (recipients.length === 0) return { success: false, message: 'Geen ontvangstadres opgegeven.' };
+      const message = { to: recipients, subject: options.subject, text: options.text, html: options.html };
+      try {
+        if (this.getTransport() === 'microsoft') {
+          const client = MailConnections.microsoft()!;
+          await client.send(message);
+          return { success: true, message: `E-mail succesvol verzonden via Microsoft 365 (${client.mailbox})` };
+        }
+        const client = MailConnections.google()!;
+        await client.send(message);
+        return { success: true, message: `E-mail succesvol verzonden via Gmail (${client.account})` };
+      } catch (err: any) {
+        const known = err instanceof MicrosoftError || err instanceof GoogleError;
+        if (!known) console.error('Email send error:', err);
+        return { success: false, message: `Verzenden mislukt: ${known ? err.message : 'onverwachte fout'}` };
+      }
     }
 
     if (this.getTransport() === 'graph') {
@@ -249,12 +315,14 @@ export class EmailService {
     if (targetTo) return targetTo;
     const config = this.getSmtpConfig();
     if (config.to) return config.to;
+    const signedIn = this.signedInAddress();
+    if (signedIn) return signedIn;
     return this.getTransport() === 'graph' ? this.getGraphConfig().sender : config.user;
   }
 
   public static async sendTestEmail(targetTo?: string): Promise<{ success: boolean; message: string }> {
     const recipient = this.defaultRecipient(targetTo);
-    const via = this.getTransport() === 'graph' ? 'Microsoft Graph' : this.getSmtpConfig().host;
+    const via = { graph: 'Microsoft Graph', microsoft: 'Microsoft 365', gmail: 'Gmail', smtp: this.getSmtpConfig().host }[this.getTransport()];
 
     if (!recipient) {
       return { success: false, message: 'Geen ontvangstadres opgegeven voor de testmail.' };

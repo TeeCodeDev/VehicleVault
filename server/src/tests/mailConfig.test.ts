@@ -46,7 +46,7 @@ function call(handler: (req: any, res: any) => any, body: any = {}) {
       return res;
     },
   };
-  const result = handler({ body } as any, res);
+  const result = handler({ body, protocol: 'https', get: () => 'vault.example.org' } as any, res);
   return Promise.resolve(result).then(() => ({ status, payload }));
 }
 

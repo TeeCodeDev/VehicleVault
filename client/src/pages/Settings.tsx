@@ -547,7 +547,8 @@ export const Settings: React.FC = () => {
   const loadNotificationSettings = async () => {
     try {
       const res = await apiFetch<any>('/api/notifications/settings');
-      setNotifProvider(res.provider || 'none');
+      // Back from signing in at Google: show the mail settings, whatever provider is saved.
+      setNotifProvider(new URLSearchParams(window.location.search).has('mail') ? 'email' : res.provider || 'none');
       setPushoverUserKey(res.pushoverUserKey || '');
       setPushoverApiToken(res.pushoverApiToken || '');
       setPushoverDevice(res.pushoverDevice || '');
