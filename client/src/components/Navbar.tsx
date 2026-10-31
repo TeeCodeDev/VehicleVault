@@ -53,7 +53,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const { user, logout, authDisabled } = useAuth();
   const { setTheme, isDark } = useTheme();
-  const { lang, setLang, t } = useLanguage();
+  const { lang, t } = useLanguage();
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
@@ -268,15 +268,6 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Right controls */}
         <div className="flex items-center space-x-2">
-          {/* Language toggle button */}
-          <button
-            onClick={() => setLang(lang === 'nl' ? 'en' : 'nl')}
-            className="px-2 py-1.5 text-xs font-black uppercase text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 transition shadow-2xs"
-            title={lang === 'nl' ? 'Switch to English' : 'Overschakelen naar Nederlands'}
-          >
-            {lang.toUpperCase()}
-          </button>
-
           {/* Theme toggle button */}
           <button
             onClick={() => setTheme(isDark ? 'light' : 'dark')}
