@@ -90,7 +90,11 @@ for (const p of [
   DATA_PATHS.documents,
   DATA_PATHS.logs,
 ]) {
-  if (!fs.existsSync(p)) {
-    fs.mkdirSync(p, { recursive: true });
+  try {
+    if (!fs.existsSync(p)) {
+      fs.mkdirSync(p, { recursive: true });
+    }
+  } catch (err: any) {
+    console.error(`[STORAGE] Warning: Could not create persistent path "${p}": ${err?.message}`);
   }
 }

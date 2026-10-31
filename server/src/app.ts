@@ -53,6 +53,26 @@ export function createApp(): express.Application {
   app.use(express.json({ limit: '20mb' }));
   app.use(express.urlencoded({ extended: true, limit: '20mb' }));
 
+  // HTTP Request Logger (Clean, structured console logging)
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    // Skip noisy polling on internal healthz endpoint
+    if (req.path === '/healthz') {
+      return next();
+    }
+    const start = Date.now();
+    const { method, originalUrl } = req;
+    const ip = req.ip || req.socket.remoteAddress || '-';
+
+    res.on('finish', () => {
+      const duration = Date.now() - start;
+      const status = res.statusCode;
+      const icon = status >= 500 ? '❌' : status >= 400 ? '⚠️' : status >= 300 ? '↪️' : '✅';
+      console.log(`[${new Date().toISOString()}] [HTTP] ${icon} ${method} ${originalUrl} ${status} (${duration}ms) - ${ip}`);
+    });
+
+    next();
+  });
+
   // Serve persistent uploads securely
   app.use('/uploads/receipts', express.static(DATA_PATHS.receipts));
   app.use('/uploads/invoices', express.static(DATA_PATHS.invoices));
@@ -119,8 +139,8 @@ export function createApp(): express.Application {
   }
 
   // Global Error Handler
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    console.error('Unhandled server error:', err);
+  app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
+    console.error(`[${new Date().toISOString()}] ❌ Unhandled error on ${req.method} ${req.originalUrl}:`, err);
     res.status(err.status || 500).json({
       error: err.message || 'Internal Server Error',
     });

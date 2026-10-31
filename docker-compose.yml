@@ -12,6 +12,7 @@ services:
       - "${PORT:-3084}:3084"
     environment:
       - NODE_ENV=production
+      - PORT=3084
       - DATA_DIR=/data
       # Optional, for passkeys behind a reverse proxy (see docs/wiki/Notifications-and-Security.md)
       - RP_ID=${RP_ID:-}
