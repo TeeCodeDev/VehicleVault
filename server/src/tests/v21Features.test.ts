@@ -1,4 +1,4 @@
-import { describe, it } from 'node:test';
+import { describe, it, before } from 'node:test';
 import assert from 'node:assert';
 import {
   generateTotpSecret,
@@ -11,8 +11,13 @@ import {
 import { generate2FaTempToken, verify2FaTempToken } from '../utils/token.js';
 import { computeVignetteStatus } from '../controllers/vignetteController.js';
 import { OidcController } from '../controllers/oidcController.js';
+import { db } from '../db/database.js';
+import { initializeDatabase } from '../db/schema.js';
 
 describe('VehicleVault v2.1 Advanced Security & Vignette Engine', () => {
+  before(() => {
+    initializeDatabase();
+  });
   it('should correctly generate and verify RFC 6238 TOTP codes', () => {
     const secret = generateTotpSecret(20);
     assert.ok(secret.length >= 32, 'Secret should be base32 encoded string');
@@ -98,13 +103,27 @@ describe('VehicleVault v2.1 Advanced Security & Vignette Engine', () => {
   });
 
   it('should allow updating document date, name, and notes', () => {
-    const docId = 'test-doc-' + Date.now();
+    const userId = 'test-u-' + Date.now();
     const vehicleId = 'test-veh-' + Date.now();
+    const docId = 'test-doc-' + Date.now();
+    const now = new Date().toISOString();
+
+    db.run(
+      `INSERT INTO users (id, email, password_hash, role, created_at, updated_at)
+       VALUES (?, ?, 'hash', 'admin', ?, ?)`,
+      [userId, 'docuser-' + Date.now() + '@example.com', now, now]
+    );
+
+    db.run(
+      `INSERT INTO vehicles (id, user_id, name, type, license_plate, initial_odometer, created_at, updated_at)
+       VALUES (?, ?, 'Kia Niro', 'car', 'AA-11-BB', 50000, ?, ?)`,
+      [vehicleId, userId, now, now]
+    );
 
     db.run(
       `INSERT INTO vehicle_documents (id, vehicle_id, user_id, name, category, file_path, file_size, mime_type, document_date, created_at)
-       VALUES (?, ?, 'admin', 'Aankoonota AndereAuto', 'invoice', 'dummy.pdf', 1024, 'application/pdf', '2026-10-30', '2026-10-30 10:00:00')`,
-      [docId, vehicleId]
+       VALUES (?, ?, ?, 'Aankoonota AndereAuto', 'invoice', 'dummy.pdf', 1024, 'application/pdf', '2026-10-30', ?)`,
+      [docId, vehicleId, userId, now]
     );
 
     db.run(
@@ -121,6 +140,8 @@ describe('VehicleVault v2.1 Advanced Security & Vignette Engine', () => {
 
     // Clean up
     db.run('DELETE FROM vehicle_documents WHERE id = ?', [docId]);
+    db.run('DELETE FROM vehicles WHERE id = ?', [vehicleId]);
+    db.run('DELETE FROM users WHERE id = ?', [userId]);
   });
 });
 
