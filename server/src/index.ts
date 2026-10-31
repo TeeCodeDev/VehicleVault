@@ -42,18 +42,6 @@ async function bootstrap() {
     console.log(`====================================================`);
   });
 
-  // Graceful backward-compatibility listener for port 3001 (legacy Unraid templates)
-  if (port !== 3001) {
-    try {
-      const fallbackServer = app.listen(3001, host, () => {
-        console.log(`[STARTUP] 🔄 Legacy port 3001 fallback listener active (http://${host === '0.0.0.0' ? 'localhost' : host}:3001)`);
-      });
-      fallbackServer.on('error', () => {
-        // Silently ignore if port 3001 is already bound
-      });
-    } catch {}
-  }
-
   server.on('error', (err: any) => {
     console.error(`====================================================`);
     if (err.code === 'EADDRINUSE') {
