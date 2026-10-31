@@ -43,8 +43,8 @@ RUN npm install --omit=dev
 COPY --from=server-builder /app/server/dist ./dist
 COPY --from=client-builder /app/client/dist ./client/dist
 
-# Expose HTTP ports (3084 standard, 3001 legacy Unraid)
-EXPOSE 3084 3001
+# Expose HTTP port
+EXPOSE 3084
 
 # Declare persistent volume
 VOLUME ["/data"]

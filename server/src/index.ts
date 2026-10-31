@@ -42,21 +42,6 @@ async function bootstrap() {
     console.log(`====================================================`);
   });
 
-  // Dual-port listening: if primary port is not 3001, also listen on 3001 for backwards compatibility with legacy Unraid setups
-  let legacyServer: any = null;
-  if (port !== 3001) {
-    try {
-      legacyServer = app.listen(3001, host, () => {
-        console.log(`[${new Date().toISOString()}] [STARTUP] 📡 Unraid/Legacy port 3001 is active for backwards compatibility.`);
-      });
-      legacyServer.on('error', (_err: any) => {
-        // Silently skip if port 3001 is already bound on the host (e.g. host networking mode)
-      });
-    } catch {
-      // Optional fallback
-    }
-  }
-
   server.on('error', (err: any) => {
     console.error(`====================================================`);
     if (err.code === 'EADDRINUSE') {
@@ -73,15 +58,8 @@ async function bootstrap() {
   const shutdown = (signal: string) => {
     console.log(`[${new Date().toISOString()}] [SHUTDOWN] Received ${signal}. Gracefully closing server...`);
     server.close(() => {
-      if (legacyServer) {
-        legacyServer.close(() => {
-          console.log(`[${new Date().toISOString()}] [SHUTDOWN] VehicleVault server closed cleanly.`);
-          process.exit(0);
-        });
-      } else {
-        console.log(`[${new Date().toISOString()}] [SHUTDOWN] VehicleVault server closed cleanly.`);
-        process.exit(0);
-      }
+      console.log(`[${new Date().toISOString()}] [SHUTDOWN] VehicleVault server closed cleanly.`);
+      process.exit(0);
     });
   };
 
