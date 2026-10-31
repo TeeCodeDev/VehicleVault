@@ -244,11 +244,19 @@ export class PushService {
             removed++;
           } else {
             failed++;
-            lastError = err?.body || err?.message || 'Onbekende fout';
+            const status = err?.statusCode ? `HTTP ${err.statusCode}: ` : '';
+            lastError = `${status}${err?.body || err?.message || 'Onbekende fout'}`;
+            let host = 'onbekende host';
+            try {
+              host = new URL(row.endpoint).host;
+            } catch {}
+            console.warn(`Web Push naar ${host} mislukt (${lastError})`);
           }
         }
       })
     );
+
+    console.log(`Web Push: ${sent} verzonden, ${removed} verwijderd, ${failed} mislukt (${rows.length} apparaten)`);
 
     if (sent > 0) {
       const extra = [removed ? `${removed} verlopen apparaat/apparaten verwijderd` : '', failed ? `${failed} mislukt` : '']
