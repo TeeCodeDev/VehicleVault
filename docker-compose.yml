@@ -12,6 +12,10 @@ services:
       - "${PORT:-3084}:3084"
     environment:
       - NODE_ENV=production
+      # Fixed on purpose: the host port mapping above and the healthcheck below both point at 3084. Without it an
+      # image whose default port differs (older builds listened on 3001) answers on another port: the app looks
+      # offline and the container stays unhealthy. PORT in .env only changes the host port.
+      - PORT=3084
       - DATA_DIR=/data
       # Optional, for passkeys behind a reverse proxy (see docs/wiki/Notifications-and-Security.md)
       - RP_ID=${RP_ID:-}
