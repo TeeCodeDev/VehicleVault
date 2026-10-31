@@ -17,7 +17,7 @@ Under **Settings → Meldingen (Notifications)**, configure automated alerts for
 | **Ntfy.sh** | Self-hosted or public topic URL + optional Bearer access token |
 | **Gotify** | Server URL + Application Token |
 | **Webhook (Discord / Slack / Generic)** | Automatically formats rich embeds for Discord/Slack or dispatches a structured JSON payload |
-| **SMTP Email** | Host, Port (`587`/`465`), TLS, Username, Password, Sender (`From`), and Recipient (`To`). One-click presets for **Gmail** (`smtp.gmail.com`, app password), **Microsoft 365** (`smtp.office365.com`, SMTP AUTH must be enabled for the mailbox) and **Outlook.com** (`smtp-mail.outlook.com`, app password) |
+| **SMTP Email** | Host, Port (`587`/`465`), TLS, Username, Password, Sender (`From`), and Recipient (`To`) |
 
 ### Web Push (PWA)
 VehicleVault sends Web Push messages (RFC 8030, signed with VAPID keys) straight to the push service of the browser (Google, Apple, Mozilla, Microsoft). No external notification service is involved.
