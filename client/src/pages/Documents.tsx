@@ -14,6 +14,7 @@ import {
   LayoutList,
   LayoutGrid,
   Tag,
+  Pencil,
 } from 'lucide-react';
 import { Vehicle, VehicleDocument } from '../types/index.js';
 import { apiFetch } from '../api/client.js';
@@ -71,6 +72,16 @@ export const Documents: React.FC = () => {
   const [compressing, setCompressing] = useState(false);
   const [compressionRatio, setCompressionRatio] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+
+  // Edit Document Modal state
+  const [editingDoc, setEditingDoc] = useState<VehicleDocument | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editCategory, setEditCategory] = useState<'registration' | 'insurance' | 'apk' | 'invoice' | 'manual' | 'other'>('invoice');
+  const [editDate, setEditDate] = useState('');
+  const [editExpiresAt, setEditExpiresAt] = useState('');
+  const [editNotes, setEditNotes] = useState('');
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
 
   useEffect(() => {
     if (selectedVehicle) {
@@ -286,6 +297,43 @@ export const Documents: React.FC = () => {
       return doc.created_at.split('T')[0];
     }
     return '1970-01-01';
+  };
+
+  const openEditModal = (doc: VehicleDocument) => {
+    setEditingDoc(doc);
+    setEditName(doc.name);
+    setEditCategory(doc.category);
+    setEditDate(extractDocumentDate(doc));
+    setEditExpiresAt(doc.expires_at || '');
+    setEditNotes(doc.notes || '');
+    setIsEditModalOpen(true);
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingDoc) return;
+    try {
+      setIsSavingEdit(true);
+      await apiFetch(`/api/documents/${editingDoc.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          name: editName.trim(),
+          category: editCategory,
+          document_date: editDate || null,
+          expires_at: editExpiresAt || null,
+          notes: editNotes.trim() || null,
+        }),
+      });
+      setIsEditModalOpen(false);
+      setEditingDoc(null);
+      if (selectedVehicle) {
+        await loadDocuments(selectedVehicle.id);
+      }
+    } catch (err: any) {
+      alert(err.message || 'Fout bij opslaan document');
+    } finally {
+      setIsSavingEdit(false);
+    }
   };
 
   const filteredDocuments = documents
@@ -537,9 +585,14 @@ export const Documents: React.FC = () => {
                       {(() => {
                         const dateStr = extractDocumentDate(doc);
                         return dateStr && dateStr !== '1970-01-01' ? (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                          <button
+                            type="button"
+                            onClick={() => openEditModal(doc)}
+                            className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold bg-slate-100 hover:bg-sky-50 text-slate-700 hover:text-sky-700 dark:bg-slate-800 dark:hover:bg-sky-950/40 dark:text-slate-300 dark:hover:text-sky-300 border border-slate-200 dark:border-slate-700 hover:border-sky-300 transition cursor-pointer"
+                            title={lang === 'nl' ? 'Klik om datum of document te wijzigen' : 'Click to edit date or document'}
+                          >
                             📅 {formatDisplayDate(dateStr)}
-                          </span>
+                          </button>
                         ) : null;
                       })()}
 
@@ -616,6 +669,15 @@ export const Documents: React.FC = () => {
                   </a>
 
                   <button
+                    type="button"
+                    onClick={() => openEditModal(doc)}
+                    className="p-1.5 text-slate-400 hover:text-sky-600 dark:hover:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-950/40 rounded-xl transition"
+                    title={lang === 'nl' ? 'Document / Datum bewerken' : 'Edit document / date'}
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+
+                  <button
                     onClick={() => handleDelete(doc.id)}
                     className="p-1.5 text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition"
                     title={t('delete')}
@@ -674,9 +736,14 @@ export const Documents: React.FC = () => {
                           {(() => {
                             const dateStr = extractDocumentDate(doc);
                             return dateStr && dateStr !== '1970-01-01' ? (
-                              <span className="inline-block px-2 py-0.5 rounded-md text-[10px] font-semibold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                              <button
+                                type="button"
+                                onClick={() => openEditModal(doc)}
+                                className="inline-block px-2 py-0.5 rounded-md text-[10px] font-semibold bg-slate-100 hover:bg-sky-50 text-slate-700 hover:text-sky-700 dark:bg-slate-800 dark:hover:bg-sky-950/40 dark:text-slate-300 dark:hover:text-sky-300 border border-slate-200 dark:border-slate-700 hover:border-sky-300 transition cursor-pointer"
+                                title={lang === 'nl' ? 'Klik om datum of document te wijzigen' : 'Click to edit date or document'}
+                              >
                                 📅 {formatDisplayDate(dateStr)}
-                              </span>
+                              </button>
                             ) : null;
                           })()}
                           {doc.expires_at && (() => {
@@ -710,13 +777,24 @@ export const Documents: React.FC = () => {
                       </div>
                     </div>
 
-                    <button
-                      onClick={() => handleDelete(doc.id)}
-                      className="text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-                      title={t('delete')}
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                    <div className="flex items-center space-x-1">
+                      <button
+                        type="button"
+                        onClick={() => openEditModal(doc)}
+                        className="text-slate-400 hover:text-sky-600 dark:hover:text-sky-400 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                        title={lang === 'nl' ? 'Document / Datum bewerken' : 'Edit document / date'}
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+
+                      <button
+                        onClick={() => handleDelete(doc.id)}
+                        className="text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                        title={t('delete')}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
 
                   {doc.notes && (
@@ -919,6 +997,122 @@ export const Documents: React.FC = () => {
                   className="px-4 py-2 bg-accent-600 hover:bg-accent-700 text-white rounded-xl text-xs font-bold transition shadow-sm disabled:opacity-50"
                 >
                   {isUploading ? t('saving') : t('save')}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Document Modal */}
+      {isEditModalOpen && editingDoc && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-150">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center space-x-2">
+                <Pencil className="w-4 h-4 text-sky-500" />
+                <span>{lang === 'nl' ? 'Document & Datum Bewerken' : 'Edit Document & Date'}</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsEditModalOpen(false);
+                  setEditingDoc(null);
+                }}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEdit} className="space-y-4">
+              {/* Document / Invoice Date */}
+              <div>
+                <DatePicker
+                  label={lang === 'nl' ? 'Document- / Factuurdatum' : 'Document / Invoice Date'}
+                  value={editDate}
+                  onChange={setEditDate}
+                />
+                <p className="text-[10px] text-slate-400 mt-1">
+                  {lang === 'nl'
+                    ? 'Deze datum bepaalt de chronologische volgorde in het overzicht.'
+                    : 'This date determines the chronological sort order in the overview.'}
+                </p>
+              </div>
+
+              {/* Title / Name */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  {lang === 'nl' ? 'Documentnaam / Titel' : 'Document Title / Name'}
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-sky-500"
+                />
+              </div>
+
+              {/* Category */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  {lang === 'nl' ? 'Categorie' : 'Category'}
+                </label>
+                <select
+                  value={editCategory}
+                  onChange={(e) => setEditCategory(e.target.value as any)}
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-sky-500"
+                >
+                  <option value="registration">{t('docCatRegistration')}</option>
+                  <option value="insurance">{t('docCatInsurance')}</option>
+                  <option value="apk">{t('docCatApk')}</option>
+                  <option value="invoice">{t('docCatInvoices')}</option>
+                  <option value="manual">{t('docCatManual')}</option>
+                  <option value="other">{t('docCatOther')}</option>
+                </select>
+              </div>
+
+              {/* Expiration Date (Optional) */}
+              <div>
+                <DatePicker
+                  label={lang === 'nl' ? 'Vervaldatum (optioneel)' : 'Expiration Date (optional)'}
+                  value={editExpiresAt}
+                  onChange={setEditExpiresAt}
+                />
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  {lang === 'nl' ? 'Notities (optioneel)' : 'Notes (optional)'}
+                </label>
+                <textarea
+                  rows={2}
+                  value={editNotes}
+                  onChange={(e) => setEditNotes(e.target.value)}
+                  placeholder={lang === 'nl' ? 'Optionele toelichting...' : 'Optional notes...'}
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-sky-500"
+                />
+              </div>
+
+              <div className="flex justify-end space-x-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsEditModalOpen(false);
+                    setEditingDoc(null);
+                  }}
+                  className="px-3.5 py-1.5 text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition font-medium"
+                >
+                  {t('cancel')}
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingEdit || !editName.trim()}
+                  className="px-4 py-2 bg-accent-600 hover:bg-accent-700 text-white rounded-xl text-xs font-bold transition shadow-sm disabled:opacity-50"
+                >
+                  {isSavingEdit ? t('saving') : t('save')}
                 </button>
               </div>
             </form>

@@ -96,5 +96,31 @@ describe('VehicleVault v2.1 Advanced Security & Vignette Engine', () => {
     assert.ok(typeof cfg.buttonLabel === 'string');
     assert.ok(cfg.scopes.includes('openid'));
   });
+
+  it('should allow updating document date, name, and notes', () => {
+    const docId = 'test-doc-' + Date.now();
+    const vehicleId = 'test-veh-' + Date.now();
+
+    db.run(
+      `INSERT INTO vehicle_documents (id, vehicle_id, user_id, name, category, file_path, file_size, mime_type, document_date, created_at)
+       VALUES (?, ?, 'admin', 'Aankoonota AndereAuto', 'invoice', 'dummy.pdf', 1024, 'application/pdf', '2026-10-30', '2026-10-30 10:00:00')`,
+      [docId, vehicleId]
+    );
+
+    db.run(
+      `UPDATE vehicle_documents
+       SET name = ?, category = ?, document_date = ?, notes = ?
+       WHERE id = ?`,
+      ['Aankoopnota AndereAuto', 'invoice', '2026-10-16', 'Gekocht op 16 oktober', docId]
+    );
+
+    const updated = db.get<any>('SELECT * FROM vehicle_documents WHERE id = ?', [docId]);
+    assert.strictEqual(updated.name, 'Aankoopnota AndereAuto');
+    assert.strictEqual(updated.document_date, '2026-10-16');
+    assert.strictEqual(updated.notes, 'Gekocht op 16 oktober');
+
+    // Clean up
+    db.run('DELETE FROM vehicle_documents WHERE id = ?', [docId]);
+  });
 });
 

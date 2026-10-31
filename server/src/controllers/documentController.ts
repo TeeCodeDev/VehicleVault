@@ -118,6 +118,48 @@ export class DocumentController {
     });
   }
 
+  public static async update(req: Request, res: Response): Promise<void> {
+    const { id } = req.params;
+    const { name, category, document_date, expires_at, notes } = req.body;
+
+    const doc = db.get<any>('SELECT * FROM vehicle_documents WHERE id = ?', [id]);
+    if (!doc) {
+      res.status(404).json({ error: 'Document not found' });
+      return;
+    }
+
+    const access = getVehicleAccess(doc.vehicle_id, req.user?.userId);
+    const canEdit =
+      (access.hasAccess && access.role !== 'viewer') ||
+      req.user?.role === 'admin' ||
+      req.user?.role === 'driver';
+
+    if (!canEdit) {
+      res.status(access.hasAccess ? 403 : 404).json({
+        error: access.hasAccess ? 'Geen bewerkrechten voor dit voertuig' : 'Document not found',
+      });
+      return;
+    }
+
+    const newName = name !== undefined && name !== null ? String(name).trim() : doc.name;
+    const newCategory = category !== undefined && category !== null ? String(category).trim() : doc.category;
+    const newDocumentDate =
+      document_date !== undefined ? (document_date ? String(document_date).trim() : null) : doc.document_date;
+    const newExpiresAt =
+      expires_at !== undefined ? (expires_at ? String(expires_at).trim() : null) : doc.expires_at;
+    const newNotes = notes !== undefined ? (notes ? String(notes).trim() : null) : doc.notes;
+
+    db.run(
+      `UPDATE vehicle_documents
+       SET name = ?, category = ?, document_date = ?, expires_at = ?, notes = ?
+       WHERE id = ?`,
+      [newName, newCategory, newDocumentDate, newExpiresAt, newNotes, id]
+    );
+
+    const updated = db.get<any>('SELECT * FROM vehicle_documents WHERE id = ?', [id]);
+    res.json({ document: updated, message: 'Document updated successfully' });
+  }
+
   public static async delete(req: Request, res: Response): Promise<void> {
     const { id } = req.params;
     const doc = db.get<any>('SELECT id, vehicle_id, file_path FROM vehicle_documents WHERE id = ?', [id]);
