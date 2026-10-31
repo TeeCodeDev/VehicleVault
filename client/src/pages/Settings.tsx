@@ -120,6 +120,8 @@ export const Settings: React.FC = () => {
   const [discoveredGeminiModels, setDiscoveredGeminiModels] = useState<string[]>([]);
   const [hasGeminiKey, setHasGeminiKey] = useState(false);
   const [geminiKeyMasked, setGeminiKeyMasked] = useState<string | null>(null);
+  const [geminiKeySuffix, setGeminiKeySuffix] = useState<string | null>(null);
+  const [geminiKeySource, setGeminiKeySource] = useState<string | null>(null);
   const [showGeminiKey, setShowGeminiKey] = useState(false);
 
   const [openaiApiKey, setOpenaiApiKey] = useState('');
@@ -127,6 +129,8 @@ export const Settings: React.FC = () => {
   const [openaiBaseUrl, setOpenaiBaseUrl] = useState('https://api.openai.com/v1');
   const [hasOpenaiKey, setHasOpenaiKey] = useState(false);
   const [openaiKeyMasked, setOpenaiKeyMasked] = useState<string | null>(null);
+  const [openaiKeySuffix, setOpenaiKeySuffix] = useState<string | null>(null);
+  const [openaiKeySource, setOpenaiKeySource] = useState<string | null>(null);
   const [showOpenaiKey, setShowOpenaiKey] = useState(false);
 
   const [aiTesting, setAiTesting] = useState(false);
@@ -413,17 +417,23 @@ export const Settings: React.FC = () => {
         geminiModel: string;
         hasGeminiKey: boolean;
         geminiKeyMasked: string | null;
+        geminiKeySuffix?: string | null;
+        geminiKeySource?: string | null;
         availableGeminiModels?: string[];
         openaiModel: string;
         openaiBaseUrl: string;
         hasOpenaiKey: boolean;
         openaiKeyMasked: string | null;
+        openaiKeySuffix?: string | null;
+        openaiKeySource?: string | null;
       }>('/api/settings/ai');
 
       setAiProvider(res.provider || 'gemini');
       setGeminiModel(res.geminiModel || 'gemini-3.8-flash');
       setHasGeminiKey(res.hasGeminiKey);
       setGeminiKeyMasked(res.geminiKeyMasked);
+      setGeminiKeySuffix(res.geminiKeySuffix || (res.geminiKeyMasked ? res.geminiKeyMasked.slice(-4) : null));
+      setGeminiKeySource(res.geminiKeySource || null);
       if (res.availableGeminiModels && res.availableGeminiModels.length > 0) {
         setDiscoveredGeminiModels(res.availableGeminiModels);
       }
@@ -431,6 +441,8 @@ export const Settings: React.FC = () => {
       setOpenaiBaseUrl(res.openaiBaseUrl || 'https://api.openai.com/v1');
       setHasOpenaiKey(res.hasOpenaiKey);
       setOpenaiKeyMasked(res.openaiKeyMasked);
+      setOpenaiKeySuffix(res.openaiKeySuffix || (res.openaiKeyMasked ? res.openaiKeyMasked.slice(-4) : null));
+      setOpenaiKeySource(res.openaiKeySource || null);
     } catch {}
   };
 
@@ -1337,7 +1349,13 @@ action:
                     type={showGeminiKey ? 'text' : 'password'}
                     value={geminiApiKey}
                     onChange={(e) => setGeminiApiKey(e.target.value)}
-                    placeholder={hasGeminiKey ? (geminiKeyMasked || '•••••••••••••••• (Opgeslagen)') : 'AIzaSy...'}
+                    placeholder={
+                      hasGeminiKey
+                        ? (lang === 'nl'
+                            ? `Huidige sleutel actief (...${geminiKeySuffix || 'opgeslagen'}). Voer nieuwe in om te wijzigen...`
+                            : `Current key active (...${geminiKeySuffix || 'saved'}). Enter new key to change...`)
+                        : 'AIzaSy...'
+                    }
                     className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 pr-20 text-slate-900 dark:text-white font-mono focus:outline-none focus:border-sky-500"
                   />
                   <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center space-x-1">
@@ -1361,6 +1379,36 @@ action:
                     )}
                   </div>
                 </div>
+
+                {hasGeminiKey && (
+                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-emerald-800 dark:text-emerald-200 text-xs">
+                    <div className="flex items-center space-x-2">
+                      <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                      <div>
+                        <div className="font-bold flex items-center space-x-1.5">
+                          <span>{lang === 'nl' ? 'Actieve API-sleutel opgeslagen:' : 'Active API Key Saved:'}</span>
+                          <span className="font-mono bg-emerald-100 dark:bg-emerald-900/60 px-1.5 py-0.5 rounded text-emerald-900 dark:text-emerald-100 font-bold">
+                            ••••••••{geminiKeySuffix || (geminiKeyMasked ? geminiKeyMasked.slice(-4) : 'lsxw')}
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-emerald-700 dark:text-emerald-300 block mt-0.5">
+                          {lang === 'nl'
+                            ? `Laatste 4 tekens ter herkenning: "${geminiKeySuffix || (geminiKeyMasked ? geminiKeyMasked.slice(-4) : 'lsxw')}"`
+                            : `Last 4 characters: "${geminiKeySuffix || (geminiKeyMasked ? geminiKeyMasked.slice(-4) : 'lsxw')}"`}
+                          {geminiKeySource === 'env' && (lang === 'nl' ? ' • Ingesteld via Unraid container variabelen' : ' • Configured via container env')}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {geminiApiKey && (
+                  <span className="text-[11px] text-sky-600 dark:text-sky-400 block font-medium">
+                    {lang === 'nl'
+                      ? `Nieuwe sleutel wordt opgeslagen bij klikken op "Wijzigingen Opslaan" (eindigt op: ...${geminiApiKey.slice(-4)})`
+                      : `New key will be saved when clicking Save (ends in: ...${geminiApiKey.slice(-4)})`}
+                  </span>
+                )}
               </div>
 
               {/* Model Selection */}
@@ -1401,7 +1449,13 @@ action:
                     type={showOpenaiKey ? 'text' : 'password'}
                     value={openaiApiKey}
                     onChange={(e) => setOpenaiApiKey(e.target.value)}
-                    placeholder={hasOpenaiKey ? (openaiKeyMasked || '•••••••••••••••• (Opgeslagen)') : 'sk-...'}
+                    placeholder={
+                      hasOpenaiKey
+                        ? (lang === 'nl'
+                            ? `Huidige sleutel actief (...${openaiKeySuffix || 'opgeslagen'}). Voer nieuwe in om te wijzigen...`
+                            : `Current key active (...${openaiKeySuffix || 'saved'}). Enter new key to change...`)
+                        : 'sk-...'
+                    }
                     className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 pr-20 text-slate-900 dark:text-white font-mono focus:outline-none focus:border-sky-500"
                   />
                   <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center space-x-1">
@@ -1423,6 +1477,36 @@ action:
                     )}
                   </div>
                 </div>
+
+                {hasOpenaiKey && (
+                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-emerald-800 dark:text-emerald-200 text-xs">
+                    <div className="flex items-center space-x-2">
+                      <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                      <div>
+                        <div className="font-bold flex items-center space-x-1.5">
+                          <span>{lang === 'nl' ? 'Actieve API-sleutel opgeslagen:' : 'Active API Key Saved:'}</span>
+                          <span className="font-mono bg-emerald-100 dark:bg-emerald-900/60 px-1.5 py-0.5 rounded text-emerald-900 dark:text-emerald-100 font-bold">
+                            ••••••••{openaiKeySuffix || (openaiKeyMasked ? openaiKeyMasked.slice(-4) : '...')}
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-emerald-700 dark:text-emerald-300 block mt-0.5">
+                          {lang === 'nl'
+                            ? `Laatste 4 tekens ter herkenning: "${openaiKeySuffix || (openaiKeyMasked ? openaiKeyMasked.slice(-4) : '...')}"`
+                            : `Last 4 characters: "${openaiKeySuffix || (openaiKeyMasked ? openaiKeyMasked.slice(-4) : '...')}"`}
+                          {openaiKeySource === 'env' && (lang === 'nl' ? ' • Ingesteld via Unraid container variabelen' : ' • Configured via container env')}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {openaiApiKey && (
+                  <span className="text-[11px] text-sky-600 dark:text-sky-400 block font-medium">
+                    {lang === 'nl'
+                      ? `Nieuwe sleutel wordt opgeslagen bij klikken op "Wijzigingen Opslaan" (eindigt op: ...${openaiApiKey.slice(-4)})`
+                      : `New key will be saved when clicking Save (ends in: ...${openaiApiKey.slice(-4)})`}
+                  </span>
+                )}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

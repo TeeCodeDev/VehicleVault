@@ -21,16 +21,30 @@ export class SettingsController {
         } catch {}
       }
 
+      const dbGemini = getSystemSetting('gemini_api_key');
+      const envGemini = process.env.GEMINI_API_KEY;
+      const geminiSource = dbGemini ? 'database' : (envGemini ? 'env' : null);
+      const geminiSuffix = settings.geminiApiKey ? settings.geminiApiKey.trim().slice(-4) : null;
+
+      const dbOpenai = getSystemSetting('openai_api_key');
+      const envOpenai = process.env.OPENAI_API_KEY;
+      const openaiSource = dbOpenai ? 'database' : (envOpenai ? 'env' : null);
+      const openaiSuffix = settings.openaiApiKey ? settings.openaiApiKey.trim().slice(-4) : null;
+
       res.json({
         provider: settings.provider,
         geminiModel: settings.geminiModel,
         hasGeminiKey,
         geminiKeyMasked: maskApiKey(settings.geminiApiKey),
+        geminiKeySuffix: geminiSuffix,
+        geminiKeySource: geminiSource,
         availableGeminiModels,
         openaiModel: settings.openaiModel,
         openaiBaseUrl: settings.openaiBaseUrl,
         hasOpenaiKey,
         openaiKeyMasked: maskApiKey(settings.openaiApiKey),
+        openaiKeySuffix: openaiSuffix,
+        openaiKeySource: openaiSource,
       });
     } catch (err: any) {
       res.status(500).json({ error: err?.message || 'Failed to retrieve AI settings' });
