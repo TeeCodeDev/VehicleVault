@@ -1960,13 +1960,13 @@ action:
             {/* Provider Buttons */}
             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
               {[
-                { id: 'none', label: 'Uitgeschakeld' },
+                { id: 'none', label: lang === 'nl' ? 'Uitgeschakeld' : 'Disabled' },
                 { id: 'webpush', label: 'Web Push (PWA)' },
-                { id: 'email', label: 'E-mail' },
+                { id: 'email', label: lang === 'nl' ? 'E-mail' : 'Email' },
                 { id: 'pushover', label: 'Pushover' },
                 { id: 'ntfy', label: 'Ntfy.sh / Self-Hosted' },
                 { id: 'gotify', label: 'Gotify' },
-                { id: 'webhook', label: 'Aangepaste Webhook' },
+                { id: 'webhook', label: lang === 'nl' ? 'Aangepaste Webhook' : 'Custom Webhook' },
               ].map((p) => (
                 <button
                   key={p.id}
