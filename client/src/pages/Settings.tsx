@@ -57,6 +57,7 @@ import { apiFetch } from '../api/client.js';
 import { useTheme, ACCENT_COLOR_OPTIONS } from '../context/ThemeContext.js';
 import { useLanguage } from '../context/LanguageContext.js';
 import { PasskeySettings } from '../components/PasskeySettings.js';
+import { MailSettings } from '../components/MailSettings.js';
 import { WebPushSettings } from '../components/WebPushSettings.js';
 import { useAuth } from '../context/AuthContext.js';
 import { useModules } from '../context/ModuleContext.js';
@@ -162,16 +163,6 @@ export const Settings: React.FC = () => {
   const [notifTestResult, setNotifTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const [notifSaving, setNotifSaving] = useState(false);
   const [notifSaveSuccess, setNotifSaveSuccess] = useState(false);
-
-  // SMTP E-mail Settings State
-  const [smtpHost, setSmtpHost] = useState('');
-  const [smtpPort, setSmtpPort] = useState(587);
-  const [smtpSecure, setSmtpSecure] = useState(false);
-  const [smtpUser, setSmtpUser] = useState('');
-  const [smtpPass, setSmtpPass] = useState('');
-  const [smtpFrom, setSmtpFrom] = useState('');
-  const [smtpTo, setSmtpTo] = useState('');
-  const [showSmtpPass, setShowSmtpPass] = useState(false);
 
   // User Password Reset Modal State
   const [resetModalUser, setResetModalUser] = useState<{ id: string; email: string; resetLink?: string } | null>(null);
@@ -557,7 +548,8 @@ export const Settings: React.FC = () => {
   const loadNotificationSettings = async () => {
     try {
       const res = await apiFetch<any>('/api/notifications/settings');
-      setNotifProvider(res.provider || 'none');
+      // Back from signing in at Google: show the mail settings, whatever provider is saved.
+      setNotifProvider(new URLSearchParams(window.location.search).has('mail') ? 'email' : res.provider || 'none');
       setPushoverUserKey(res.pushoverUserKey || '');
       setPushoverApiToken(res.pushoverApiToken || '');
       setPushoverDevice(res.pushoverDevice || '');
@@ -568,13 +560,6 @@ export const Settings: React.FC = () => {
       setWebhookUrl(res.webhookUrl || '');
       setNotifApk(res.enabledApk ?? true);
       setNotifMaintenance(res.enabledMaintenance ?? true);
-      setSmtpHost(res.smtpHost || '');
-      setSmtpPort(res.smtpPort || 587);
-      setSmtpSecure(res.smtpSecure ?? false);
-      setSmtpUser(res.smtpUser || '');
-      setSmtpPass(res.smtpPass || '');
-      setSmtpFrom(res.smtpFrom || '');
-      setSmtpTo(res.smtpTo || '');
     } catch {}
   };
 
@@ -596,13 +581,6 @@ export const Settings: React.FC = () => {
           webhookUrl,
           enabledApk: notifApk,
           enabledMaintenance: notifMaintenance,
-          smtpHost,
-          smtpPort: Number(smtpPort) || 587,
-          smtpSecure,
-          smtpUser,
-          smtpPass,
-          smtpFrom,
-          smtpTo,
         }),
       });
       setNotifSaveSuccess(true);
@@ -1984,7 +1962,7 @@ action:
               {[
                 { id: 'none', label: 'Uitgeschakeld' },
                 { id: 'webpush', label: 'Web Push (PWA)' },
-                { id: 'email', label: 'E-mail (SMTP)' },
+                { id: 'email', label: 'E-mail' },
                 { id: 'pushover', label: 'Pushover' },
                 { id: 'ntfy', label: 'Ntfy.sh / Self-Hosted' },
                 { id: 'gotify', label: 'Gotify' },
@@ -2051,122 +2029,7 @@ action:
               </div>
             )}
 
-            {notifProvider === 'email' && (
-              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/50 border border-slate-200/80 dark:border-slate-800/80 space-y-4 text-xs">
-                <div className="p-3 bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800 rounded-lg text-sky-800 dark:text-sky-300">
-                  <span className="font-bold block">💡 Gedeelde SMTP E-mailservice</span>
-                  <span className="text-[11px] block mt-0.5">
-                    Deze SMTP-serverconfiguratie wordt gebruikt voor periodieke APK &amp; onderhoudswaarschuwingen én voor het versturen van <strong>wachtwoordherstel-links</strong> naar gebruikers.
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="sm:col-span-2">
-                    <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                      SMTP Host / Server *
-                    </label>
-                    <input
-                      type="text"
-                      value={smtpHost}
-                      onChange={(e) => setSmtpHost(e.target.value)}
-                      placeholder="bijv. smtp.gmail.com of mail.uwdomein.nl"
-                      className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 font-mono"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                      Poort *
-                    </label>
-                    <input
-                      type="number"
-                      value={smtpPort}
-                      onChange={(e) => setSmtpPort(parseInt(e.target.value, 10) || 587)}
-                      placeholder="587"
-                      className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 font-mono"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-2 pt-0.5">
-                  <input
-                    type="checkbox"
-                    id="smtpSecureToggle"
-                    checked={smtpSecure}
-                    onChange={(e) => setSmtpSecure(e.target.checked)}
-                    className="rounded border-slate-300 text-purple-600 focus:ring-purple-500"
-                  />
-                  <label htmlFor="smtpSecureToggle" className="font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
-                    SSL / TLS directe encryptie (meestal voor poort 465; uitvinken voor poort 587 STARTTLS)
-                  </label>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                      SMTP Gebruiker / E-mailadres
-                    </label>
-                    <input
-                      type="text"
-                      value={smtpUser}
-                      onChange={(e) => setSmtpUser(e.target.value)}
-                      placeholder="bijv. notificaties@uwdomein.nl"
-                      className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 font-mono"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                      SMTP Wachtwoord / App Wachtwoord
-                    </label>
-                    <div className="relative">
-                      <input
-                        type={showSmtpPass ? 'text' : 'password'}
-                        value={smtpPass}
-                        onChange={(e) => setSmtpPass(e.target.value)}
-                        placeholder="••••••••"
-                        className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg pl-3 pr-10 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 font-mono"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowSmtpPass(!showSmtpPass)}
-                        className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                      >
-                        {showSmtpPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                      Afzender E-mail &amp; Naam (From)
-                    </label>
-                    <input
-                      type="text"
-                      value={smtpFrom}
-                      onChange={(e) => setSmtpFrom(e.target.value)}
-                      placeholder="VehicleVault <notificaties@uwdomein.nl>"
-                      className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 font-mono"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                      Ontvanger(s) Notificaties (To) *
-                    </label>
-                    <input
-                      type="text"
-                      value={smtpTo}
-                      onChange={(e) => setSmtpTo(e.target.value)}
-                      placeholder="bijv. beheerder@uwdomein.nl"
-                      className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 font-mono"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
+            {notifProvider === 'email' && <MailSettings />}
 
             {notifProvider === 'ntfy' && (
               <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/50 border border-slate-200/80 dark:border-slate-800/80 space-y-3 text-xs">
