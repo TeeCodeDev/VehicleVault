@@ -810,6 +810,39 @@ export const AnalyticsTco: React.FC = () => {
             </div>
           </div>
 
+          {/* Towing Consumption Split */}
+          {Boolean(tco?.fuelStats?.avgTowingLPer100Km) && (
+            <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs">
+              <div className="flex items-center space-x-2">
+                <span className="text-xl">🏕️</span>
+                <div>
+                  <span className="font-bold text-amber-900 dark:text-amber-300">
+                    {lang === 'nl' ? 'Caravan / Aanhanger Verbruiksvergelijking' : 'Towing / Trailer Consumption Split'}
+                  </span>
+                  <p className="text-[11px] text-amber-700/80 dark:text-amber-400">
+                    {lang === 'nl'
+                      ? 'Verbruikscijfers gesplitst op basis van tankbeurten met aanhanger/caravan.'
+                      : 'Fuel consumption isolated for towing vs. solo driving.'}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-4 font-mono font-bold self-end sm:self-auto">
+                <div className="text-right">
+                  <span className="text-[10px] text-slate-400 block font-sans">SOLO VERBRUIK</span>
+                  <span className="text-emerald-600 dark:text-emerald-400">
+                    {tco?.fuelStats?.avgNormalLPer100Km ? `${tco.fuelStats.avgNormalLPer100Km.toFixed(2)} L/100km` : '—'}
+                  </span>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] text-slate-400 block font-sans">MET AANHANGER</span>
+                  <span className="text-amber-600 dark:text-amber-400">
+                    {tco?.fuelStats?.avgTowingLPer100Km ? `${tco.fuelStats.avgTowingLPer100Km.toFixed(2)} L/100km` : '—'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Charts Row */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-2">
             {/* Actieradius per Tankbeurt Chart */}

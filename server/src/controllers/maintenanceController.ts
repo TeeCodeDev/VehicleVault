@@ -177,8 +177,8 @@ export class MaintenanceController {
       );
       if (existingDoc) {
         db.run(
-          'UPDATE vehicle_documents SET name = ?, notes = COALESCE(?, notes) WHERE id = ?',
-          [docName, notes || null, existingDoc.id]
+          'UPDATE vehicle_documents SET name = ?, notes = COALESCE(?, notes), document_date = ? WHERE id = ?',
+          [docName, notes || null, date, existingDoc.id]
         );
         return;
       }
@@ -200,8 +200,8 @@ export class MaintenanceController {
 
       db.run(
         `INSERT INTO vehicle_documents (
-          id, vehicle_id, user_id, name, category, file_path, file_size, mime_type, notes, created_at
-        ) VALUES (?, ?, ?, ?, 'invoice', ?, ?, ?, ?, ?)`,
+          id, vehicle_id, user_id, name, category, file_path, file_size, mime_type, notes, document_date, created_at
+        ) VALUES (?, ?, ?, ?, 'invoice', ?, ?, ?, ?, ?, ?)`,
         [
           crypto.randomUUID(),
           vehicleId,
@@ -211,6 +211,7 @@ export class MaintenanceController {
           stat.size,
           mimeType,
           notes || null,
+          date,
           new Date().toISOString(),
         ]
       );

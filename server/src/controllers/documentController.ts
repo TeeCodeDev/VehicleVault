@@ -25,7 +25,17 @@ export class DocumentController {
       params.push(category);
     }
 
-    sql += ' ORDER BY created_at DESC';
+    const sort = (req.query.sort as string) || 'date_desc';
+    let orderBy = 'ORDER BY COALESCE(document_date, substr(created_at, 1, 10)) DESC, created_at DESC';
+    if (sort === 'date_asc') {
+      orderBy = 'ORDER BY COALESCE(document_date, substr(created_at, 1, 10)) ASC, created_at ASC';
+    } else if (sort === 'name_asc') {
+      orderBy = 'ORDER BY name COLLATE NOCASE ASC';
+    } else if (sort === 'name_desc') {
+      orderBy = 'ORDER BY name COLLATE NOCASE DESC';
+    }
+
+    sql += ` ${orderBy}`;
     const documents = db.query(sql, params);
 
     res.json({ documents });
@@ -57,14 +67,33 @@ export class DocumentController {
     const category = (req.body.category as string) || 'other';
     const notes = (req.body.notes as string) || null;
     const expiresAt = (req.body.expires_at as string) || (req.body.expiresAt as string) || null;
+    let documentDate = (req.body.document_date as string) || (req.body.documentDate as string) || null;
+
+    if (!documentDate && name) {
+      const dmyMatch = name.match(/\b([0-3]?[0-9])[-/.]([0-1]?[0-9])[-/.]([12][0-9]{3})\b/);
+      if (dmyMatch) {
+        const day = dmyMatch[1].padStart(2, '0');
+        const month = dmyMatch[2].padStart(2, '0');
+        const year = dmyMatch[3];
+        documentDate = `${year}-${month}-${day}`;
+      } else {
+        const ymdMatch = name.match(/\b([12][0-9]{3})[-/.]([0-1]?[0-9])[-/.]([0-3]?[0-9])\b/);
+        if (ymdMatch) {
+          documentDate = `${ymdMatch[1]}-${ymdMatch[2].padStart(2, '0')}-${ymdMatch[3].padStart(2, '0')}`;
+        }
+      }
+    }
+    if (!documentDate) {
+      documentDate = new Date().toISOString().split('T')[0];
+    }
 
     const id = crypto.randomUUID();
     const now = new Date().toISOString();
 
     db.run(
       `INSERT INTO vehicle_documents (
-        id, vehicle_id, user_id, name, category, file_path, file_size, mime_type, notes, expires_at, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        id, vehicle_id, user_id, name, category, file_path, file_size, mime_type, notes, expires_at, document_date, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         vehicleId,
@@ -76,6 +105,7 @@ export class DocumentController {
         req.file.mimetype,
         notes,
         expiresAt,
+        documentDate,
         now,
       ]
     );

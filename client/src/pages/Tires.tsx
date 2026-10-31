@@ -16,6 +16,7 @@ import {
   Trash2,
   X,
   Info,
+  Receipt,
 } from 'lucide-react';
 import { Vehicle, TireSet } from '../types/index.js';
 import { apiFetch } from '../api/client.js';
@@ -65,6 +66,10 @@ export const Tires: React.FC = () => {
   const [notes, setNotes] = useState('');
   const [totalKm, setTotalKm] = useState('0');
   const [mountedOdometer, setMountedOdometer] = useState('');
+  const [purchasePrice, setPurchasePrice] = useState('');
+  const [purchaseDate, setPurchaseDate] = useState('');
+  const [invoiceDocumentId, setInvoiceDocumentId] = useState('');
+  const [availableDocuments, setAvailableDocuments] = useState<{ id: string; name: string; file_path: string }[]>([]);
 
   // Swap modal state
   const [swapOdometer, setSwapOdometer] = useState('');
@@ -91,8 +96,19 @@ export const Tires: React.FC = () => {
     }
   };
 
+  const fetchAvailableDocuments = async () => {
+    if (!selectedVehicle) return;
+    try {
+      const res = await apiFetch<{ documents: any[] }>(`/api/documents/${selectedVehicle.id}?category=invoice`);
+      setAvailableDocuments(res.documents || []);
+    } catch {
+      setAvailableDocuments([]);
+    }
+  };
+
   useEffect(() => {
     fetchTireSets();
+    fetchAvailableDocuments();
   }, [selectedVehicle?.id]);
 
   const activeMountedSet = tireSets.find((s) => s.status === 'mounted');
@@ -116,6 +132,10 @@ export const Tires: React.FC = () => {
     setTreadRr('7.5');
     setNotes('');
     setTotalKm('0');
+    setPurchasePrice('');
+    setPurchaseDate('');
+    setInvoiceDocumentId('');
+    fetchAvailableDocuments();
     const curOdo = selectedVehicle?.current_odometer || selectedVehicle?.initial_odometer;
     setMountedOdometer(curOdo ? curOdo.toString() : '');
     setModalError(null);
@@ -141,6 +161,10 @@ export const Tires: React.FC = () => {
     setTreadRr(set.tread_depth_rr !== null ? set.tread_depth_rr.toString() : '');
     setNotes(set.notes || '');
     setTotalKm((set.total_km ?? 0).toString());
+    setPurchasePrice(set.purchase_price ? set.purchase_price.toString() : '');
+    setPurchaseDate(set.purchase_date || '');
+    setInvoiceDocumentId(set.invoice_document_id || '');
+    fetchAvailableDocuments();
     setMountedOdometer(set.mounted_odometer !== null && set.mounted_odometer !== undefined ? set.mounted_odometer.toString() : '');
     setModalError(null);
     setIsAddEditModalOpen(true);
@@ -198,6 +222,9 @@ export const Tires: React.FC = () => {
         treadDepthRl: treadRl !== '' ? parseFloat(treadRl) : null,
         treadDepthRr: treadRr !== '' ? parseFloat(treadRr) : null,
         notes: notes.trim(),
+        purchasePrice: purchasePrice !== '' ? parseFloat(purchasePrice) : 0,
+        purchaseDate: purchaseDate || null,
+        invoiceDocumentId: invoiceDocumentId || null,
       };
 
       if (editingSet) {
@@ -424,6 +451,15 @@ export const Tires: React.FC = () => {
                     </span>
                   )}
                 </div>
+                {Number(activeMountedSet.purchase_price) > 0 && (
+                  <div>
+                    <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Aanschaf & Slijtage</span>
+                    <span className="text-sm font-black font-mono text-emerald-300">
+                      € {Number(activeMountedSet.purchase_price).toFixed(2)}
+                      {activeMountedSet.wear_cost_per_1000km ? ` (${activeMountedSet.wear_cost_per_1000km}/1.000 km)` : ''}
+                    </span>
+                  </div>
+                )}
               </div>
 
               <div className="pt-2 flex items-center space-x-2">
@@ -644,6 +680,43 @@ export const Tires: React.FC = () => {
                       <span className="font-bold text-slate-800 dark:text-slate-200">{set.tread_depth_rr ?? '-'} mm</span>
                     </div>
                   </div>
+
+                  {Number(set.purchase_price) > 0 && (
+                    <div className="flex items-center justify-between text-xs pt-2 mt-2 border-t border-slate-100 dark:border-slate-800/80">
+                      <div>
+                        <span className="text-[10px] text-slate-400 uppercase font-bold block">Aanschafprijs</span>
+                        <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                          € {Number(set.purchase_price).toFixed(2)}
+                        </span>
+                      </div>
+                      {set.wear_cost_per_1000km && (
+                        <div className="text-right">
+                          <span className="text-[10px] text-slate-400 uppercase font-bold block">Slijtage / 1.000 km</span>
+                          <span className="font-mono font-bold text-slate-700 dark:text-slate-300">
+                            € {set.wear_cost_per_1000km}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {set.invoice_document_id && (() => {
+                    const linkedDoc = availableDocuments.find((d) => d.id === set.invoice_document_id);
+                    return linkedDoc ? (
+                      <div className="pt-2">
+                        <a
+                          href={`/uploads/documents/${linkedDoc.file_path}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center space-x-1.5 px-2 py-1 bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/40 dark:hover:bg-purple-900/40 text-purple-700 dark:text-purple-300 rounded-lg text-[11px] font-semibold transition border border-purple-200/60 dark:border-purple-800/40"
+                          title="Gekoppelde factuur bekijken"
+                        >
+                          <Receipt className="w-3 h-3 text-purple-600 dark:text-purple-400" />
+                          <span className="truncate max-w-[200px]">{linkedDoc.name}</span>
+                        </a>
+                      </div>
+                    ) : null;
+                  })()}
                 </div>
 
                 {/* Action footer */}
@@ -1052,6 +1125,60 @@ export const Tires: React.FC = () => {
                       className="w-full text-xs font-mono bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-1.5 text-slate-900 dark:text-white"
                     />
                   </div>
+                </div>
+              </div>
+
+              {/* Aanschaf & Factuurkoppeling */}
+              <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 space-y-3">
+                <div className="flex items-center space-x-2 text-xs font-bold text-slate-800 dark:text-slate-200">
+                  <Receipt className="w-4 h-4 text-emerald-500" />
+                  <span>Aanschafprijs & Factuurkoppeling</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Aanschafprijs (€)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="bijv. 480.00"
+                      value={purchasePrice}
+                      onChange={(e) => setPurchasePrice(e.target.value)}
+                      className="w-full text-xs font-mono font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    />
+                  </div>
+
+                  <div>
+                    <DatePicker
+                      label="Aankoopdatum"
+                      value={purchaseDate}
+                      onChange={setPurchaseDate}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Gekoppelde Factuur uit Documenten
+                  </label>
+                  <select
+                    value={invoiceDocumentId}
+                    onChange={(e) => setInvoiceDocumentId(e.target.value)}
+                    className="w-full text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  >
+                    <option value="">Geen factuur gekoppeld</option>
+                    {availableDocuments.map((doc) => (
+                      <option key={doc.id} value={doc.id}>
+                        {doc.name}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 block">
+                    Koppel direct de aankoopfactuur of garagebon uit het Digitale Dashboardkastje.
+                  </span>
                 </div>
               </div>
 

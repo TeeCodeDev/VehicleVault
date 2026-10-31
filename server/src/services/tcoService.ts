@@ -40,6 +40,7 @@ export interface FuelTripMetric {
   costPer100Km: number | null;
   lPer100Km: number | null;
   station: string | null;
+  is_towing?: number | boolean;
 }
 
 export interface StationComparison {
@@ -55,6 +56,8 @@ export interface FuelDetailedStats {
   avgDistancePerTank: number | null;
   maxDistancePerTank: number | null;
   avgCostPer100Km: number | null;
+  avgNormalLPer100Km: number | null;
+  avgTowingLPer100Km: number | null;
   tripMetrics: FuelTripMetric[];
   stations: StationComparison[];
 }
@@ -427,6 +430,7 @@ export class TcoService {
         costPer100Km,
         lPer100Km,
         station: detectedStation,
+        is_towing: Boolean(current.is_towing),
       });
     }
 
@@ -453,11 +457,29 @@ export class TcoService {
         ? Math.round((totalFuelCost / cumulativeKmForAvg) * 100 * 100) / 100
         : null;
 
+    const normalLPer100List = tripMetrics
+      .filter((m) => !m.is_towing && m.lPer100Km !== null && m.lPer100Km > 0)
+      .map((m) => m.lPer100Km as number);
+    const towingLPer100List = tripMetrics
+      .filter((m) => m.is_towing && m.lPer100Km !== null && m.lPer100Km > 0)
+      .map((m) => m.lPer100Km as number);
+
+    const avgNormalLPer100Km =
+      normalLPer100List.length > 0
+        ? Math.round((normalLPer100List.reduce((a, b) => a + b, 0) / normalLPer100List.length) * 100) / 100
+        : null;
+    const avgTowingLPer100Km =
+      towingLPer100List.length > 0
+        ? Math.round((towingLPer100List.reduce((a, b) => a + b, 0) / towingLPer100List.length) * 100) / 100
+        : null;
+
     const fuelStats: FuelDetailedStats = {
       totalFuelLiters: Math.round(totalFuelLiters * 100) / 100,
       avgDistancePerTank,
       maxDistancePerTank,
       avgCostPer100Km,
+      avgNormalLPer100Km,
+      avgTowingLPer100Km,
       tripMetrics,
       stations,
     };

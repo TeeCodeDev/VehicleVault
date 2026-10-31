@@ -22,6 +22,7 @@ const fuelSchema = z.object({
   total_cost: z.number().positive().optional(),
   is_full_tank: z.boolean().default(true),
   missed_previous: z.boolean().default(false),
+  is_towing: z.boolean().default(false),
   notes: z.string().optional().nullable(),
   receipt_path: z.string().optional().nullable(),
   station_name: z.string().optional().nullable(),
@@ -96,8 +97,8 @@ export class FuelController {
         id, vehicle_id, date, odometer, liters, price_per_liter, total_cost,
         is_full_tank, missed_previous, notes, receipt_path,
         station_name, station_address, latitude, longitude,
-        energy_type, kwh, price_per_kwh, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        energy_type, kwh, price_per_kwh, is_towing, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         data.vehicle_id,
@@ -117,6 +118,7 @@ export class FuelController {
         data.energy_type || 'fuel',
         data.kwh !== undefined ? data.kwh : null,
         data.price_per_kwh !== undefined ? data.price_per_kwh : null,
+        data.is_towing ? 1 : 0,
         new Date().toISOString(),
       ]
     );
@@ -204,7 +206,8 @@ export class FuelController {
         longitude = ?,
         energy_type = COALESCE(?, energy_type),
         kwh = ?,
-        price_per_kwh = ?
+        price_per_kwh = ?,
+        is_towing = ?
        WHERE id = ?`,
       [
         data.date,
@@ -223,6 +226,7 @@ export class FuelController {
         data.energy_type || null,
         data.kwh !== undefined ? data.kwh : null,
         data.price_per_kwh !== undefined ? data.price_per_kwh : null,
+        data.is_towing ? 1 : 0,
         id,
       ]
     );

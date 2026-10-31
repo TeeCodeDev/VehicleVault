@@ -65,6 +65,7 @@ export interface FuelEntry {
   station_address?: string | null;
   latitude?: number | null;
   longitude?: number | null;
+  is_towing?: number | boolean;
   created_at: string;
 }
 
@@ -167,6 +168,7 @@ export interface VehicleDocument {
   mime_type: string;
   notes?: string | null;
   expires_at?: string | null;
+  document_date?: string | null;
   created_at: string;
 }
 
@@ -180,6 +182,7 @@ export interface FuelTripMetric {
   costPer100Km: number | null;
   lPer100Km: number | null;
   station: string | null;
+  is_towing?: number | boolean;
 }
 
 export interface StationComparison {
@@ -195,6 +198,8 @@ export interface FuelDetailedStats {
   avgDistancePerTank: number | null;
   maxDistancePerTank: number | null;
   avgCostPer100Km: number | null;
+  avgNormalLPer100Km?: number | null;
+  avgTowingLPer100Km?: number | null;
   tripMetrics: FuelTripMetric[];
   stations: StationComparison[];
 }
@@ -298,6 +303,11 @@ export interface RecurringExpense {
   end_date: string | null;
   is_active: number;
   notes: string | null;
+  purchase_price?: number | null;
+  purchase_date?: string | null;
+  invoice_file?: string | null;
+  invoice_document_id?: string | null;
+  wear_cost_per_1000km?: number | null;
   created_at: string;
 }
 
@@ -350,6 +360,11 @@ export interface TireSet {
   tread_depth_rr: number | null;
   last_measured_date: string | null;
   notes: string | null;
+  purchase_price?: number | null;
+  purchase_date?: string | null;
+  invoice_file?: string | null;
+  invoice_document_id?: string | null;
+  wear_cost_per_1000km?: number | null;
   created_at: string;
   minDepth?: number | null;
   treadStatus?: 'ok' | 'warning' | 'critical' | 'unknown';

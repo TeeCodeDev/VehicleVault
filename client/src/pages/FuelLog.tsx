@@ -56,6 +56,7 @@ export const FuelLog: React.FC = () => {
   const [totalCost, setTotalCost] = useState<string>('');
   const [isFullTank, setIsFullTank] = useState(true);
   const [missedPrevious, setMissedPrevious] = useState(false);
+  const [isTowing, setIsTowing] = useState(false);
   const [notes, setNotes] = useState('');
   const [receiptPath, setReceiptPath] = useState<string | null>(null);
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
@@ -91,6 +92,7 @@ export const FuelLog: React.FC = () => {
   const [editTotalCost, setEditTotalCost] = useState('');
   const [editIsFullTank, setEditIsFullTank] = useState(true);
   const [editMissedPrevious, setEditMissedPrevious] = useState(false);
+  const [editIsTowing, setEditIsTowing] = useState(false);
   const [editNotes, setEditNotes] = useState('');
   const [editStationName, setEditStationName] = useState('');
   const [editStationAddress, setEditStationAddress] = useState('');
@@ -454,6 +456,7 @@ export const FuelLog: React.FC = () => {
           total_cost: parseFloat(totalCost),
           is_full_tank: isFullTank,
           missed_previous: missedPrevious,
+          is_towing: isTowing,
           notes: notes || null,
           receipt_path: finalReceiptPath || null,
           station_name: stationName || null,
@@ -490,6 +493,7 @@ export const FuelLog: React.FC = () => {
           total_cost: parseFloat(totalCost),
           is_full_tank: isFullTank,
           missed_previous: missedPrevious,
+          is_towing: isTowing,
           notes: notes || null,
           station_name: stationName || null,
           station_address: stationAddress || null,
@@ -540,6 +544,7 @@ export const FuelLog: React.FC = () => {
     setEditTotalCost(String(entry.total_cost));
     setEditIsFullTank(Boolean(entry.is_full_tank));
     setEditMissedPrevious(Boolean(entry.missed_previous));
+    setEditIsTowing(Boolean(entry.is_towing));
     setEditNotes(entry.notes || '');
     setEditStationName(entry.station_name || '');
     setEditStationAddress(entry.station_address || '');
@@ -783,6 +788,7 @@ export const FuelLog: React.FC = () => {
           total_cost: parseFloat(editTotalCost),
           is_full_tank: editIsFullTank,
           missed_previous: editMissedPrevious,
+          is_towing: editIsTowing,
           notes: editNotes || null,
           receipt_path: finalReceiptPath || null,
           station_name: editStationName || null,
@@ -1081,6 +1087,19 @@ export const FuelLog: React.FC = () => {
                   className="rounded border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white"
                 />
                 <span className="text-slate-800 dark:text-slate-200 font-medium">{t('missedPrevious')}</span>
+              </label>
+
+              <label className="flex items-center space-x-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={isTowing}
+                  onChange={(e) => setIsTowing(e.target.checked)}
+                  className="rounded border-slate-300 dark:border-slate-700 text-amber-500"
+                />
+                <span className="text-amber-700 dark:text-amber-400 font-bold flex items-center space-x-1">
+                  <span>🏕️</span>
+                  <span>{lang === 'nl' ? 'Met caravan / aanhanger' : 'Towing caravan / trailer'}</span>
+                </span>
               </label>
             </div>
           </div>
@@ -1392,6 +1411,12 @@ export const FuelLog: React.FC = () => {
                           <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold border border-slate-200 dark:border-slate-700 w-fit">
                             {f.is_full_tank ? t('fullTank') : (lang === 'nl' ? 'Deeltank' : 'Partial')}
                           </span>
+                          {Boolean(f.is_towing) && (
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 font-bold border border-amber-200 dark:border-amber-800/60 w-fit inline-flex items-center space-x-1">
+                              <span>🏕️</span>
+                              <span>{lang === 'nl' ? 'Aanhanger' : 'Towing'}</span>
+                            </span>
+                          )}
                           {economyText && (
                             <span className="text-[11px] font-mono font-bold text-emerald-600 dark:text-emerald-400">
                               {economyText}
@@ -1672,6 +1697,18 @@ export const FuelLog: React.FC = () => {
                     className="rounded border-slate-300 text-amber-600 focus:ring-amber-500"
                   />
                   <span className="font-medium text-slate-700 dark:text-slate-300">{t('missedPrevious')}</span>
+                </label>
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={editIsTowing}
+                    onChange={(e) => setEditIsTowing(e.target.checked)}
+                    className="rounded border-slate-300 text-amber-500 focus:ring-amber-500"
+                  />
+                  <span className="font-bold text-amber-700 dark:text-amber-400 flex items-center space-x-1">
+                    <span>🏕️</span>
+                    <span>{lang === 'nl' ? 'Met caravan / aanhanger' : 'Towing caravan / trailer'}</span>
+                  </span>
                 </label>
               </div>
 

@@ -161,6 +161,7 @@ export function initializeDatabase(): void {
       energy_type TEXT NOT NULL DEFAULT 'fuel',
       kwh REAL,
       price_per_kwh REAL,
+      is_towing INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL,
       FOREIGN KEY (vehicle_id) REFERENCES vehicles(id) ON DELETE CASCADE
     );
@@ -186,6 +187,9 @@ export function initializeDatabase(): void {
   }
   if (!columnExists('fuel_entries', 'price_per_kwh')) {
     db.exec('ALTER TABLE fuel_entries ADD COLUMN price_per_kwh REAL;');
+  }
+  if (!columnExists('fuel_entries', 'is_towing')) {
+    db.exec('ALTER TABLE fuel_entries ADD COLUMN is_towing INTEGER NOT NULL DEFAULT 0;');
   }
 
   // 6. Service categories
@@ -285,6 +289,7 @@ export function initializeDatabase(): void {
       mime_type TEXT,
       notes TEXT,
       expires_at TEXT,
+      document_date TEXT,
       created_at TEXT NOT NULL,
       FOREIGN KEY (vehicle_id) REFERENCES vehicles(id) ON DELETE CASCADE,
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -293,6 +298,53 @@ export function initializeDatabase(): void {
 
   if (!columnExists('vehicle_documents', 'expires_at')) {
     db.exec('ALTER TABLE vehicle_documents ADD COLUMN expires_at TEXT;');
+  }
+
+  if (!columnExists('vehicle_documents', 'document_date')) {
+    db.exec('ALTER TABLE vehicle_documents ADD COLUMN document_date TEXT;');
+  }
+
+  // Backfill document_date from service_records or document names
+  try {
+    db.exec(`
+      UPDATE vehicle_documents
+      SET document_date = (
+        SELECT sr.date FROM service_records sr
+        WHERE sr.invoice_path = vehicle_documents.file_path
+        LIMIT 1
+      )
+      WHERE (document_date IS NULL OR document_date = '')
+        AND EXISTS (
+          SELECT 1 FROM service_records sr WHERE sr.invoice_path = vehicle_documents.file_path
+        );
+    `);
+
+    const docsWithoutDate = db.query<any>(
+      "SELECT id, name, created_at FROM vehicle_documents WHERE document_date IS NULL OR document_date = ''"
+    );
+    for (const d of docsWithoutDate) {
+      let parsedDate: string | null = null;
+      const dmyMatch = d.name ? d.name.match(/\b([0-3]?[0-9])[-/.]([0-1]?[0-9])[-/.]([12][0-9]{3})\b/) : null;
+      if (dmyMatch) {
+        const day = dmyMatch[1].padStart(2, '0');
+        const month = dmyMatch[2].padStart(2, '0');
+        const year = dmyMatch[3];
+        parsedDate = `${year}-${month}-${day}`;
+      } else {
+        const ymdMatch = d.name ? d.name.match(/\b([12][0-9]{3})[-/.]([0-1]?[0-9])[-/.]([0-3]?[0-9])\b/) : null;
+        if (ymdMatch) {
+          parsedDate = `${ymdMatch[1]}-${ymdMatch[2].padStart(2, '0')}-${ymdMatch[3].padStart(2, '0')}`;
+        }
+      }
+      if (!parsedDate && d.created_at) {
+        parsedDate = d.created_at.split('T')[0];
+      }
+      if (parsedDate) {
+        db.run('UPDATE vehicle_documents SET document_date = ? WHERE id = ?', [parsedDate, d.id]);
+      }
+    }
+  } catch (err) {
+    console.warn('Document date backfill warning:', err);
   }
 
   // 9b. Odometer logs (Automated Home Assistant, OBD2, manual telemetric logs)
@@ -382,6 +434,10 @@ export function initializeDatabase(): void {
       tread_depth_rr REAL,
       last_measured_date TEXT,
       notes TEXT,
+      purchase_price REAL DEFAULT 0,
+      purchase_date TEXT,
+      invoice_file TEXT,
+      invoice_document_id TEXT,
       created_at TEXT NOT NULL,
       FOREIGN KEY (vehicle_id) REFERENCES vehicles(id) ON DELETE CASCADE
     );
@@ -401,6 +457,18 @@ export function initializeDatabase(): void {
     }
     if (!tireCols.includes('speed_index')) {
       db.run("ALTER TABLE tire_sets ADD COLUMN speed_index TEXT");
+    }
+    if (!tireCols.includes('purchase_price')) {
+      db.run("ALTER TABLE tire_sets ADD COLUMN purchase_price REAL DEFAULT 0");
+    }
+    if (!tireCols.includes('purchase_date')) {
+      db.run("ALTER TABLE tire_sets ADD COLUMN purchase_date TEXT");
+    }
+    if (!tireCols.includes('invoice_file')) {
+      db.run("ALTER TABLE tire_sets ADD COLUMN invoice_file TEXT");
+    }
+    if (!tireCols.includes('invoice_document_id')) {
+      db.run("ALTER TABLE tire_sets ADD COLUMN invoice_document_id TEXT");
     }
   } catch {
     // Non-fatal migration check

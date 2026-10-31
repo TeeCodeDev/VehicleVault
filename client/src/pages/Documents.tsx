@@ -36,6 +36,7 @@ export const Documents: React.FC = () => {
   const [documents, setDocuments] = useState<VehicleDocument[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeCategory, setActiveCategory] = useState<DocCategory>('all');
+  const [sortBy, setSortBy] = useState<'date_desc' | 'date_asc' | 'name_asc'>('date_desc');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>(() => {
     return (localStorage.getItem('vv_documents_view') as 'list' | 'grid') || 'list';
   });
@@ -62,6 +63,7 @@ export const Documents: React.FC = () => {
   const [docCategory, setDocCategory] = useState<'registration' | 'insurance' | 'apk' | 'invoice' | 'manual' | 'other'>('registration');
   const [docNotes, setDocNotes] = useState('');
   const [docExpiresAt, setDocExpiresAt] = useState('');
+  const [docDate, setDocDate] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [compressing, setCompressing] = useState(false);
   const [compressionRatio, setCompressionRatio] = useState<string | null>(null);
@@ -90,6 +92,19 @@ export const Documents: React.FC = () => {
     if (!docName) {
       const cleanName = file.name.replace(/\.[^/.]+$/, '');
       setDocName(cleanName);
+    }
+    if (!docDate) {
+      const dmy = file.name.match(/\b([0-3]?[0-9])[-/.]([0-1]?[0-9])[-/.]([12][0-9]{3})\b/);
+      if (dmy) {
+        setDocDate(`${dmy[3]}-${dmy[2].padStart(2, '0')}-${dmy[1].padStart(2, '0')}`);
+      } else {
+        const ymd = file.name.match(/\b([12][0-9]{3})[-/.]([0-1]?[0-9])[-/.]([0-3]?[0-9])\b/);
+        if (ymd) {
+          setDocDate(`${ymd[1]}-${ymd[2].padStart(2, '0')}-${ymd[3].padStart(2, '0')}`);
+        } else {
+          setDocDate(new Date().toISOString().split('T')[0]);
+        }
+      }
     }
     if (file.type.startsWith('image/') || /\.(jpe?g|png|webp|heic)$/i.test(file.name)) {
       setCompressing(true);
@@ -163,6 +178,7 @@ export const Documents: React.FC = () => {
       formData.append('category', docCategory);
       if (docNotes) formData.append('notes', docNotes);
       if (docExpiresAt) formData.append('expires_at', docExpiresAt);
+      if (docDate) formData.append('document_date', docDate);
 
       await apiFetch(`/api/documents/${selectedVehicle.id}`, {
         method: 'POST',
@@ -174,6 +190,7 @@ export const Documents: React.FC = () => {
       setDocName('');
       setDocNotes('');
       setDocExpiresAt('');
+      setDocDate('');
       setCompressionRatio(null);
       setDocCategory('registration');
       setIsDragging(false);
@@ -247,10 +264,44 @@ export const Documents: React.FC = () => {
     }
   };
 
-  const filteredDocuments = documents.filter((doc) => {
-    if (activeCategory === 'all') return true;
-    return doc.category === activeCategory;
-  });
+  const extractDocumentDate = (doc: VehicleDocument): string => {
+    if (doc.document_date && /^\d{4}-\d{2}-\d{2}$/.test(doc.document_date)) {
+      return doc.document_date;
+    }
+    const dmyMatch = doc.name ? doc.name.match(/\b([0-3]?[0-9])[-/.]([0-1]?[0-9])[-/.]([12][0-9]{3})\b/) : null;
+    if (dmyMatch) {
+      const day = dmyMatch[1].padStart(2, '0');
+      const month = dmyMatch[2].padStart(2, '0');
+      const year = dmyMatch[3];
+      return `${year}-${month}-${day}`;
+    }
+    const ymdMatch = doc.name ? doc.name.match(/\b([12][0-9]{3})[-/.]([0-1]?[0-9])[-/.]([0-3]?[0-9])\b/) : null;
+    if (ymdMatch) {
+      return `${ymdMatch[1]}-${ymdMatch[2].padStart(2, '0')}-${ymdMatch[3].padStart(2, '0')}`;
+    }
+    if (doc.created_at) {
+      return doc.created_at.split('T')[0];
+    }
+    return '1970-01-01';
+  };
+
+  const filteredDocuments = documents
+    .filter((doc) => {
+      if (activeCategory === 'all') return true;
+      return doc.category === activeCategory;
+    })
+    .sort((a, b) => {
+      if (sortBy === 'name_asc') {
+        return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+      }
+      const dateA = extractDocumentDate(a);
+      const dateB = extractDocumentDate(b);
+      if (sortBy === 'date_asc') {
+        return dateA.localeCompare(dateB) || a.created_at.localeCompare(b.created_at);
+      }
+      // default: date_desc (nieuwste datum eerst)
+      return dateB.localeCompare(dateA) || b.created_at.localeCompare(a.created_at);
+    });
 
   const categories: { key: DocCategory; label: string }[] = [
     { key: 'all', label: t('docCatAll') },
@@ -332,8 +383,20 @@ export const Documents: React.FC = () => {
           })}
         </div>
 
-        {/* View Switcher */}
-        <div className="flex items-center space-x-1 bg-white dark:bg-slate-900 p-1 rounded-xl border border-slate-200/80 dark:border-slate-800 self-end sm:self-auto shrink-0 shadow-2xs">
+        {/* Sort & View Switcher */}
+        <div className="flex items-center space-x-2 self-end sm:self-auto shrink-0">
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as any)}
+            className="px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-sky-500 shadow-2xs"
+            title={lang === 'nl' ? 'Documenten sorteren' : 'Sort documents'}
+          >
+            <option value="date_desc">{lang === 'nl' ? 'Datum: Nieuwste eerst' : 'Date: Newest first'}</option>
+            <option value="date_asc">{lang === 'nl' ? 'Datum: Oudste eerst' : 'Date: Oldest first'}</option>
+            <option value="name_asc">{lang === 'nl' ? 'Naam (A-Z)' : 'Name (A-Z)'}</option>
+          </select>
+
+          <div className="flex items-center space-x-1 bg-white dark:bg-slate-900 p-1 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs">
           <button
             type="button"
             onClick={() => handleSetViewMode('list')}
@@ -358,6 +421,7 @@ export const Documents: React.FC = () => {
           >
             <LayoutGrid className="w-4 h-4" />
           </button>
+          </div>
         </div>
       </div>
 
@@ -430,6 +494,15 @@ export const Documents: React.FC = () => {
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold border ${badge.badgeClass}`}>
                         {badge.label}
                       </span>
+
+                      {(() => {
+                        const dateStr = extractDocumentDate(doc);
+                        return dateStr && dateStr !== '1970-01-01' ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                            📅 {formatDisplayDate(dateStr)}
+                          </span>
+                        ) : null;
+                      })()}
 
                       {doc.expires_at && (() => {
                         const exp = new Date(doc.expires_at);
@@ -559,6 +632,14 @@ export const Documents: React.FC = () => {
                           <span className={`inline-block px-2 py-0.5 rounded-md text-[10px] font-bold border ${badge.badgeClass}`}>
                             {badge.label}
                           </span>
+                          {(() => {
+                            const dateStr = extractDocumentDate(doc);
+                            return dateStr && dateStr !== '1970-01-01' ? (
+                              <span className="inline-block px-2 py-0.5 rounded-md text-[10px] font-semibold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                                📅 {formatDisplayDate(dateStr)}
+                              </span>
+                            ) : null;
+                          })()}
                           {doc.expires_at && (() => {
                             const exp = new Date(doc.expires_at);
                             const today = new Date();
@@ -747,7 +828,15 @@ export const Documents: React.FC = () => {
                 </select>
               </div>
 
-              {/* Notes */}
+              {/* Document Date */}
+              <div>
+                <DatePicker
+                  label={lang === 'nl' ? 'Document- / Factuurdatum' : 'Document / Invoice Date'}
+                  value={docDate}
+                  onChange={setDocDate}
+                />
+              </div>
+
               {/* Expiration Date (Optional) */}
               <div>
                 <DatePicker

@@ -55,11 +55,18 @@ export class TireController {
           }
         }
 
+        const purchasePrice = Number(set.purchase_price) || 0;
+        let wearCostPer1000km: number | null = null;
+        if (purchasePrice > 0 && currentKm > 0) {
+          wearCostPer1000km = Math.round((purchasePrice / currentKm) * 1000 * 100) / 100;
+        }
+
         return {
           ...set,
           current_km: currentKm,
           minDepth,
           treadStatus,
+          wear_cost_per_1000km: wearCostPer1000km,
         };
       });
 
@@ -93,6 +100,10 @@ export class TireController {
         treadDepthRr = null,
         lastMeasuredDate = null,
         notes = '',
+        purchasePrice = null,
+        purchaseDate = null,
+        invoiceFile = null,
+        invoiceDocumentId = null,
       } = req.body;
 
       if (!vehicleId || !name) {
@@ -136,8 +147,8 @@ export class TireController {
           dot_code, storage_location,
           status, mounted_odometer, mounted_date, total_km,
           tread_depth_fl, tread_depth_fr, tread_depth_rl, tread_depth_rr,
-          last_measured_date, notes, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          last_measured_date, notes, purchase_price, purchase_date, invoice_file, invoice_document_id, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           id,
           vehicleId,
@@ -161,6 +172,10 @@ export class TireController {
           treadDepthRr !== null && treadDepthRr !== undefined && treadDepthRr !== '' ? Number(treadDepthRr) : null,
           lastMeasuredDate || null,
           notes?.trim() || null,
+          purchasePrice !== null && purchasePrice !== undefined && purchasePrice !== '' ? Number(purchasePrice) : 0,
+          purchaseDate || null,
+          invoiceFile || null,
+          invoiceDocumentId || null,
           now,
         ]
       );
@@ -196,6 +211,10 @@ export class TireController {
         treadDepthRr,
         lastMeasuredDate,
         notes,
+        purchasePrice,
+        purchaseDate,
+        invoiceFile,
+        invoiceDocumentId,
       } = req.body;
 
       const existing = db.get<any>('SELECT * FROM tire_sets WHERE id = ?', [id]);
@@ -242,7 +261,11 @@ export class TireController {
           tread_depth_rl = ?,
           tread_depth_rr = ?,
           last_measured_date = COALESCE(?, last_measured_date),
-          notes = COALESCE(?, notes)
+          notes = COALESCE(?, notes),
+          purchase_price = COALESCE(?, purchase_price),
+          purchase_date = COALESCE(?, purchase_date),
+          invoice_file = COALESCE(?, invoice_file),
+          invoice_document_id = COALESCE(?, invoice_document_id)
         WHERE id = ?`,
         [
           name !== undefined ? name.trim() : null,
@@ -265,6 +288,10 @@ export class TireController {
           treadDepthRr !== undefined ? (treadDepthRr !== '' && treadDepthRr !== null ? Number(treadDepthRr) : null) : existing.tread_depth_rr,
           lastMeasuredDate ?? null,
           notes !== undefined ? notes.trim() : null,
+          purchasePrice !== undefined ? (purchasePrice !== null && purchasePrice !== '' ? Number(purchasePrice) : 0) : null,
+          purchaseDate !== undefined ? (purchaseDate || null) : null,
+          invoiceFile !== undefined ? (invoiceFile || null) : null,
+          invoiceDocumentId !== undefined ? (invoiceDocumentId || null) : null,
           id,
         ]
       );

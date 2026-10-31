@@ -10,6 +10,7 @@ export interface QueuedFuelEntry {
   total_cost: number;
   is_full_tank: boolean;
   missed_previous: boolean;
+  is_towing?: boolean;
   notes?: string | null;
   station_name?: string | null;
   station_address?: string | null;
