@@ -74,6 +74,25 @@ export const OidcSettings: React.FC = () => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
+
+    if (enabled && !issuer.trim()) {
+      setError(
+        nl
+          ? 'Vul a.u.b. de Issuer URL van je Identity Provider in (bijv. van Authentik, Authelia of Keycloak) om SSO te activeren.'
+          : 'Please enter the Issuer URL of your Identity Provider to enable SSO.'
+      );
+      return;
+    }
+
+    if (enabled && !clientId.trim()) {
+      setError(
+        nl
+          ? 'Vul a.u.b. de Client ID in om SSO in te schakelen.'
+          : 'Please enter the Client ID to enable SSO.'
+      );
+      return;
+    }
+
     setSaving(true);
 
     try {
@@ -123,7 +142,7 @@ export const OidcSettings: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
         <div>
           <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center space-x-2">
-            <Globe className="w-4 h-4 text-indigo-500" />
+            <Globe className="w-4 h-4 text-accent-500" />
             <span>{nl ? 'OpenID Connect / Single Sign-On (OIDC)' : 'OpenID Connect / SSO (OIDC)'}</span>
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
@@ -135,13 +154,21 @@ export const OidcSettings: React.FC = () => {
 
         <span
           className={`text-[11px] font-bold px-2.5 py-1 rounded-full border flex items-center space-x-1.5 self-start sm:self-center ${
-            enabled
-              ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-400 border-indigo-300 dark:border-indigo-800/60'
+            enabled && issuer.trim() && clientId.trim()
+              ? 'bg-accent-50 dark:bg-accent-950/60 text-accent-700 dark:text-accent-300 border-accent-300 dark:border-accent-800/60'
+              : enabled
+              ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-800/60'
               : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700'
           }`}
         >
           <ShieldCheck className="w-3.5 h-3.5" />
-          <span>{enabled ? (nl ? 'SSO Actief' : 'SSO Active') : (nl ? 'SSO Uitgeschakeld' : 'SSO Inactive')}</span>
+          <span>
+            {enabled && issuer.trim() && clientId.trim()
+              ? (nl ? 'SSO Actief' : 'SSO Active')
+              : enabled
+              ? (nl ? 'SSO Incompleet (Issuer URL vereist)' : 'SSO Incomplete (Issuer URL required)')
+              : (nl ? 'SSO Uitgeschakeld' : 'SSO Inactive')}
+          </span>
         </span>
       </div>
 
@@ -177,7 +204,7 @@ export const OidcSettings: React.FC = () => {
             type="button"
             onClick={() => setEnabled(!enabled)}
             className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-              enabled ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-700'
+              enabled ? 'bg-accent-600' : 'bg-slate-300 dark:bg-slate-700'
             }`}
           >
             <span
@@ -189,24 +216,24 @@ export const OidcSettings: React.FC = () => {
         </div>
 
         {/* Callback URI info box */}
-        <div className="p-3.5 rounded-xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-200/80 dark:border-indigo-800/40 space-y-1.5">
-          <span className="font-bold text-indigo-950 dark:text-indigo-200 block text-xs">
+        <div className="p-3.5 rounded-xl bg-accent-50/50 dark:bg-accent-950/20 border border-accent-200/80 dark:border-accent-800/40 space-y-1.5">
+          <span className="font-bold text-accent-950 dark:text-accent-200 block text-xs">
             {nl ? 'Redirect URI / Callback URL voor je Identity Provider:' : 'Redirect URI for Identity Provider:'}
           </span>
           <div className="flex items-center space-x-2">
-            <code className="flex-1 bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-800/60 rounded-lg px-2.5 py-1.5 font-mono text-[11px] text-slate-800 dark:text-slate-200 overflow-x-auto select-all">
+            <code className="flex-1 bg-white dark:bg-slate-900 border border-accent-200 dark:border-accent-800/60 rounded-lg px-2.5 py-1.5 font-mono text-[11px] text-slate-800 dark:text-slate-200 overflow-x-auto select-all">
               {redirectUri || `${window.location.origin}/api/auth/oidc/callback`}
             </code>
             <button
               type="button"
               onClick={copyCallbackUrl}
-              className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold text-xs transition flex items-center space-x-1 shrink-0 shadow-xs"
+              className="px-3 py-1.5 bg-accent-600 hover:bg-accent-700 text-white rounded-lg font-bold text-xs transition flex items-center space-x-1 shrink-0 shadow-xs"
             >
               {copiedCallback ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
               <span>{copiedCallback ? (nl ? 'Gekopieerd' : 'Copied') : (nl ? 'Kopiëren' : 'Copy')}</span>
             </button>
           </div>
-          <span className="text-[10px] text-indigo-700 dark:text-indigo-400 block">
+          <span className="text-[10px] text-accent-700 dark:text-accent-400 block">
             {nl
               ? 'Kopieer deze URL naar de "Redirect URIs" configuratie in Authentik, Keycloak of Authelia.'
               : 'Add this exact URL to the Allowed Redirect URIs in your identity provider.'}
@@ -217,32 +244,34 @@ export const OidcSettings: React.FC = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="sm:col-span-2">
             <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
-              {nl ? 'Issuer URL (OpenID Discovery Endpoint basis)' : 'Issuer URL'}
+              {nl ? 'Issuer URL (OpenID Discovery Endpoint basis) *' : 'Issuer URL *'}
             </label>
             <input
               type="url"
+              required={enabled}
               value={issuer}
               onChange={(e) => setIssuer(e.target.value)}
-              placeholder="https://auth.jouwdomein.nl/application/o/vehiclevault/"
-              className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-indigo-500 shadow-sm"
+              placeholder={nl ? "Bijv. https://auth.uw-domein.nl/application/o/vehiclevault/" : "e.g. https://auth.yourdomain.com/application/o/vehiclevault/"}
+              className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-accent-500 shadow-sm"
             />
             <span className="text-[10px] text-slate-500 mt-1 block">
               {nl
-                ? 'De URL van je provider. VehicleVault leest automatisch /.well-known/openid-configuration uit.'
-                : 'Issuer base URL. VehicleVault reads /.well-known/openid-configuration automatically.'}
+                ? 'Verplicht. De URL van uw provider (VehicleVault leest automatisch /.well-known/openid-configuration uit).'
+                : 'Required. Issuer base URL (VehicleVault reads /.well-known/openid-configuration automatically).'}
             </span>
           </div>
 
           <div>
             <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
-              Client ID
+              Client ID *
             </label>
             <input
               type="text"
+              required={enabled}
               value={clientId}
               onChange={(e) => setClientId(e.target.value)}
               placeholder="vehiclevault"
-              className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-indigo-500 shadow-sm"
+              className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-accent-500 shadow-sm"
             />
           </div>
 
@@ -255,7 +284,7 @@ export const OidcSettings: React.FC = () => {
               value={clientSecret}
               onChange={(e) => setClientSecret(e.target.value)}
               placeholder="••••••••••••••••"
-              className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-indigo-500 shadow-sm"
+              className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-accent-500 shadow-sm"
             />
           </div>
 
@@ -268,7 +297,7 @@ export const OidcSettings: React.FC = () => {
               value={buttonLabel}
               onChange={(e) => setButtonLabel(e.target.value)}
               placeholder="Inloggen met Single Sign-On (OIDC)"
-              className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-indigo-500 shadow-sm"
+              className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-accent-500 shadow-sm"
             />
           </div>
 
@@ -281,7 +310,7 @@ export const OidcSettings: React.FC = () => {
               value={scopes}
               onChange={(e) => setScopes(e.target.value)}
               placeholder="openid profile email"
-              className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-indigo-500 shadow-sm"
+              className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-accent-500 shadow-sm"
             />
           </div>
         </div>
@@ -290,7 +319,7 @@ export const OidcSettings: React.FC = () => {
           <button
             type="submit"
             disabled={saving}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition flex items-center space-x-1.5 shadow-sm disabled:opacity-50 hover:scale-[1.01]"
+            className="px-4 py-2 bg-accent-600 hover:bg-accent-700 text-white rounded-xl font-bold transition flex items-center space-x-1.5 shadow-sm disabled:opacity-50 hover:scale-[1.01]"
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             <span>{nl ? 'Instellingen Opslaan' : 'Save Settings'}</span>

@@ -202,7 +202,7 @@ export const TwoFactorSettings: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
         <div>
           <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center space-x-2">
-            <ShieldCheck className="w-4 h-4 text-sky-500" />
+            <ShieldCheck className="w-4 h-4 text-accent-500" />
             <span>{nl ? 'Tweefactorauthenticatie (TOTP 2FA)' : 'Two-Factor Authentication (2FA)'}</span>
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
@@ -257,7 +257,7 @@ export const TwoFactorSettings: React.FC = () => {
             type="button"
             disabled={busy}
             onClick={startSetup}
-            className="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs rounded-xl transition shadow-sm flex items-center space-x-2 self-start sm:self-auto shrink-0"
+            className="px-4 py-2 bg-accent-600 hover:bg-accent-700 text-white font-bold text-xs rounded-xl transition shadow-sm flex items-center space-x-2 self-start sm:self-auto shrink-0"
           >
             {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <QrCode className="w-4 h-4" />}
             <span>{nl ? '2FA Inschakelen' : 'Enable 2FA'}</span>
@@ -312,7 +312,7 @@ export const TwoFactorSettings: React.FC = () => {
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
               <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center space-x-2">
-                <QrCode className="w-4 h-4 text-sky-500" />
+                <QrCode className="w-4 h-4 text-accent-500" />
                 <span>{nl ? '2FA Instellen & Koppelen' : 'Set up 2FA'}</span>
               </h3>
               <button
@@ -360,7 +360,7 @@ export const TwoFactorSettings: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => copyToClipboard(setupData.backupCodes.join('\n'), 'codes')}
-                      className="text-[11px] font-bold text-sky-600 hover:text-sky-700 flex items-center space-x-1"
+                      className="text-[11px] font-bold text-accent-600 hover:text-accent-700 flex items-center space-x-1"
                     >
                       {copiedCodes ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
                       <span>{copiedCodes ? (nl ? 'Gekopieerd' : 'Copied') : (nl ? 'Kopiëren' : 'Copy')}</span>
@@ -369,7 +369,7 @@ export const TwoFactorSettings: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => downloadCodes(setupData.backupCodes)}
-                      className="text-[11px] font-bold text-sky-600 hover:text-sky-700 flex items-center space-x-1"
+                      className="text-[11px] font-bold text-accent-600 hover:text-accent-700 flex items-center space-x-1"
                     >
                       <Download className="w-3 h-3" />
                       <span>{nl ? 'Opslaan' : 'Download'}</span>
@@ -400,12 +400,12 @@ export const TwoFactorSettings: React.FC = () => {
                     value={verifyCode}
                     onChange={(e) => setVerifyCode(e.target.value)}
                     placeholder="123456"
-                    className="flex-1 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 font-mono text-center text-sm font-bold tracking-widest text-slate-900 dark:text-white focus:outline-none focus:border-sky-500 shadow-sm"
+                    className="flex-1 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 font-mono text-center text-sm font-bold tracking-widest text-slate-900 dark:text-white focus:outline-none focus:border-accent-500 shadow-sm"
                   />
                   <button
                     type="submit"
                     disabled={busy || !verifyCode.trim()}
-                    className="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl transition shadow-sm disabled:opacity-50 flex items-center space-x-1.5 shrink-0"
+                    className="px-4 py-2 bg-accent-600 hover:bg-accent-700 text-white font-bold rounded-xl transition shadow-sm disabled:opacity-50 flex items-center space-x-1.5 shrink-0"
                   >
                     {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                     <span>{nl ? 'Activeren' : 'Activate'}</span>
@@ -533,7 +533,7 @@ export const TwoFactorSettings: React.FC = () => {
               <button
                 type="button"
                 onClick={() => downloadCodes(newBackupCodes)}
-                className="flex-1 py-2 bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs rounded-xl transition flex items-center justify-center space-x-1.5"
+                className="flex-1 py-2 bg-accent-600 hover:bg-accent-700 text-white font-bold text-xs rounded-xl transition flex items-center justify-center space-x-1.5"
               >
                 <Download className="w-3.5 h-3.5" />
                 <span>{nl ? 'Downloaden' : 'Download'}</span>

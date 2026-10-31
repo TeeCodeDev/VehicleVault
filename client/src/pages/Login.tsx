@@ -159,12 +159,12 @@ export const Login: React.FC = () => {
 
         {twoFactorData ? (
           <form onSubmit={handle2FaSubmit} className="space-y-4 text-xs">
-            <div className="bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800/60 p-3.5 rounded-xl text-sky-900 dark:text-sky-300 space-y-1">
+            <div className="bg-accent-50 dark:bg-accent-950/40 border border-accent-200 dark:border-accent-800/60 p-3.5 rounded-xl text-accent-900 dark:text-accent-300 space-y-1">
               <div className="flex items-center space-x-1.5 font-bold">
-                <ShieldCheck className="w-4 h-4 text-sky-500" />
+                <ShieldCheck className="w-4 h-4 text-accent-500" />
                 <span>Tweefactorauthenticatie (2FA)</span>
               </div>
-              <p className="text-[11px] leading-relaxed text-sky-800 dark:text-sky-300/90">
+              <p className="text-[11px] leading-relaxed text-accent-800 dark:text-accent-300/90">
                 Voer de 6-cijferige verificatiecode uit je authenticator-app (of een 8-tekens herstelcode) in om in te loggen.
               </p>
             </div>
@@ -181,7 +181,7 @@ export const Login: React.FC = () => {
                 value={twoFactorCode}
                 onChange={(e) => setTwoFactorCode(e.target.value)}
                 placeholder="123456 of XXXX-XXXX"
-                className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2.5 text-center font-mono text-base font-bold tracking-widest text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-sky-500 shadow-sm"
+                className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2.5 text-center font-mono text-base font-bold tracking-widest text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-accent-500 shadow-sm"
               />
             </div>
 
@@ -221,7 +221,7 @@ export const Login: React.FC = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="bestuurder@voorbeeld.nl"
-                    className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl pl-9 pr-3 py-2 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-sky-500 shadow-sm font-medium"
+                    className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl pl-9 pr-3 py-2 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-accent-500 shadow-sm font-medium"
                   />
                 </div>
               </div>
@@ -237,7 +237,7 @@ export const Login: React.FC = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl pl-9 pr-3 py-2 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-sky-500 shadow-sm"
+                    className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl pl-9 pr-3 py-2 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-accent-500 shadow-sm"
                   />
                 </div>
               </div>
@@ -255,7 +255,7 @@ export const Login: React.FC = () => {
 
                 <Link
                   to="/forgot-password"
-                  className="text-[11px] font-bold text-sky-600 dark:text-sky-400 hover:underline"
+                  className="text-[11px] font-bold text-accent-600 dark:text-accent-400 hover:underline"
                 >
                   Wachtwoord vergeten?
                 </Link>
@@ -276,7 +276,7 @@ export const Login: React.FC = () => {
               <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800">
                 <a
                   href="/api/auth/oidc/login"
-                  className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs transition flex items-center justify-center space-x-2 shadow-sm hover:scale-[1.01]"
+                  className="w-full py-2.5 bg-accent-600 hover:bg-accent-700 text-white rounded-xl font-bold text-xs transition flex items-center justify-center space-x-2 shadow-sm hover:scale-[1.01]"
                 >
                   <Globe className="w-4 h-4" />
                   <span>{oidcConfig.buttonLabel || 'Inloggen met Single Sign-On (SSO / OIDC)'}</span>
@@ -326,7 +326,7 @@ export const Login: React.FC = () => {
                     value={recoveryCode}
                     onChange={(e) => setRecoveryCode(e.target.value)}
                     placeholder="XXXX-XXXX-XXXX-XXXX"
-                    className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 font-mono text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-sky-500 shadow-sm"
+                    className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 font-mono text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-accent-500 shadow-sm"
                   />
                   <button
                     type="submit"
@@ -343,7 +343,7 @@ export const Login: React.FC = () => {
 
         <div className="mt-6 text-center text-xs text-slate-500 dark:text-slate-400 border-t border-slate-100 dark:border-slate-800 pt-4">
           <span>Nog geen account aangemaakt? </span>
-          <Link to="/register" className="text-sky-600 dark:text-sky-400 hover:underline font-bold">
+          <Link to="/register" className="text-accent-600 dark:text-accent-400 hover:underline font-bold">
             Account Registreren
           </Link>
         </div>
