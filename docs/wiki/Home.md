@@ -34,7 +34,7 @@
    - Model Context Protocol (MCP) server for Claude Desktop & Antigravity
 
 6. **[Notifications, Multi-User Sharing & Security](Notifications-and-Security)**
-   - Push & email notifications via **Pushover**, **Ntfy**, **Gotify**, **Discord/Slack Webhooks**, and **SMTP**
+   - Push & email notifications via **Web Push (PWA)**, **Pushover**, **Ntfy**, **Gotify**, **Discord/Slack Webhooks**, and **SMTP**
    - Multi-user vehicle isolation, granular **Vehicle Sharing (`editor` / `viewer`)**, and **Driver Mode (`Chauffeur Modus`)**
    - Reverse Proxy SSO (`Remote-Email` / Pangolin / Authelia / Authentik)
 

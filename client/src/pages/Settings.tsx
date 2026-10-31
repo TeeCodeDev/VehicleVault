@@ -57,6 +57,7 @@ import { apiFetch } from '../api/client.js';
 import { useTheme, ACCENT_COLOR_OPTIONS } from '../context/ThemeContext.js';
 import { useLanguage } from '../context/LanguageContext.js';
 import { PasskeySettings } from '../components/PasskeySettings.js';
+import { WebPushSettings } from '../components/WebPushSettings.js';
 import { useAuth } from '../context/AuthContext.js';
 import { useModules } from '../context/ModuleContext.js';
 import { formatDisplayDate, formatDisplayDateTime, formatRelativeTime } from '../utils/format.js';
@@ -146,7 +147,7 @@ export const Settings: React.FC = () => {
   const [creatingUser, setCreatingUser] = useState(false);
 
   // Notifications State
-  const [notifProvider, setNotifProvider] = useState<'none' | 'email' | 'pushover' | 'ntfy' | 'gotify' | 'webhook'>('none');
+  const [notifProvider, setNotifProvider] = useState<'none' | 'email' | 'webpush' | 'pushover' | 'ntfy' | 'gotify' | 'webhook'>('none');
   const [pushoverUserKey, setPushoverUserKey] = useState('');
   const [pushoverApiToken, setPushoverApiToken] = useState('');
   const [pushoverDevice, setPushoverDevice] = useState('');
@@ -1979,9 +1980,10 @@ action:
             </div>
 
             {/* Provider Buttons */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
               {[
                 { id: 'none', label: 'Uitgeschakeld' },
+                { id: 'webpush', label: 'Web Push (PWA)' },
                 { id: 'email', label: 'E-mail (SMTP)' },
                 { id: 'pushover', label: 'Pushover' },
                 { id: 'ntfy', label: 'Ntfy.sh / Self-Hosted' },
@@ -2004,6 +2006,8 @@ action:
             </div>
 
             {/* Provider Specific Inputs */}
+            {notifProvider === 'webpush' && <WebPushSettings />}
+
             {notifProvider === 'pushover' && (
               <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/50 border border-slate-200/80 dark:border-slate-800/80 space-y-3 text-xs">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

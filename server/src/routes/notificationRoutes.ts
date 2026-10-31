@@ -10,5 +10,12 @@ router.post('/test', requireAuth, requireAdmin, NotificationController.testNotif
 router.post('/test-smtp', requireAuth, requireAdmin, NotificationController.testSmtp);
 router.post('/check', requireAuth, NotificationController.checkAlerts);
 
+// Web Push: every signed-in user manages their own devices; the VAPID private key never leaves the server.
+router.get('/push/public-key', requireAuth, NotificationController.getPushPublicKey);
+router.get('/push/status', requireAuth, NotificationController.getPushStatus);
+router.post('/push/subscribe', requireAuth, NotificationController.pushSubscribe);
+router.post('/push/unsubscribe', requireAuth, NotificationController.pushUnsubscribe);
+router.post('/push/test', requireAuth, NotificationController.pushTest);
+
 export default router;
 
