@@ -545,3 +545,4 @@ export const TwoFactorSettings: React.FC = () => {
     </div>
   );
 };
+

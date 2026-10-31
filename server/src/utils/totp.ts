@@ -138,3 +138,4 @@ export function hashBackupCode(code: string): string {
   const clean = code.trim().toUpperCase().replace(/[^A-F0-9]/g, '');
   return crypto.createHash('sha256').update(clean).digest('hex');
 }
+

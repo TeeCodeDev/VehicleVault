@@ -97,3 +97,4 @@ describe('VehicleVault v2.1 Advanced Security & Vignette Engine', () => {
     assert.ok(cfg.scopes.includes('openid'));
   });
 });
+

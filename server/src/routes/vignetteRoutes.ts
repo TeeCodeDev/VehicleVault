@@ -13,3 +13,4 @@ router.put('/:id', VignetteController.update);
 router.delete('/:id', VignetteController.delete);
 
 export default router;
+

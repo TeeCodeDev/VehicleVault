@@ -560,3 +560,4 @@ export const VignetteManager: React.FC<Props> = ({ vehicle }) => {
     </div>
   );
 };
+
