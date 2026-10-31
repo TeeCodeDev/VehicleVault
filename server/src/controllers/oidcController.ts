@@ -28,6 +28,42 @@ function setSetting(key: string, value: string): void {
   ]);
 }
 
+function resolveDiscoveryUrl(issuer: string): string {
+  const clean = issuer.trim().replace(/\/$/, '');
+  if (clean.endsWith('/.well-known/openid-configuration')) {
+    return clean;
+  }
+  return `${clean}/.well-known/openid-configuration`;
+}
+
+async function fetchDiscoveryDoc(issuer: string): Promise<{ ok: boolean; data?: any; error?: string; url: string }> {
+  const url = resolveDiscoveryUrl(issuer);
+  try {
+    const res = await fetch(url, {
+      headers: { Accept: 'application/json' },
+      signal: AbortSignal.timeout(8000),
+    });
+    const text = await res.text();
+    if (!res.ok) {
+      return { ok: false, url, error: `Discovery endpoint gaf HTTP ${res.status} (${res.statusText}) terug op ${url}.` };
+    }
+    if (text.trim().startsWith('<')) {
+      return {
+        ok: false,
+        url,
+        error: `De URL ${url} retourneert een HTML-webpagina in plaats van het OIDC JSON-document. Controleer of het pad klopt (bijv. /application/o/<slug>/ in Authentik of /realms/<naam> in Keycloak).`,
+      };
+    }
+    const data = JSON.parse(text);
+    if (!data.authorization_endpoint) {
+      return { ok: false, url, error: 'OIDC discovery document bevat geen authorization_endpoint.' };
+    }
+    return { ok: true, url, data };
+  } catch (err: any) {
+    return { ok: false, url, error: `Kan geen verbinding maken met ${url}: ${err.message}` };
+  }
+}
+
 export class OidcController {
   public static getResolvedConfig(req?: Request): OidcResolvedConfig {
     const envEnabled = (process.env.OIDC_ENABLED || '').toLowerCase() === 'true';
@@ -120,14 +156,13 @@ export class OidcController {
       }
 
       // Fetch discovery document
-      const discoveryUrl = `${cfg.issuer.replace(/\/$/, '')}/.well-known/openid-configuration`;
-      const discRes = await fetch(discoveryUrl, { signal: AbortSignal.timeout(6000) });
-      if (!discRes.ok) {
-        console.error('OIDC discovery failed:', discRes.status, discRes.statusText);
-        res.redirect('/login?error=oidc_discovery_failed');
+      const discResult = await fetchDiscoveryDoc(cfg.issuer);
+      if (!discResult.ok || !discResult.data) {
+        console.error('OIDC discovery failed:', discResult.error);
+        res.redirect(`/login?error=${encodeURIComponent(discResult.error || 'oidc_discovery_failed')}`);
         return;
       }
-      const disc = (await discRes.json()) as any;
+      const disc = discResult.data;
       const authorizationEndpoint = disc.authorization_endpoint;
       if (!authorizationEndpoint) {
         res.redirect('/login?error=oidc_missing_authorization_endpoint');
@@ -205,9 +240,13 @@ export class OidcController {
       }
 
       const cfg = OidcController.getResolvedConfig(req);
-      const discoveryUrl = `${cfg.issuer.replace(/\/$/, '')}/.well-known/openid-configuration`;
-      const discRes = await fetch(discoveryUrl, { signal: AbortSignal.timeout(6000) });
-      const disc = (await discRes.json()) as any;
+      const discResult = await fetchDiscoveryDoc(cfg.issuer);
+      if (!discResult.ok || !discResult.data) {
+        console.error('OIDC discovery failed in callback:', discResult.error);
+        res.redirect(`/login?error=${encodeURIComponent(discResult.error || 'oidc_discovery_failed')}`);
+        return;
+      }
+      const disc = discResult.data;
 
       const tokenEndpoint = disc.token_endpoint;
       const userinfoEndpoint = disc.userinfo_endpoint;
@@ -325,6 +364,26 @@ export class OidcController {
       console.error('OIDC callback processing error:', err);
       res.redirect(`/login?error=${encodeURIComponent(err?.message || 'oidc_callback_error')}`);
     }
+  }
+
+  /**
+   * Admin: Test OIDC Discovery connection directly
+   */
+  public static async testConnection(req: Request, res: Response): Promise<void> {
+    const { issuer } = req.body;
+    if (!issuer || !String(issuer).trim()) {
+      res.status(400).json({ success: false, error: 'Vul een Issuer URL in om te testen.' });
+      return;
+    }
+    const result = await fetchDiscoveryDoc(String(issuer));
+    if (!result.ok || !result.data) {
+      res.status(400).json({ success: false, error: result.error });
+      return;
+    }
+    res.json({
+      success: true,
+      message: `Verbinding geslaagd! Gevonden endpoints: Authorization (${result.data.authorization_endpoint}) en Token (${result.data.token_endpoint || 'Geen'}).`,
+    });
   }
 }
 

@@ -7,6 +7,7 @@ import {
   Loader2,
   ShieldCheck,
   Save,
+  RefreshCw,
 } from 'lucide-react';
 import { apiFetch } from '../api/client.js';
 import { useAuth } from '../context/AuthContext.js';
@@ -33,6 +34,8 @@ export const OidcSettings: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [copiedCallback, setCopiedCallback] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<{ ok: boolean; msg: string } | null>(null);
 
   // Form fields
   const [enabled, setEnabled] = useState(false);
@@ -126,6 +129,27 @@ export const OidcSettings: React.FC = () => {
     navigator.clipboard.writeText(url);
     setCopiedCallback(true);
     setTimeout(() => setCopiedCallback(false), 2000);
+  };
+
+  const handleTestConnection = async () => {
+    if (!issuer.trim()) {
+      setError(nl ? 'Vul eerst de Issuer URL in om te testen.' : 'Please enter Issuer URL first.');
+      return;
+    }
+    setError(null);
+    setTestResult(null);
+    setTesting(true);
+    try {
+      const res = await apiFetch<{ success: boolean; message?: string; error?: string }>('/api/auth/oidc/test', {
+        method: 'POST',
+        body: JSON.stringify({ issuer: issuer.trim() }),
+      });
+      setTestResult({ ok: true, msg: res.message || 'Verbinding geslaagd!' });
+    } catch (err: any) {
+      setTestResult({ ok: false, msg: err?.message || 'Verbinding mislukt' });
+    } finally {
+      setTesting(false);
+    }
   };
 
   if (loading) {
@@ -315,11 +339,45 @@ export const OidcSettings: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex justify-end pt-2">
+        {testResult && (
+          <div
+            className={`flex items-start space-x-2 text-xs p-3 rounded-xl border ${
+              testResult.ok
+                ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/50 text-emerald-800 dark:text-emerald-200'
+                : 'bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800/50 text-rose-800 dark:text-rose-200'
+            }`}
+          >
+            {testResult.ok ? (
+              <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+            ) : (
+              <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+            )}
+            <div className="flex-1">
+              <span className="font-bold block">
+                {testResult.ok
+                  ? (nl ? 'Verbinding succesvol!' : 'Connection successful!')
+                  : (nl ? 'Verbindingsfout' : 'Connection failed')}
+              </span>
+              <p className="mt-0.5 whitespace-pre-wrap leading-relaxed">{testResult.msg}</p>
+            </div>
+          </div>
+        )}
+
+        <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-2 pt-2">
+          <button
+            type="button"
+            onClick={handleTestConnection}
+            disabled={testing || !issuer.trim()}
+            className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl font-bold transition flex items-center justify-center space-x-1.5 shadow-xs disabled:opacity-50 text-xs"
+          >
+            {testing ? <Loader2 className="w-4 h-4 animate-spin text-accent-500" /> : <RefreshCw className="w-4 h-4" />}
+            <span>{nl ? 'Test OIDC Verbinding' : 'Test OIDC Connection'}</span>
+          </button>
+
           <button
             type="submit"
             disabled={saving}
-            className="px-4 py-2 bg-accent-600 hover:bg-accent-700 text-white rounded-xl font-bold transition flex items-center space-x-1.5 shadow-sm disabled:opacity-50 hover:scale-[1.01]"
+            className="px-4 py-2 bg-accent-600 hover:bg-accent-700 text-white rounded-xl font-bold transition flex items-center justify-center space-x-1.5 shadow-sm disabled:opacity-50 hover:scale-[1.01]"
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             <span>{nl ? 'Instellingen Opslaan' : 'Save Settings'}</span>

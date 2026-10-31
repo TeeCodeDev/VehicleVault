@@ -32,6 +32,7 @@ router.get('/oidc/login', OidcController.login);
 router.get('/oidc/callback', OidcController.callback);
 router.get('/oidc/settings', requireAuth, requireAdmin, OidcController.getAdminSettings);
 router.post('/oidc/settings', requireAuth, requireAdmin, OidcController.updateAdminSettings);
+router.post('/oidc/test', requireAuth, requireAdmin, OidcController.testConnection);
 
 // Passkeys (WebAuthn) and recovery codes
 router.post('/passkey/login/options', authLimiter, PasskeyController.loginOptions);
