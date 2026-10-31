@@ -27,11 +27,25 @@
     <script type="module" src="/src/main.tsx"></script>
     <script>
       if ('serviceWorker' in navigator) {
+        // A new build installs a new worker, which takes over straight away (skipWaiting + clients.claim).
+        // Reload once when that happens, so the open tab runs the new bundle instead of the old one.
+        var hadController = !!navigator.serviceWorker.controller;
+        var reloading = false;
+        navigator.serviceWorker.addEventListener('controllerchange', function () {
+          if (!hadController) { hadController = true; return; }
+          if (reloading) return;
+          reloading = true;
+          window.location.reload();
+        });
+
         window.addEventListener('load', () => {
           navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' })
             .then((registration) => {
-              // Check for SW updates automatically
+              // Check for SW updates now, and whenever the installed app comes back to the foreground
               registration.update().catch(() => {});
+              document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') registration.update().catch(() => {});
+              });
             })
             .catch((err) => {
               console.log('SW registration note:', err);

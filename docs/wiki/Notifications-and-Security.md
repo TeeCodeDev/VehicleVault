@@ -12,11 +12,12 @@ Under **Settings → Meldingen (Notifications)**, configure automated alerts for
 ### Supported Providers
 | Provider | Configuration |
 | :--- | :--- |
+| **Web Push (PWA)** | No account or settings needed: each person turns it on for their own device under **Settings → Notifications → Web Push**. Alerts go to every enabled device (see below) |
 | **Pushover** | User Key + Application API Token + optional target Device name (priority `1` for overdue alerts, HTML formatting) |
 | **Ntfy.sh** | Self-hosted or public topic URL + optional Bearer access token |
 | **Gotify** | Server URL + Application Token |
 | **Webhook (Discord / Slack / Generic)** | Automatically formats rich embeds for Discord/Slack or dispatches a structured JSON payload |
-| **E-mail** | Sent through **SMTP** or **Microsoft Graph** (see below). Recipients (`To`) may be several addresses separated by commas |
+| **E-mail** | Sent through **Microsoft 365** (sign in), **Gmail** (connect with Google), **SMTP** or **Microsoft Graph** with your own app (see below). Recipients (`To`) may be several addresses separated by commas |
 
 ### E-mail settings
 Under **Settings → Notifications → E-mail**, one configuration serves the alert e-mails and the password-reset links. Pick how VehicleVault sends: **Microsoft 365**, **Gmail**, **SMTP**, or **Microsoft Graph with your own app** (advanced). Everything is done in the page; nothing needs to be edited in a file.
@@ -58,6 +59,19 @@ Under *Advanced*: **Require STARTTLS** (refuse to send unencrypted) and **Ignore
 **Check connection** verifies the login without sending anything (for Graph: tenant, client ID and secret; the `Mail.Send` permission itself is only proven by **Send test mail**). Failures are explained: wrong app password, SMTP AUTH disabled, TLS mode that does not match the port, unreachable server, a missing Graph permission, and so on. Secrets are never sent back to the browser; leaving a secret field untouched keeps the stored value.
 
 Settings can also come from the environment (`SMTP_*`, `SMTP_REQUIRE_TLS`, `SMTP_IGNORE_TLS_ERRORS`, `MAIL_TRANSPORT`, `GRAPH_TENANT_ID`, `GRAPH_CLIENT_ID`, `GRAPH_CLIENT_SECRET`, `GRAPH_SENDER`); values saved in the UI take precedence.
+
+### Web Push (PWA)
+VehicleVault sends Web Push messages (RFC 8030, signed with VAPID keys) straight to the push service of the browser (Google, Apple, Mozilla, Microsoft). No external notification service is involved.
+
+1. An admin selects **Web Push (PWA)** as the provider and saves.
+2. Every person opens **Settings → Notifications** on their own phone or computer and presses **Turn on for this device**, then allows notifications when the browser asks. **Send test to my devices** verifies it.
+3. APK, maintenance and document alerts go to **all** enabled devices of **all** users. Devices that the browser has revoked (HTTP 404/410 from the push service) are removed automatically.
+
+Requirements and limits:
+- **HTTPS is required** (or `localhost`). Put VehicleVault behind a reverse proxy with a certificate.
+- **iPhone / iPad (iOS 16.4+):** Safari only allows Web Push for the app added to the Home Screen (Share → *Add to Home Screen*); open it from there before turning notifications on.
+- A user can enable at most 10 devices. Endpoints must be `https` DNS names of a push service, so the server never POSTs to IP addresses or internal hosts.
+- The VAPID key pair is generated on first use and stored in the database (`system_settings`), so it is included in backups. To manage the keys yourself, set `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY` (and optionally `VAPID_SUBJECT`, a `mailto:` or `https:` contact). If the key pair changes, devices must press **Turn on** again; the app re-subscribes them with the new key.
 
 ---
 
