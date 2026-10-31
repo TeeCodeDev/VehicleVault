@@ -62,5 +62,91 @@ export class NotificationController {
       res.status(500).json({ error: 'Fout bij controleren van notificaties' });
     }
   }
+
+  public static getMail(_req: Request, res: Response): void {
+    try {
+      const smtp = EmailService.getSmtpConfig();
+      const graph = EmailService.getGraphConfig();
+      res.json({
+        transport: EmailService.getTransport(),
+        configured: EmailService.isConfigured(),
+        smtp: {
+          host: smtp.host,
+          port: smtp.port,
+          secure: smtp.secure,
+          user: smtp.user,
+          // Secrets are never sent to the browser, only whether one is stored.
+          pass: smtp.pass ? '••••••••' : '',
+          from: smtp.from,
+          to: smtp.to,
+          ignoreTlsErrors: smtp.ignoreTlsErrors,
+          requireTls: smtp.requireTls,
+        },
+        graph: {
+          tenantId: graph.tenantId,
+          clientId: graph.clientId,
+          clientSecret: graph.clientSecret ? '••••••••' : '',
+          sender: graph.sender,
+        },
+      });
+    } catch (err: any) {
+      console.error('Get mail settings error:', err);
+      res.status(500).json({ error: 'Fout bij ophalen van e-mailinstellingen' });
+    }
+  }
+
+  public static updateMail(req: Request, res: Response): void {
+    try {
+      const body = req.body || {};
+      const text = (v: unknown, max = 300) => (typeof v === 'string' ? v.slice(0, max) : undefined);
+      const bool = (v: unknown) => (typeof v === 'boolean' ? v : undefined);
+
+      if (body.transport !== undefined && body.transport !== 'smtp' && body.transport !== 'graph') {
+        res.status(400).json({ error: 'Onbekende verzendmethode' });
+        return;
+      }
+      const smtp = body.smtp || {};
+      const port = smtp.port === undefined ? undefined : Number(smtp.port);
+      if (port !== undefined && (!Number.isInteger(port) || port < 1 || port > 65535)) {
+        res.status(400).json({ error: 'Poort moet een getal tussen 1 en 65535 zijn' });
+        return;
+      }
+
+      EmailService.saveSmtpConfig({
+        host: text(smtp.host),
+        port,
+        secure: bool(smtp.secure),
+        user: text(smtp.user),
+        pass: text(smtp.pass, 500),
+        from: text(smtp.from),
+        to: text(smtp.to, 500),
+        ignoreTlsErrors: bool(smtp.ignoreTlsErrors),
+        requireTls: bool(smtp.requireTls),
+      });
+      const graph = body.graph || {};
+      EmailService.saveMailConfig({
+        transport: body.transport,
+        graphTenantId: text(graph.tenantId),
+        graphClientId: text(graph.clientId),
+        graphClientSecret: text(graph.clientSecret, 500),
+        graphSender: text(graph.sender),
+      });
+      res.json({ success: true, configured: EmailService.isConfigured() });
+    } catch (err: any) {
+      console.error('Update mail settings error:', err);
+      res.status(500).json({ error: 'Fout bij opslaan van e-mailinstellingen' });
+    }
+  }
+
+  /** Checks the connection and the login without sending anything. */
+  public static async verifyMail(_req: Request, res: Response): Promise<void> {
+    try {
+      const result = await EmailService.verifyConnection();
+      res.status(result.success ? 200 : 400).json(result);
+    } catch (err: any) {
+      console.error('Verify mail error:', err);
+      res.status(500).json({ success: false, message: err?.message || 'Fout bij controleren van de verbinding' });
+    }
+  }
 }
 

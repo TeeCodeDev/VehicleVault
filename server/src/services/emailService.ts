@@ -1,6 +1,20 @@
 import nodemailer from 'nodemailer';
 import type { Transporter } from 'nodemailer';
 import { db } from '../db/database.js';
+import { GraphMailService, type GraphConfig } from './graphMailService.js';
+import { describeSmtpError, formatFailure } from './mailErrors.js';
+
+export type MailTransport = 'smtp' | 'graph';
+
+const escapeHtml = (value: string): string =>
+  value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+/** "a@x.nl, b@y.nl; c@z.nl" -> ['a@x.nl', 'b@y.nl', 'c@z.nl'] */
+const splitRecipients = (value: string): string[] =>
+  value
+    .split(/[,;]/)
+    .map((part) => part.trim())
+    .filter(Boolean);
 
 export interface SmtpConfig {
   host: string;
@@ -10,6 +24,10 @@ export interface SmtpConfig {
   pass: string;
   from: string;
   to: string;
+  /** Accept a certificate that does not verify (own CA, self-signed). Off by default. */
+  ignoreTlsErrors: boolean;
+  /** Refuse to send when the server does not offer STARTTLS. */
+  requireTls: boolean;
 }
 
 export class EmailService {
@@ -33,6 +51,8 @@ export class EmailService {
     const pass = getVal('smtp_pass', 'SMTP_PASS', '');
     const from = getVal('smtp_from', 'SMTP_FROM', 'VehicleVault <notificaties@vehiclevault.local>');
     const to = getVal('smtp_to', 'SMTP_TO', '');
+    const ignoreTlsErrors = ['true', '1'].includes(getVal('smtp_ignore_tls_errors', 'SMTP_IGNORE_TLS_ERRORS', 'false'));
+    const requireTls = ['true', '1'].includes(getVal('smtp_require_tls', 'SMTP_REQUIRE_TLS', 'false'));
 
     return {
       host,
@@ -42,7 +62,57 @@ export class EmailService {
       pass,
       from,
       to,
+      ignoreTlsErrors,
+      requireTls,
     };
+  }
+
+  private static getSetting(key: string, envKey: string, def = ''): string {
+    try {
+      const row = db.get<{ value: string }>('SELECT value FROM system_settings WHERE key = ?', [key]);
+      if (row && row.value !== undefined && row.value !== '') return row.value;
+    } catch {}
+    return process.env[envKey] || def;
+  }
+
+  private static setSetting(key: string, val: string): void {
+    db.run(
+      `INSERT INTO system_settings (key, value, updated_at)
+       VALUES (?, ?, ?)
+       ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
+      [key, val, new Date().toISOString()]
+    );
+  }
+
+  public static getTransport(): MailTransport {
+    return this.getSetting('mail_transport', 'MAIL_TRANSPORT', 'smtp') === 'graph' ? 'graph' : 'smtp';
+  }
+
+  public static getGraphConfig(): GraphConfig {
+    return {
+      tenantId: this.getSetting('graph_tenant_id', 'GRAPH_TENANT_ID'),
+      clientId: this.getSetting('graph_client_id', 'GRAPH_CLIENT_ID'),
+      clientSecret: this.getSetting('graph_client_secret', 'GRAPH_CLIENT_SECRET'),
+      sender: this.getSetting('graph_sender', 'GRAPH_SENDER'),
+    };
+  }
+
+  public static saveMailConfig(config: {
+    transport?: MailTransport;
+    graphTenantId?: string;
+    graphClientId?: string;
+    graphClientSecret?: string;
+    graphSender?: string;
+  }): void {
+    if (config.transport !== undefined) this.setSetting('mail_transport', config.transport === 'graph' ? 'graph' : 'smtp');
+    if (config.graphTenantId !== undefined) this.setSetting('graph_tenant_id', config.graphTenantId.trim());
+    if (config.graphClientId !== undefined) this.setSetting('graph_client_id', config.graphClientId.trim());
+    if (config.graphSender !== undefined) this.setSetting('graph_sender', config.graphSender.trim());
+    // The secret is never sent back to the browser: an empty value or the mask keeps the stored one.
+    if (config.graphClientSecret !== undefined && config.graphClientSecret !== '' && !config.graphClientSecret.includes('••••')) {
+      this.setSetting('graph_client_secret', config.graphClientSecret.trim());
+    }
+    GraphMailService.resetTokenCache();
   }
 
   public static saveSmtpConfig(config: Partial<SmtpConfig>): void {
@@ -65,19 +135,28 @@ export class EmailService {
     }
     if (config.from !== undefined) setVal('smtp_from', config.from.trim());
     if (config.to !== undefined) setVal('smtp_to', config.to.trim());
+    if (config.ignoreTlsErrors !== undefined) setVal('smtp_ignore_tls_errors', config.ignoreTlsErrors ? 'true' : 'false');
+    if (config.requireTls !== undefined) setVal('smtp_require_tls', config.requireTls ? 'true' : 'false');
 
     // Invalidate cached transporter on settings save
     this.cachedTransporter = null;
   }
 
-  public static isConfigured(): boolean {
+  public static isSmtpConfigured(): boolean {
     const config = this.getSmtpConfig();
     return Boolean(config.host && (config.user || config.from));
   }
 
+  /** True when mail can be sent with the selected transport (SMTP or Microsoft Graph). */
+  public static isConfigured(): boolean {
+    return this.getTransport() === 'graph'
+      ? GraphMailService.isConfigured(this.getGraphConfig())
+      : this.isSmtpConfigured();
+  }
+
   public static getTransporter(): Transporter {
     const config = this.getSmtpConfig();
-    const currentKey = `${config.host}:${config.port}:${config.secure}:${config.user}:${config.pass}`;
+    const currentKey = `${config.host}:${config.port}:${config.secure}:${config.user}:${config.pass}:${config.ignoreTlsErrors}:${config.requireTls}`;
 
     if (this.cachedTransporter && this.lastConfigKey === currentKey) {
       return this.cachedTransporter;
@@ -87,8 +166,9 @@ export class EmailService {
       host: config.host,
       port: config.port,
       secure: config.secure,
+      requireTLS: config.requireTls && !config.secure,
       tls: {
-        rejectUnauthorized: process.env.SMTP_IGNORE_TLS_ERRORS !== 'true',
+        rejectUnauthorized: !config.ignoreTlsErrors,
       },
     };
 
@@ -105,6 +185,10 @@ export class EmailService {
   }
 
   public static async verifyConnection(): Promise<{ success: boolean; message: string }> {
+    if (this.getTransport() === 'graph') {
+      return GraphMailService.verify(this.getGraphConfig());
+    }
+
     const config = this.getSmtpConfig();
     if (!config.host) {
       return { success: false, message: 'Geen SMTP Host ingevuld. Voer een geldige server in (bijv. smtp.gmail.com of mail.uwdomein.nl).' };
@@ -115,7 +199,7 @@ export class EmailService {
       await transporter.verify();
       return { success: true, message: 'Verbinding met SMTP-server succesvol geverifieerd!' };
     } catch (err: any) {
-      return { success: false, message: `SMTP Verbindingsfout: ${err?.message || 'Onbekende fout'}` };
+      return { success: false, message: `SMTP Verbindingsfout: ${formatFailure(describeSmtpError(err, config.host))}` };
     }
   }
 
@@ -125,11 +209,24 @@ export class EmailService {
     text?: string;
     html?: string;
   }): Promise<{ success: boolean; message: string }> {
-    const config = this.getSmtpConfig();
     if (!this.isConfigured()) {
-      return { success: false, message: 'SMTP e-mailinstellingen zijn nog niet geconfigureerd in de instellingen.' };
+      return {
+        success: false,
+        message:
+          this.getTransport() === 'graph'
+            ? 'Microsoft Graph e-mailinstellingen zijn nog niet volledig ingevuld in de instellingen.'
+            : 'SMTP e-mailinstellingen zijn nog niet geconfigureerd in de instellingen.',
+      };
     }
 
+    if (this.getTransport() === 'graph') {
+      const graph = this.getGraphConfig();
+      const recipients = splitRecipients(options.to);
+      if (recipients.length === 0) return { success: false, message: 'Geen ontvangstadres opgegeven.' };
+      return GraphMailService.send(graph, { to: recipients, subject: options.subject, text: options.text, html: options.html });
+    }
+
+    const config = this.getSmtpConfig();
     try {
       const transporter = this.getTransporter();
       const info = await transporter.sendMail({
@@ -143,13 +240,21 @@ export class EmailService {
       return { success: true, message: `E-mail succesvol verzonden (Message ID: ${info.messageId})` };
     } catch (err: any) {
       console.error('Email send error:', err);
-      return { success: false, message: `Verzenden mislukt: ${err?.message || 'Onbekende fout'}` };
+      return { success: false, message: `Verzenden mislukt: ${formatFailure(describeSmtpError(err, config.host))}` };
     }
   }
 
-  public static async sendTestEmail(targetTo?: string): Promise<{ success: boolean; message: string }> {
+  /** Default recipient for notifications and tests: the configured To, else the sending mailbox. */
+  private static defaultRecipient(targetTo?: string): string {
+    if (targetTo) return targetTo;
     const config = this.getSmtpConfig();
-    const recipient = targetTo || config.to || config.user;
+    if (config.to) return config.to;
+    return this.getTransport() === 'graph' ? this.getGraphConfig().sender : config.user;
+  }
+
+  public static async sendTestEmail(targetTo?: string): Promise<{ success: boolean; message: string }> {
+    const recipient = this.defaultRecipient(targetTo);
+    const via = this.getTransport() === 'graph' ? 'Microsoft Graph' : this.getSmtpConfig().host;
 
     if (!recipient) {
       return { success: false, message: 'Geen ontvangstadres opgegeven voor de testmail.' };
@@ -164,14 +269,14 @@ export class EmailService {
         </div>
 
         <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 18px; margin-bottom: 20px;">
-          <h2 style="color: #166534; font-size: 16px; margin: 0 0 8px 0; font-weight: 700;">✅ SMTP-Verbinding Geslaagd!</h2>
+          <h2 style="color: #166534; font-size: 16px; margin: 0 0 8px 0; font-weight: 700;">✅ Verbinding Geslaagd!</h2>
           <p style="color: #15803d; font-size: 13px; margin: 0; line-height: 1.5;">
-            Uw SMTP e-mailconfiguratie in VehicleVault functioneert correct. Vanaf nu kunt u APK- en onderhoudsmeldingen en wachtwoordherstel per e-mail ontvangen.
+            Uw e-mailconfiguratie in VehicleVault functioneert correct. Vanaf nu kunt u APK- en onderhoudsmeldingen en wachtwoordherstel per e-mail ontvangen.
           </p>
         </div>
 
         <div style="color: #475569; font-size: 12px; border-top: 1px solid #e2e8f0; padding-top: 16px; text-align: center;">
-          Verzonden via ${config.host} op ${new Date().toLocaleString('nl-NL')}
+          Verzonden via ${escapeHtml(via)} op ${new Date().toLocaleString('nl-NL')}
         </div>
       </div>
     `;
@@ -179,7 +284,7 @@ export class EmailService {
     return this.sendMail({
       to: recipient,
       subject,
-      text: 'Dit is een testbericht vanuit VehicleVault. Uw SMTP-koppeling werkt correct!',
+      text: 'Dit is een testbericht vanuit VehicleVault. Uw e-mailkoppeling werkt correct!',
       html,
     });
   }
@@ -190,8 +295,7 @@ export class EmailService {
     priority: 'low' | 'default' | 'high' | 'urgent' = 'default',
     targetTo?: string
   ): Promise<{ success: boolean; message: string }> {
-    const config = this.getSmtpConfig();
-    const recipient = targetTo || config.to || config.user;
+    const recipient = this.defaultRecipient(targetTo);
 
     if (!recipient) {
       return { success: false, message: 'Geen ontvangstadres (To) geconfigureerd voor notificaties.' };
@@ -212,8 +316,8 @@ export class EmailService {
         </div>
 
         <div style="background: ${bannerColor}; border: 1px solid ${borderColor}; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
-          <h2 style="color: ${titleColor}; font-size: 17px; margin: 0 0 10px 0; font-weight: 700;">${title}</h2>
-          <p style="color: #334155; font-size: 14px; margin: 0; line-height: 1.6; white-space: pre-line;">${message}</p>
+          <h2 style="color: ${titleColor}; font-size: 17px; margin: 0 0 10px 0; font-weight: 700;">${escapeHtml(title)}</h2>
+          <p style="color: #334155; font-size: 14px; margin: 0; line-height: 1.6; white-space: pre-line;">${escapeHtml(message)}</p>
         </div>
 
         <div style="text-align: center; margin-bottom: 24px;">
@@ -251,18 +355,18 @@ export class EmailService {
             Hallo,
           </p>
           <p style="color: #334155; font-size: 14px; margin: 0 0 16px 0; line-height: 1.6;">
-            We hebben een verzoek ontvangen om het wachtwoord voor uw account (<strong>${toEmail}</strong>) opnieuw in te stellen. Klik op de onderstaande knop om een nieuw wachtwoord aan te maken:
+            We hebben een verzoek ontvangen om het wachtwoord voor uw account (<strong>${escapeHtml(toEmail)}</strong>) opnieuw in te stellen. Klik op de onderstaande knop om een nieuw wachtwoord aan te maken:
           </p>
 
           <div style="text-align: center; margin: 24px 0;">
-            <a href="${resetLink}" style="background-color: #0284c7; color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 10px; font-size: 14px; font-weight: 700; display: inline-block; box-shadow: 0 2px 4px rgba(2, 132, 199, 0.25);">
+            <a href="${escapeHtml(resetLink)}" style="background-color: #0284c7; color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 10px; font-size: 14px; font-weight: 700; display: inline-block; box-shadow: 0 2px 4px rgba(2, 132, 199, 0.25);">
               Wachtwoord Opnieuw Instellen
             </a>
           </div>
 
           <p style="color: #64748b; font-size: 12px; margin: 16px 0 0 0; line-height: 1.5;">
             Werkt de knop niet? Kopieer en plak dan de volgende link in uw browser:<br />
-            <a href="${resetLink}" style="color: #0284c7; word-break: break-all; font-family: monospace; font-size: 11px;">${resetLink}</a>
+            <a href="${escapeHtml(resetLink)}" style="color: #0284c7; word-break: break-all; font-family: monospace; font-size: 11px;">${escapeHtml(resetLink)}</a>
           </p>
         </div>
 

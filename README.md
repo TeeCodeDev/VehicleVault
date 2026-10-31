@@ -124,7 +124,7 @@
 
 ### 🔔 Push & Email Notifications
 - **Automated Alerts:** Dispatches reminders when APK inspections, maintenance intervals, or vehicle documents are approaching expiry (< 30d, < 7d).
-- **Multiple Providers:** Native support for **Pushover**, **Ntfy**, **Gotify**, **Custom Webhooks** (Discord, Slack, Telegram, Home Assistant), and **SMTP Email**.
+- **Multiple Providers:** Native support for **Pushover**, **Ntfy**, **Gotify**, **Custom Webhooks** (Discord, Slack, Telegram, Home Assistant), and **E-mail** via SMTP (one-click Gmail / Microsoft 365 / Outlook.com presets) or **Microsoft Graph** (no SMTP password).
 
 ### 💾 1-Click Database & File Backup / Restore
 - **Consistent Backups:** Creates a complete ZIP archive of `vehiclevault.db` (using safe SQLite WAL checkpoints) and all uploaded receipts, invoices, photos, and documents.

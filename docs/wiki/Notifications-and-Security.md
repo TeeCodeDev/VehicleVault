@@ -16,7 +16,32 @@ Under **Settings → Meldingen (Notifications)**, configure automated alerts for
 | **Ntfy.sh** | Self-hosted or public topic URL + optional Bearer access token |
 | **Gotify** | Server URL + Application Token |
 | **Webhook (Discord / Slack / Generic)** | Automatically formats rich embeds for Discord/Slack or dispatches a structured JSON payload |
-| **SMTP Email** | Host, Port (`587`/`465`), TLS, Username, Password, Sender (`From`), and Recipient (`To`) |
+| **E-mail** | Sent through **SMTP** or **Microsoft Graph** (see below). Recipients (`To`) may be several addresses separated by commas |
+
+### E-mail settings
+Under **Settings → Notifications → E-mail**, one configuration serves the alert e-mails and the password-reset links.
+
+**SMTP** — Host, port (`587` STARTTLS / `465` SSL), user, password, sender (`From`). One-click presets fill in host, port and encryption:
+
+| Preset | Server | Notes |
+| :--- | :--- | :--- |
+| **Gmail** | `smtp.gmail.com:587` | Needs an app password (2-step verification on) |
+| **Microsoft 365** | `smtp.office365.com:587` | SMTP AUTH must be enabled for the mailbox; the sender must be that mailbox. Where SMTP AUTH is off, use Graph |
+| **Outlook.com** | `smtp-mail.outlook.com:587` | App password with 2-step verification |
+
+Under *Advanced*: **Require STARTTLS** (refuse to send unencrypted) and **Ignore certificate errors** (own mail server with a self-signed certificate only).
+
+**Microsoft Graph** — sends with app-only credentials, so no SMTP AUTH and no password of a person:
+1. Microsoft Entra ID → *App registrations* → *New registration* (single tenant). Note the **Application (client) ID** and **Directory (tenant) ID**.
+2. *Certificates & secrets* → *New client secret*. Copy the **value** straight away.
+3. *API permissions* → *Microsoft Graph* → *Application permissions* → **Mail.Send** → *Grant admin consent*.
+4. Enter tenant ID, client ID, client secret and the **sender mailbox** (must exist in the tenant with an Exchange Online licence) in VehicleVault.
+
+`Mail.Send` as an application permission covers every mailbox in the tenant. Restrict the app to the sender mailbox with an *ApplicationAccessPolicy* in Exchange Online.
+
+**Check connection** verifies the login without sending anything (for Graph: tenant, client ID and secret; the `Mail.Send` permission itself is only proven by **Send test mail**). Failures are explained: wrong app password, SMTP AUTH disabled, TLS mode that does not match the port, unreachable server, a missing Graph permission, and so on. Secrets are never sent back to the browser; leaving a secret field untouched keeps the stored value.
+
+Settings can also come from the environment (`SMTP_*`, `SMTP_REQUIRE_TLS`, `SMTP_IGNORE_TLS_ERRORS`, `MAIL_TRANSPORT`, `GRAPH_TENANT_ID`, `GRAPH_CLIENT_ID`, `GRAPH_CLIENT_SECRET`, `GRAPH_SENDER`); values saved in the UI take precedence.
 
 ---
 
