@@ -14,7 +14,6 @@ import {
   X,
   Landmark,
   Users,
-  Upload,
 } from 'lucide-react';
 import { Vehicle, VehicleType } from '../types/index.js';
 import { apiFetch } from '../api/client.js';

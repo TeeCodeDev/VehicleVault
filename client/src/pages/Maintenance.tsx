@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useOutletContext, NavLink } from 'react-router-dom';
+import { useOutletContext } from 'react-router-dom';
 import {
   Wrench,
   Plus,
@@ -17,7 +17,6 @@ import {
   Languages,
   CheckCircle2,
   Building2,
-  Upload,
 } from 'lucide-react';
 import {
   Vehicle,
