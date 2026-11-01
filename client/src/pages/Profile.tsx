@@ -13,6 +13,7 @@ import {
   Check,
   ExternalLink,
   Laptop,
+  FileSpreadsheet,
 } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.js';
@@ -348,6 +349,32 @@ export const Profile: React.FC = () => {
       {/* Push notifications for this device */}
       <div className="space-y-4">
         <WebPushSettings />
+      </div>
+
+      {/* Data Import Card */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center space-x-3.5">
+          <div className="p-3 bg-sky-50 dark:bg-sky-950/40 text-sky-600 dark:text-sky-400 rounded-xl shrink-0">
+            <FileSpreadsheet className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="text-xs font-bold text-slate-900 dark:text-white">
+              {lang === 'nl' ? 'Gegevens Importeren (Fuelio / CSV)' : 'Import Data (Fuelio / CSV)'}
+            </h3>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+              {lang === 'nl'
+                ? 'Migreer tankbeurten en onderhoudshistorie vanuit Fuelio, LubeLogger of CSV-bestanden.'
+                : 'Migrate refueling logs and maintenance history from Fuelio, LubeLogger, or CSV files.'}
+            </p>
+          </div>
+        </div>
+        <NavLink
+          to="/import"
+          className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition shadow-2xs shrink-0 self-start sm:self-auto"
+        >
+          <span>{lang === 'nl' ? 'Naar Importeren' : 'Go to Import'}</span>
+          <ExternalLink className="w-3.5 h-3.5 opacity-70" />
+        </NavLink>
       </div>
     </div>
   );

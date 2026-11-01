@@ -898,6 +898,25 @@ export const FuelLog: React.FC = () => {
                     </div>
                   </div>
                 </button>
+
+                <div className="border-t border-slate-100 dark:border-slate-800 pt-1 mt-1">
+                  <NavLink
+                    to="/import"
+                    className="w-full text-left px-3 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800/60 flex items-center space-x-3 transition group"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-sky-50 dark:bg-sky-950/40 text-sky-600 flex items-center justify-center shrink-0">
+                      <Upload className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-slate-800 dark:text-slate-100 group-hover:text-sky-600 dark:group-hover:text-sky-400">
+                        {lang === 'nl' ? 'Gegevens Importeren' : 'Import Data'}
+                      </div>
+                      <div className="text-[10px] text-slate-400">
+                        Fuelio, LubeLogger, CSV
+                      </div>
+                    </div>
+                  </NavLink>
+                </div>
               </div>
             )}
           </div>
@@ -909,15 +928,6 @@ export const FuelLog: React.FC = () => {
             <Camera className="w-4 h-4 text-amber-500" />
             <span>{t('ocrReceiptScanner')}</span>
           </button>
-
-          <NavLink
-            to="/import"
-            className="px-3.5 py-2 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-bold inline-flex items-center space-x-1.5 transition shadow-sm"
-            title={lang === 'nl' ? 'Importeer Fuelio of CSV data' : 'Import Fuelio or CSV data'}
-          >
-            <Upload className="w-4 h-4 text-sky-500" />
-            <span>{lang === 'nl' ? 'Importeren' : 'Import'}</span>
-          </NavLink>
         </div>
       </div>
 
