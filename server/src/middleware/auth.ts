@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import { Request, Response, NextFunction } from 'express';
 import { verifyAccessToken, hashToken } from '../utils/token.js';
 import { db } from '../db/database.js';
+import { env } from '../config/env.js';
 
 export interface AuthenticatedUser {
   userId: string;
@@ -19,13 +20,14 @@ declare global {
 }
 
 export function isAuthDisabled(): boolean {
-  if (process.env.DISABLE_AUTH === 'true' || process.env.AUTH_DISABLED === 'true') {
+  if (process.env.DISABLE_AUTH === 'true' || process.env.AUTH_DISABLED === 'true' || env.DISABLE_AUTH) {
     return true;
   }
   try {
     const row = db.get<{ value: string }>('SELECT value FROM system_settings WHERE key = ?', ['disable_auth']);
     return row?.value === 'true';
-  } catch {
+  } catch (err: any) {
+    console.error('[AUTH] Error checking disable_auth setting:', err?.message);
     return false;
   }
 }
@@ -57,32 +59,61 @@ export function getDefaultUser(): AuthenticatedUser {
       role: 'admin',
       isApiKey: false,
     };
-  } catch {
-    return {
-      userId: '00000000-0000-0000-0000-000000000001',
-      email: 'admin@vehiclevault.local',
-      role: 'admin',
-      isApiKey: false,
-    };
+  } catch (err: any) {
+    console.error('[AUTH] Failed to resolve default user in disabled-auth mode:', err?.message);
+    throw new Error('Database unavailable for default user resolution');
   }
 }
 
 export function isProxyAuthEnabled(): boolean {
-  if (process.env.ENABLE_PROXY_AUTH === 'false' || process.env.TRUST_PROXY_HEADERS === 'false') {
+  if (process.env.TRUST_PROXY_HEADERS === 'false' || process.env.ENABLE_PROXY_AUTH === 'false') {
     return false;
   }
-  if (process.env.ENABLE_PROXY_AUTH === 'true' || process.env.TRUST_PROXY_HEADERS === 'true' || process.env.PROXY_AUTH === 'true') {
+  if (process.env.TRUST_PROXY_HEADERS === 'true' || process.env.ENABLE_PROXY_AUTH === 'true' || env.TRUST_PROXY_HEADERS) {
     return true;
   }
   try {
     const row = db.get<{ value: string }>('SELECT value FROM system_settings WHERE key = ?', ['enable_proxy_auth']);
     if (row) return row.value === 'true';
-  } catch {}
-  return true;
+  } catch (err: any) {
+    console.error('[AUTH] Error checking enable_proxy_auth setting:', err?.message);
+  }
+  return false; // Secure default: proxy auth is disabled unless explicitly turned on!
+}
+
+export function isTrustedProxy(req: Request): boolean {
+  const remoteIp = (req.socket?.remoteAddress || req.ip || '').replace(/^.*:/, '').toLowerCase();
+  const fullRemote = (req.socket?.remoteAddress || '').toLowerCase();
+
+  // Always trust loopback
+  if (remoteIp === '127.0.0.1' || fullRemote === '::1' || remoteIp === 'localhost') {
+    return true;
+  }
+
+  // Check configured trusted proxies list
+  for (const trusted of env.TRUSTED_PROXIES) {
+    if (trusted === '*' || trusted === remoteIp || fullRemote === trusted) {
+      return true;
+    }
+    // Subnet checks for standard private networks
+    if (trusted.startsWith('10.') && remoteIp.startsWith('10.')) return true;
+    if (trusted.startsWith('192.168.') && remoteIp.startsWith('192.168.')) return true;
+    if (trusted.startsWith('172.') && remoteIp.startsWith('172.')) {
+      const secondOctet = parseInt(remoteIp.split('.')[1], 10);
+      if (secondOctet >= 16 && secondOctet <= 31) return true;
+    }
+  }
+  return false;
 }
 
 export function getProxyUser(req: Request): AuthenticatedUser | null {
   if (!isProxyAuthEnabled()) {
+    return null;
+  }
+
+  // Reject proxy headers from untrusted upstream connections
+  if (!isTrustedProxy(req)) {
+    console.warn(`[SECURITY] Ignored untrusted proxy auth headers from IP: ${req.socket?.remoteAddress || req.ip}`);
     return null;
   }
 
@@ -106,13 +137,14 @@ export function getProxyUser(req: Request): AuthenticatedUser | null {
   );
 
   if (!user) {
-    // Auto-provision user from reverse proxy
+    if (!env.ALLOW_PROXY_REGISTRATION) {
+      console.warn(`[SECURITY] Proxy registration rejected for ${email} (registration disabled)`);
+      return null;
+    }
+    // Auto-provision user from reverse proxy: first user is admin ONLY if database has 0 users.
+    // Subsequent users are strictly regular 'driver' / 'user', never admin by arbitrary header injection.
     const userCount = db.get<{ count: number }>('SELECT count(*) as count FROM users')?.count || 0;
-    const groupsHeader = (
-      (req.headers['remote-groups'] || req.headers['x-forwarded-groups'] || req.headers['remote-role']) as string || ''
-    ).toLowerCase();
-    const isAdmin = userCount === 0 || groupsHeader.includes('admin');
-    const role = isAdmin ? 'admin' : 'driver';
+    const role = userCount === 0 ? 'admin' : 'driver';
     const newUserId = crypto.randomUUID();
     const now = new Date().toISOString();
 
@@ -121,12 +153,14 @@ export function getProxyUser(req: Request): AuthenticatedUser | null {
       [newUserId, email, 'proxy_auth_placeholder', role, now, now]
     );
     user = { id: newUserId, email, role };
+    console.log(`[AUTH] Auto-provisioned proxy user ${email} with role ${role}`);
   } else {
-    // Record proxy user login & activity
     try {
       const now = new Date().toISOString();
       db.run('UPDATE users SET last_login_at = ?, last_active_at = ? WHERE id = ?', [now, now, user.id]);
-    } catch {}
+    } catch (err: any) {
+      console.error('[AUTH] Failed to record proxy user login timestamp:', err?.message);
+    }
   }
 
   return {
@@ -134,6 +168,37 @@ export function getProxyUser(req: Request): AuthenticatedUser | null {
     email: user.email,
     role: user.role,
     isApiKey: false,
+  };
+}
+
+export function authenticateApiKey(token: string): AuthenticatedUser | null {
+  if (!token || !token.startsWith('vkv_')) {
+    return null;
+  }
+  const keyHash = hashToken(token);
+  const keyRecord = db.get<{ id: string; user_id: string; email: string; role: string }>(
+    `SELECT k.id, k.user_id, u.email, u.role
+     FROM api_keys k
+     JOIN users u ON u.id = k.user_id
+     WHERE k.key_hash = ?`,
+    [keyHash]
+  );
+
+  if (!keyRecord) {
+    return null;
+  }
+
+  try {
+    db.run('UPDATE api_keys SET last_used_at = ? WHERE id = ?', [new Date().toISOString(), keyRecord.id]);
+  } catch (err: any) {
+    console.error('[AUTH] Failed to update API key last_used_at:', err?.message);
+  }
+
+  return {
+    userId: keyRecord.user_id,
+    email: keyRecord.email,
+    role: keyRecord.role,
+    isApiKey: true,
   };
 }
 
@@ -148,45 +213,33 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
     explicitToken = apiKeyHeader.trim();
   }
 
-  // 0. If an explicit API Key (vkv_) is provided, ALWAYS authenticate as the owner of that API key first!
+  // 1. If an explicit API Key (vkv_) is provided, authenticate as the owner of that API key
   if (explicitToken && explicitToken.startsWith('vkv_')) {
-    const keyHash = hashToken(explicitToken);
-    const keyRecord = db.get<{ id: string; user_id: string; email: string; role: string }>(
-      `SELECT k.id, k.user_id, u.email, u.role
-       FROM api_keys k
-       JOIN users u ON u.id = k.user_id
-       WHERE k.key_hash = ?`,
-      [keyHash]
-    );
-
-    if (!keyRecord) {
+    const apiKeyUser = authenticateApiKey(explicitToken);
+    if (!apiKeyUser) {
       res.status(401).json({ error: 'Unauthorized: Invalid or revoked API key' });
       return;
     }
-
-    db.run('UPDATE api_keys SET last_used_at = ? WHERE id = ?', [new Date().toISOString(), keyRecord.id]);
-
-    req.user = {
-      userId: keyRecord.user_id,
-      email: keyRecord.email,
-      role: keyRecord.role,
-      isApiKey: true,
-    };
+    req.user = apiKeyUser;
     return next();
   }
 
-  // 1. Check for reverse proxy authentication headers (Pangolin, Authelia, Authentik, etc.)
-  // Proxy headers take precedence for browser sessions because the proxy specifies the exact identity of the caller!
+  // 2. Check for reverse proxy authentication headers (if enabled and coming from trusted proxy)
   const proxyUser = getProxyUser(req);
   if (proxyUser) {
     req.user = proxyUser;
     return next();
   }
 
-  // 2. If authentication is disabled (via env DISABLE_AUTH=true or UI setting disable_auth=true)
+  // 3. If authentication is disabled (via env DISABLE_AUTH=true or UI setting disable_auth=true)
   if (isAuthDisabled()) {
-    req.user = getDefaultUser();
-    return next();
+    try {
+      req.user = getDefaultUser();
+      return next();
+    } catch {
+      res.status(500).json({ error: 'Authentication service unavailable' });
+      return;
+    }
   }
 
   const token = explicitToken;
@@ -196,36 +249,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
     return;
   }
 
-  // Check if it is an API Key (starts with vkv_)
-  if (token.startsWith('vkv_')) {
-    const keyHash = hashToken(token);
-    const keyRecord = db.get<{ id: string; user_id: string; email: string; role: string }>(
-      `SELECT k.id, k.user_id, u.email, u.role
-       FROM api_keys k
-       JOIN users u ON u.id = k.user_id
-       WHERE k.key_hash = ?`,
-      [keyHash]
-    );
-
-    if (!keyRecord) {
-      res.status(401).json({ error: 'Unauthorized: Invalid or revoked API key' });
-      return;
-    }
-
-    // Update last_used_at asynchronously
-    db.run('UPDATE api_keys SET last_used_at = ? WHERE id = ?', [new Date().toISOString(), keyRecord.id]);
-
-    req.user = {
-      userId: keyRecord.user_id,
-      email: keyRecord.email,
-      role: keyRecord.role,
-      isApiKey: true,
-    };
-    next();
-    return;
-  }
-
-  // Standard JWT Access Token
+  // 4. Standard JWT Access Token
   const payload = verifyAccessToken(token);
   if (!payload) {
     res.status(401).json({ error: 'Unauthorized: Invalid or expired access token' });
@@ -243,7 +267,9 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
   if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method) && req.user?.userId) {
     try {
       db.run('UPDATE users SET last_active_at = ? WHERE id = ?', [new Date().toISOString(), req.user.userId]);
-    } catch {}
+    } catch (err: any) {
+      console.error('[AUTH] Failed to update user last_active_at:', err?.message);
+    }
   }
 
   next();

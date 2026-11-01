@@ -9,13 +9,8 @@ export interface TokenPayload {
   role: string;
 }
 
-const DEFAULT_JWT_SECRET = 'vehiclevault_super_secret_jwt_key_change_in_production_12345';
-
 export function getJwtSecret(): string {
-  if (env.JWT_SECRET && env.JWT_SECRET.trim().length > 0) {
-    return env.JWT_SECRET.trim();
-  }
-  return DEFAULT_JWT_SECRET;
+  return env.JWT_SECRET;
 }
 
 export async function hashPassword(password: string): Promise<string> {

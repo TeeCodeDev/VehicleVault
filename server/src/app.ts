@@ -8,6 +8,7 @@ import cookieParser from 'cookie-parser';
 import { env, DATA_PATHS } from './config/env.js';
 import { db } from './db/database.js';
 import { apiLimiter } from './middleware/rateLimiter.js';
+import { requireFileAuth } from './middleware/fileAuth.js';
 
 import authRoutes from './routes/authRoutes.js';
 import vehicleRoutes from './routes/vehicleRoutes.js';
@@ -74,11 +75,11 @@ export function createApp(): express.Application {
     next();
   });
 
-  // Serve persistent uploads securely
-  app.use('/uploads/receipts', express.static(DATA_PATHS.receipts));
-  app.use('/uploads/invoices', express.static(DATA_PATHS.invoices));
+  // Serve persistent uploads: public vehicle photos for showcases, protected for confidential documents
   app.use('/uploads/vehicles', express.static(DATA_PATHS.vehicles));
-  app.use('/uploads/documents', express.static(DATA_PATHS.documents));
+  app.use('/uploads/receipts', requireFileAuth('receipts'), express.static(DATA_PATHS.receipts));
+  app.use('/uploads/invoices', requireFileAuth('invoices'), express.static(DATA_PATHS.invoices));
+  app.use('/uploads/documents', requireFileAuth('documents'), express.static(DATA_PATHS.documents));
 
   // Health check endpoint (Phase 4 requirement)
   app.get('/healthz', (_req: Request, res: Response) => {

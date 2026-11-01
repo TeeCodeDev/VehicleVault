@@ -6,6 +6,7 @@ import {
   maskApiKey,
 } from '../services/aiReceiptService.js';
 import { isAuthDisabled } from '../middleware/auth.js';
+import { env } from '../config/env.js';
 
 export class SettingsController {
   public static async getAiSettings(_req: Request, res: Response): Promise<void> {
@@ -158,7 +159,7 @@ export class SettingsController {
 
   public static async getSecuritySettings(_req: Request, res: Response): Promise<void> {
     try {
-      const isEnvEnforced = Boolean(process.env.DISABLE_AUTH === 'true' || process.env.AUTH_DISABLED === 'true');
+      const isEnvEnforced = env.DISABLE_AUTH;
       const disableAuth = isAuthDisabled();
       res.json({
         disableAuth,
@@ -172,7 +173,7 @@ export class SettingsController {
   public static async updateSecuritySettings(req: Request, res: Response): Promise<void> {
     try {
       const { disableAuth } = req.body;
-      const isEnvEnforced = Boolean(process.env.DISABLE_AUTH === 'true' || process.env.AUTH_DISABLED === 'true');
+      const isEnvEnforced = env.DISABLE_AUTH;
       if (isEnvEnforced) {
         res.status(400).json({
           error: 'Inloggen is geconfigureerd via omgevingsvariabele (DISABLE_AUTH) en kan niet worden gewijzigd via de webinterface.',
