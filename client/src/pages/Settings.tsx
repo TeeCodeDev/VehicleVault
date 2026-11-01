@@ -56,8 +56,6 @@ import { useOutletContext, useSearchParams } from 'react-router-dom';
 import { apiFetch } from '../api/client.js';
 import { useTheme, ACCENT_COLOR_OPTIONS } from '../context/ThemeContext.js';
 import { useLanguage } from '../context/LanguageContext.js';
-import { PasskeySettings } from '../components/PasskeySettings.js';
-import { TwoFactorSettings } from '../components/TwoFactorSettings.js';
 import { OidcSettings } from '../components/OidcSettings.js';
 import { MailSettings } from '../components/MailSettings.js';
 import { WebPushSettings } from '../components/WebPushSettings.js';
@@ -1922,11 +1920,31 @@ action:
             )}
           </div>
 
-          {/* Passkeys */}
-          <PasskeySettings />
-
-          {/* Two-Factor Authentication (TOTP 2FA) */}
-          <TwoFactorSettings />
+          {/* Personal Security (Passkeys & 2FA) Banner pointing to /profile */}
+          <div className="bg-gradient-to-r from-accent-50/80 to-transparent dark:from-accent-950/30 border border-accent-200/80 dark:border-accent-800/60 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center space-x-3.5">
+              <div className="p-3 bg-accent-100 dark:bg-accent-900/50 text-accent-700 dark:text-accent-300 rounded-xl shrink-0">
+                <ShieldCheck className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-xs font-bold text-slate-900 dark:text-white">
+                  {lang === 'nl' ? 'Persoonlijke Beveiliging: Passkeys & 2FA' : 'Personal Security: Passkeys & 2FA'}
+                </h3>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                  {lang === 'nl'
+                    ? 'Passkeys en tweestapsverificatie zijn strikt persoonsgebonden. Je beheert je eigen biometrische inlogsleutels en authenticators in Mijn Profiel.'
+                    : 'Passkeys and two-factor authentication are strictly personal per user. You can manage your security keys and authenticators in My Profile.'}
+                </p>
+              </div>
+            </div>
+            <a
+              href="/profile"
+              className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-accent-600 hover:bg-accent-500 text-white rounded-xl text-xs font-bold transition shadow-2xs shrink-0 self-start sm:self-auto"
+            >
+              <span>{lang === 'nl' ? 'Naar Mijn Profiel' : 'Go to My Profile'}</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+          </div>
 
           {/* OpenID Connect / SSO */}
           <OidcSettings />

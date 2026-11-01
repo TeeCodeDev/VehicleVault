@@ -297,6 +297,26 @@ export const Importer: React.FC = () => {
       {/* Validation Preview Table */}
       {preview && (
         <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl overflow-hidden space-y-3 shadow-sm transition-colors">
+          {preview.vehicleInfo && (
+            <div className="p-4 bg-sky-50/80 dark:bg-sky-950/40 border-b border-sky-100 dark:border-sky-900/50 flex flex-wrap items-center justify-between gap-2 text-xs">
+              <div className="flex items-center space-x-2">
+                <span className="font-bold text-sky-900 dark:text-sky-300">
+                  {lang === 'nl' ? 'Gedetecteerd voertuig in export:' : 'Detected vehicle in export:'}
+                </span>
+                <span className="font-black px-2 py-0.5 rounded-lg bg-sky-100 dark:bg-sky-900/70 text-sky-800 dark:text-sky-200">
+                  {preview.vehicleInfo.name || `${preview.vehicleInfo.make} ${preview.vehicleInfo.model}`}
+                  {preview.vehicleInfo.plate ? ` (${preview.vehicleInfo.plate})` : ''}
+                  {preview.vehicleInfo.year ? ` • ${preview.vehicleInfo.year}` : ''}
+                </span>
+              </div>
+              {selectedVehicle && (
+                <span className="text-slate-500 text-[11px]">
+                  {lang === 'nl' ? 'Wordt geïmporteerd naar:' : 'Importing into:'}{' '}
+                  <strong>{selectedVehicle.name}</strong>
+                </span>
+              )}
+            </div>
+          )}
           <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
             <div className="text-xs">
               <span className="font-bold text-slate-900 dark:text-white">
@@ -325,6 +345,7 @@ export const Importer: React.FC = () => {
                   <th className="py-2.5 px-3">{t('date')}</th>
                   <th className="py-2.5 px-3">{t('odometer')}</th>
                   <th className="py-2.5 px-3">{lang === 'nl' ? 'Liters / Omschrijving' : 'Liters / Description'}</th>
+                  <th className="py-2.5 px-3">{lang === 'nl' ? 'Station / Locatie' : 'Station / Location'}</th>
                   <th className="py-2.5 px-3">{t('cost')}</th>
                   <th className="py-2.5 px-3">{t('status')}</th>
                 </tr>
@@ -341,6 +362,10 @@ export const Importer: React.FC = () => {
                     </td>
                     <td className="py-2.5 px-3 text-slate-700 dark:text-slate-300 font-medium">
                       {r.type === 'fuel' ? (r.liters ? `${r.liters} L` : '—') : r.serviceItem}
+                      {r.notes ? <div className="text-[10px] text-slate-400 italic mt-0.5">{r.notes}</div> : null}
+                    </td>
+                    <td className="py-2.5 px-3 text-slate-600 dark:text-slate-400 font-medium">
+                      {r.stationName || '—'}
                     </td>
                     <td className="py-2.5 px-3 font-black text-slate-900 dark:text-white">€ {r.totalCost.toFixed(2)}</td>
                     <td className="py-2.5 px-3">

@@ -17,6 +17,7 @@ router.post('/reset-password', authLimiter, AuthController.resetPassword);
 router.post('/refresh', AuthController.refresh);
 router.post('/logout', AuthController.logout);
 router.get('/me', requireAuth, AuthController.me);
+router.post('/change-password', requireAuth, authLimiter, AuthController.changePassword);
 
 // Two-Factor Authentication (TOTP Authenticator & Backup Codes)
 router.get('/2fa/status', requireAuth, TwoFactorController.status);

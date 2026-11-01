@@ -10,6 +10,8 @@ import {
   LineChart,
   Route,
   Disc,
+  Ticket,
+  UserCircle,
   Settings as SettingsIcon,
   Coffee,
   ExternalLink,
@@ -40,6 +42,7 @@ export const Sidebar: React.FC = () => {
     { label: t('tires') || 'Bandenbeheer', path: '/tires', icon: Disc, moduleKey: 'tires' },
     { label: t('fixedExpenses') || 'Vaste Lasten', path: '/fixed-expenses', icon: Landmark, moduleKey: 'fixedExpenses' },
     { label: t('documents'), path: '/documents', icon: FolderLock, moduleKey: 'documents' },
+    { label: t('vignettes') || 'Tol & Milieu', path: '/vignettes', icon: Ticket, moduleKey: 'vignettes' },
     { label: t('analytics'), path: '/analytics', icon: LineChart, moduleKey: 'analytics' },
   ];
 
@@ -83,15 +86,29 @@ export const Sidebar: React.FC = () => {
       </div>
 
       {/* Bottom Section: Always Visible & Pinned to the Bottom */}
-      <div className="space-y-2 pt-3 border-t border-slate-200 dark:border-slate-800 shrink-0 mt-auto">
-        {!isDriver && (
+      <div className="space-y-1.5 pt-3 border-t border-slate-200 dark:border-slate-800 shrink-0 mt-auto">
+        <NavLink
+          to="/profile"
+          className={({ isActive }) =>
+            `flex items-center space-x-3 px-3 py-2 rounded-xl text-xs font-semibold transition ${
+              isActive
+                ? 'bg-accent-600 text-white shadow-sm font-bold'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
+            }`
+          }
+        >
+          <UserCircle className="w-4 h-4 shrink-0" />
+          <span>{t('myProfile') || 'Mijn Profiel'}</span>
+        </NavLink>
+
+        {(!isDriver && (user?.role === 'admin' || !user)) && (
           <NavLink
             to="/settings"
             className={({ isActive }) =>
               `flex items-center space-x-3 px-3 py-2 rounded-xl text-xs font-semibold transition ${
                 isActive
                   ? 'bg-accent-600 text-white shadow-sm font-bold'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
               }`
             }
           >

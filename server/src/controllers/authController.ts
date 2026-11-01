@@ -620,6 +620,48 @@ export class AuthController {
     }
   }
 
+  public static async changePassword(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) {
+        res.status(401).json({ error: 'Niet ingelogd' });
+        return;
+      }
+
+      const { currentPassword, newPassword } = req.body || {};
+      if (!newPassword || typeof newPassword !== 'string' || newPassword.length < 8) {
+        res.status(400).json({ error: 'Het nieuwe wachtwoord moet minimaal 8 tekens lang zijn' });
+        return;
+      }
+
+      const user = db.get<{ password_hash: string }>('SELECT password_hash FROM users WHERE id = ?', [userId]);
+      if (!user) {
+        res.status(404).json({ error: 'Gebruiker niet gevonden' });
+        return;
+      }
+
+      // If user has an existing set password (and not an SSO/proxy dummy)
+      if (user.password_hash && user.password_hash !== 'proxy_auth_placeholder') {
+        if (!currentPassword || !(await comparePassword(currentPassword, user.password_hash))) {
+          res.status(400).json({ error: 'Het huidige wachtwoord is onjuist' });
+          return;
+        }
+      }
+
+      const hashedPassword = await hashPassword(newPassword);
+      const now = new Date().toISOString();
+      db.run('UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?', [hashedPassword, now, userId]);
+
+      res.json({
+        success: true,
+        message: 'Wachtwoord succesvol gewijzigd',
+      });
+    } catch (err: any) {
+      console.error('Change password error:', err);
+      res.status(500).json({ error: 'Wachtwoord wijzigen mislukt' });
+    }
+  }
+
   public static async generateUserResetLink(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;

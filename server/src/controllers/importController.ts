@@ -53,10 +53,12 @@ export class ImportController {
 
     try {
       const result = ImportService.executeImport(vehicleId, records);
+      const skippedMsg = result.skippedCount > 0 ? ` (${result.skippedCount} duplicates skipped)` : '';
       res.json({
         success: true,
         importedCount: result.importedCount,
-        message: `Successfully imported ${result.importedCount} records into VehicleVault.`,
+        skippedCount: result.skippedCount,
+        message: `Successfully imported ${result.importedCount} records into VehicleVault${skippedMsg}.`,
       });
     } catch (err: any) {
       res.status(500).json({ error: `Import execution failed: ${err?.message}` });

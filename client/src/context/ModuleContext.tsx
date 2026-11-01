@@ -8,6 +8,7 @@ export interface EnabledModules {
   tires: boolean;
   fixedExpenses: boolean;
   documents: boolean;
+  vignettes: boolean;
   analytics: boolean;
 }
 
@@ -18,6 +19,7 @@ export const DEFAULT_MODULES: EnabledModules = {
   tires: true,
   fixedExpenses: true,
   documents: true,
+  vignettes: true,
   analytics: true,
 };
 

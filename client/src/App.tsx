@@ -15,7 +15,9 @@ import { AnalyticsTco } from './pages/AnalyticsTco.js';
 import { FixedExpenses } from './pages/FixedExpenses.js';
 import { Trips } from './pages/Trips.js';
 import { Tires } from './pages/Tires.js';
+import { Vignettes } from './pages/Vignettes.js';
 import { Settings } from './pages/Settings.js';
+import { Profile } from './pages/Profile.js';
 import { Login } from './pages/Login.js';
 import { Register } from './pages/Register.js';
 import { ForgotPassword } from './pages/ForgotPassword.js';
@@ -70,8 +72,10 @@ export const App: React.FC = () => {
                   <Route path="trips" element={<Trips />} />
                   <Route path="maintenance" element={<Maintenance />} />
                   <Route path="tires" element={<Tires />} />
+                  <Route path="vignettes" element={<Vignettes />} />
                   <Route path="documents" element={<Documents />} />
                   <Route path="analytics" element={<AnalyticsTco />} />
+                  <Route path="profile" element={<Profile />} />
                   <Route path="import" element={<Navigate to="/settings?tab=import" replace />} />
                   <Route path="settings" element={<Settings />} />
                 </Route>

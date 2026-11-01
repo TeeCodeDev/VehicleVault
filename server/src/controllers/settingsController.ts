@@ -203,6 +203,7 @@ export class SettingsController {
         tires: true,
         fixedExpenses: true,
         documents: true,
+        vignettes: true,
         analytics: true,
       };
 
@@ -236,6 +237,7 @@ export class SettingsController {
         tires: true,
         fixedExpenses: true,
         documents: true,
+        vignettes: true,
         analytics: true,
       };
 
