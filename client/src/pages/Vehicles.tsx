@@ -14,6 +14,7 @@ import {
   X,
   Landmark,
   Users,
+  Upload,
 } from 'lucide-react';
 import { Vehicle, VehicleType } from '../types/index.js';
 import { apiFetch } from '../api/client.js';
@@ -378,6 +379,15 @@ export const Vehicles: React.FC = () => {
               {t('all')}
             </button>
           </div>
+
+          <Link
+            to="/import"
+            className="px-3.5 py-2 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-bold inline-flex items-center space-x-1.5 transition shadow-sm"
+            title={lang === 'nl' ? 'Importeer Fuelio of CSV data' : 'Import Fuelio or CSV data'}
+          >
+            <Upload className="w-4 h-4 text-sky-500" />
+            <span>{lang === 'nl' ? 'Importeren' : 'Import'}</span>
+          </Link>
 
           <button
             onClick={openCreateModal}

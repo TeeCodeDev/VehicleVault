@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import { useOutletContext, NavLink } from 'react-router-dom';
 import {
   Fuel,
   Zap,
@@ -23,6 +23,7 @@ import {
   FileSpreadsheet,
   Sparkles,
   CheckCircle2,
+  Upload,
 } from 'lucide-react';
 import { Vehicle, FuelEntry, GasStation } from '../types/index.js';
 import { apiFetch } from '../api/client.js';
@@ -908,6 +909,15 @@ export const FuelLog: React.FC = () => {
             <Camera className="w-4 h-4 text-amber-500" />
             <span>{t('ocrReceiptScanner')}</span>
           </button>
+
+          <NavLink
+            to="/import"
+            className="px-3.5 py-2 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-bold inline-flex items-center space-x-1.5 transition shadow-sm"
+            title={lang === 'nl' ? 'Importeer Fuelio of CSV data' : 'Import Fuelio or CSV data'}
+          >
+            <Upload className="w-4 h-4 text-sky-500" />
+            <span>{lang === 'nl' ? 'Importeren' : 'Import'}</span>
+          </NavLink>
         </div>
       </div>
 
