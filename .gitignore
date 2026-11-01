@@ -71,5 +71,7 @@ coverage/
 .turbo/
 .eslintcache
 
-# Internal dev context
+# Internal dev context & AI agent rules
 PROJECT_CONTEXT.md
+.antigravity/
+.cursor/
