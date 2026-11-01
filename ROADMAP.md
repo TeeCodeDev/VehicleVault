@@ -64,6 +64,30 @@ Dit document bevat de geplande features en ideeën voor toekomstige releases van
 
 ---
 
+## Release v3.0: Architectuur & Standaardbibliotheken Modernisering
+
+In versie 3.0 transformeren we VehicleVault naar een enterprise-grade architectuur door zelfgeschreven wiel-opnieuw-uitvinden code te vervangen door geauditeerde standaardbibliotheken:
+
+1. **Better-Auth (Vervanging van handmatige Auth & Sessies):**
+   - Vervangt alle handmatige JWT token generatie, proxy header validatie, session cookies, en eigen WebAuthn/TOTP implementaties.
+   - Beproefde beveiliging tegen timing attacks, session fixation, en privilege escalation.
+2. **Drizzle ORM (Type-safe Database & Automatische Migraties):**
+   - Vervangt rauwe SQL queries in controllers en het handmatige 700+ regels migratiescript.
+   - Volledige compile-time type-veiligheid en automatische migraties met `drizzle-kit`.
+3. **Zod Runtime API Boundary Validation:**
+   - Strikte request payload validatie op alle Express endpoints; voorkomt foutieve of geïnjecteerde data aan de poort.
+4. **TanStack Query (React Query voor Frontend Data Fetching):**
+   - Elimineert meer dan 3.000 regels boilerplate met handmatige `useEffect` en `useState(loading)` in de frontend.
+   - Biedt automatische caching, achtergrond updates en request deduplicatie.
+5. **React Hook Form + Zod Resolvers:**
+   - Schone formulier-state met automatische validatiemeldingen zonder honderden losse `useState` variabelen en onnodige re-renders.
+6. **Gestructureerde Logging met Pino:**
+   - Hoogwaardige JSON-logs met traceerbare Request-IDs en automatische maskering van wachtwoorden, API-sleutels en tokens.
+7. **Toad-Scheduler / Croner (Achtergrondtaken):**
+   - Veilige achtergrondtaken voor periodieke controles (verlopende documenten, APK herinneringen) met gecontroleerde levenscyclus.
+
+---
+
 ## Reeds Gerealiseerd in v2.0 & v2.1
 - ✅ **Passkeys (WebAuthn):** Direct inloggen via TouchID / FaceID / Windows Hello / YubiKey.
 - ✅ **OIDC / SSO (OpenID Connect):** Koppel externe identity providers zoals Authentik, Keycloak, Authelia, Cloudflare Access of Google Workspace inclusief connection testing.
