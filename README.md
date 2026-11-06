@@ -141,6 +141,37 @@
 
 The fastest way to deploy VehicleVault is using the pre-built multi-arch image (`linux/amd64` & `linux/arm64`) from GitHub Container Registry (`ghcr.io/teecodedev/vehiclevault:latest`). No local `Dockerfile` or `git clone` is required!
 
+### One-line install (Linux, macOS, Windows)
+
+Linux / macOS:
+```bash
+curl -fsSL https://raw.githubusercontent.com/TeeCodeDev/VehicleVault/main/scripts/install.sh | bash
+```
+
+Windows (PowerShell):
+```powershell
+irm https://raw.githubusercontent.com/TeeCodeDev/VehicleVault/main/scripts/install.ps1 | iex
+```
+
+The installer creates `~/vehiclevault` (`%USERPROFILE%\VehicleVault` on Windows) with a generated `.env` (random `JWT_SECRET`/`JWT_REFRESH_SECRET`), a `docker-compose.yml`, pulls the image, and starts the stack. Visit **`http://localhost:3084`** — the first account registered automatically receives **Administrator** rights.
+
+Options:
+```bash
+# Custom directory, port, or pinned version
+curl -fsSL https://raw.githubusercontent.com/TeeCodeDev/VehicleVault/main/scripts/install.sh | bash -s -- --dir ~/vehiclevault --port 3084 --tag v3.4.0
+# Preview files without starting: --dry-run | Remove stack (keeps ./data): --uninstall
+```
+
+```powershell
+# Windows with options (download first, then run with parameters)
+Invoke-WebRequest -Uri https://raw.githubusercontent.com/TeeCodeDev/VehicleVault/main/scripts/install.ps1 -OutFile install.ps1
+.\install.ps1 -Dir "$env:USERPROFILE\VehicleVault" -Port 3084 -Tag latest
+```
+
+Requires Docker: Linux → Docker Engine, macOS/Windows → Docker Desktop (Windows needs the WSL2 backend). Manage afterwards with `cd ~/vehiclevault && docker compose {logs,ps,down}`. All persistent files (SQLite database, vehicle photos, receipt scans, documents, and invoices) are stored in `./data`.
+
+### Manual setup with Docker (Dockhand, Portainer, Dockge, Compose)
+
 ### 1. Create `docker-compose.yml` (or paste into Dockhand / Portainer / Dockge)
 ```yaml
 services:

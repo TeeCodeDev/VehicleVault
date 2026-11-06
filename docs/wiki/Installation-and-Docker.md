@@ -4,7 +4,21 @@ VehicleVault runs as a lightweight, self-contained Docker container with an embe
 
 ---
 
-## 1. Quick Start (`docker-compose.yml`)
+## 1. One-line install (Linux, macOS, Windows)
+
+```bash
+# Linux / macOS
+curl -fsSL https://raw.githubusercontent.com/TeeCodeDev/VehicleVault/main/scripts/install.sh | bash
+```
+
+```powershell
+# Windows (PowerShell)
+irm https://raw.githubusercontent.com/TeeCodeDev/VehicleVault/main/scripts/install.ps1 | iex
+```
+
+The installer creates `~/vehiclevault` (`%USERPROFILE%\VehicleVault` on Windows) with a generated `.env` (random `JWT_SECRET`/`JWT_REFRESH_SECRET`), writes `docker-compose.yml`, pulls `ghcr.io/teecodedev/vehiclevault:latest`, and starts the stack. Flags: `--dir`, `--port`, `--tag` (e.g. `v3.4.0`), `--dry-run`, `--uninstall` (`install.ps1`: `-Dir`, `-Port`, `-Tag`, `-DryRun`, `-Uninstall`). Requires Docker Engine (Linux) or Docker Desktop (macOS/Windows + WSL2).
+
+## 2. Manual Quick Start (`docker-compose.yml`)
 
 Create a `docker-compose.yml` file:
 
@@ -35,7 +49,7 @@ Open **`http://localhost:3084`** in your browser. The first account you register
 
 ---
 
-## 2. Persistent Storage Layout (`/data`)
+## 3. Persistent Storage Layout (`/data`)
 
 All application data is stored inside the mounted `/data` volume:
 
@@ -49,7 +63,7 @@ All application data is stored inside the mounted `/data` volume:
 
 ---
 
-## 3. Environment Variables (`.env`)
+## 4. Environment Variables (`.env`)
 
 | Variable | Default | Description |
 | :--- | :--- | :--- |
@@ -68,7 +82,7 @@ All application data is stored inside the mounted `/data` volume:
 
 ---
 
-## 4. 1-Click ZIP Backup & Restore
+## 5. 1-Click ZIP Backup & Restore
 
 Under **Settings → Backup & Opslag**, administrators can:
 - **Download Complete Backup (`.zip`):** Exports a consistent snapshot of `vehiclevault.db`, `manifest.json`, and all `/data/uploads/*` folders into a single ZIP archive.
