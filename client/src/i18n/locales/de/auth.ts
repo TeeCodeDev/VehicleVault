@@ -1,0 +1,30 @@
+import type { auth as nl } from '../nl/auth.js';
+
+export const auth: Record<keyof typeof nl, string> = {
+  // Passkeys & Auth
+  loginTitle: 'Melde dich bei deinem selbst gehosteten Fuhrpark-Dashboard an',
+  loginWithPasskey: 'Mit Passkey anmelden',
+  lostDevice: 'Gerät verloren?',
+  recoveryCode: 'Wiederherstellungscode',
+  loginWithRecoveryCode: 'Mit Wiederherstellungscode anmelden',
+  invalidRecoveryCode: 'Dieser Wiederherstellungscode ist ungültig',
+  passkeys: 'Passkeys',
+  passkeysDescription: 'Melde dich per Fingerabdruck, Gesichtserkennung oder Geräte-PIN statt mit einem Passwort an. Dein Passwort funktioniert weiterhin.',
+  saveRecoveryCodesPrompt: 'Speichere diese Wiederherstellungscodes jetzt. Sie werden nur einmal angezeigt.',
+  copied: 'Kopiert',
+  copy: 'Kopieren',
+  savedThem: 'Ich habe sie gespeichert',
+  addPasskey: 'Passkey hinzufügen',
+  passkeyNamePlaceholder: 'Name (z. B. Handy, Laptop)',
+  noPasskeysYet: 'Noch keine Passkeys hinzugefügt.',
+  passkeyAdded: 'Hinzugefügt',
+  passkeyLastUsed: 'zuletzt verwendet',
+  passkeySynced: 'synchronisiert',
+  passkeyRename: 'Umbenennen',
+  passkeyRenamePrompt: 'Neuer Name für diesen Passkey',
+  passkeyDeleteConfirm: 'Passkey „{label}“ entfernen?',
+  passkeyRegenerateConfirm: 'Neue Wiederherstellungscodes erstellen? Die alten funktionieren dann nicht mehr.',
+  passkeyCeremonyAborted: 'Die Passkey-Abfrage wurde abgebrochen oder ist abgelaufen.',
+  passkeyAlreadyRegistered: 'Dieses Gerät hat bereits einen Passkey für VehicleVault.',
+  passkeyErrorGeneric: 'Beim Passkey ist etwas schiefgelaufen.',
+};

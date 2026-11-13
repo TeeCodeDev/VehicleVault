@@ -1,0 +1,30 @@
+import type { auth as nl } from '../nl/auth.js';
+
+export const auth: Record<keyof typeof nl, string> = {
+  // Passkeys & Auth
+  loginTitle: 'Sign in to your self-hosted fleet dashboard',
+  loginWithPasskey: 'Sign in with passkey',
+  lostDevice: 'Lost device?',
+  recoveryCode: 'Recovery code',
+  loginWithRecoveryCode: 'Sign in with recovery code',
+  invalidRecoveryCode: 'This recovery code is invalid',
+  passkeys: 'Passkeys',
+  passkeysDescription: 'Sign in with a fingerprint, face or device PIN instead of a password. Your password keeps working.',
+  saveRecoveryCodesPrompt: 'Save these recovery codes now. They are shown only once.',
+  copied: 'Copied',
+  copy: 'Copy',
+  savedThem: "I've saved them",
+  addPasskey: 'Add passkey',
+  passkeyNamePlaceholder: 'Name (e.g. Phone, Laptop)',
+  noPasskeysYet: 'No passkeys added yet.',
+  passkeyAdded: 'Added',
+  passkeyLastUsed: 'last used',
+  passkeySynced: 'synced',
+  passkeyRename: 'Rename',
+  passkeyRenamePrompt: 'New name for this passkey',
+  passkeyDeleteConfirm: 'Remove passkey "{label}"?',
+  passkeyRegenerateConfirm: 'Create new recovery codes? The old ones will stop working.',
+  passkeyCeremonyAborted: 'The passkey prompt was cancelled or timed out.',
+  passkeyAlreadyRegistered: 'This device already has a passkey for VehicleVault.',
+  passkeyErrorGeneric: 'Something went wrong with the passkey.',
+};

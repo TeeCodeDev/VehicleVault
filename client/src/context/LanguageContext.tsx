@@ -64,8 +64,8 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, [lang]);
 
   const t = (key: TranslationKey, params?: Record<string, string | number>): string => {
-    const dict = translations[lang] || translations.nl;
-    let text: string = dict[key] || translations.nl[key] || String(key);
+    const dict = translations[lang] || translations.en;
+    let text: string = dict[key] || translations.en[key] || translations.nl[key] || String(key);
 
     if (params) {
       Object.entries(params).forEach(([paramKey, val]) => {

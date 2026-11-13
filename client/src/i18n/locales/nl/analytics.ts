@@ -1,0 +1,33 @@
+export const analytics = {
+  // Analytics & TCO
+  analyticsTitle: 'Uitgebreide TCO & Voertuigstatistieken',
+  analyticsSubtitle: 'Volledig inzicht in Total Cost of Ownership, verbruikstrends, brandstofprijzen en kostenopbouw.',
+  operationalTco: 'Operationele TCO (Brandstof + Onderhoud)',
+  assetTco: 'Totale Asset TCO (Inclusief Aanschaf)',
+  costPerKm: 'Kosten per kilometer',
+  costPerMonth: 'Kosten per maand',
+  totalFleetSpend: 'Totale Uitgaven',
+  fuelSpend: 'Brandstofkosten',
+  maintenanceSpend: 'Onderhoudskosten',
+  purchaseSpend: 'Aanschafwaarde',
+  includePurchaseToggle: 'Aanschafprijs meenemen in TCO berekening',
+  timeRange: 'Tijdsperiode',
+  last30Days: 'Laatste 30 dagen',
+  last6Months: 'Laatste 6 maanden',
+  ytd: 'Dit jaar (YTD)',
+  allTime: 'Gehele levensduur',
+  customRange: 'Aangepaste Periode',
+  fuelEconomyTrend: 'Verbruikstrend over tijd (L/100km & KM/L)',
+  fuelPriceTrend: 'Brandstofprijs Ontwikkeling (€/L)',
+  monthlyCostBreakdown: 'Maandelijkse Kostenverdeling (Gestapeld)',
+  rollingAverage: 'Voortschrijdend gemiddelde (3 tankbeurten)',
+  exportPdf: 'PDF Voertuighistorie Downloaden',
+
+  // PDF Export Modal
+  pdfModalTitle: 'Voertuighistorie & Dossier Exporteren',
+  pdfModalSubtitle: 'Genereer een overzicht van je onderhoud en tankbeurten voor je eigen administratie of overdracht.',
+  includeFuel: 'Brandstofhistorie en verbruiksstatistieken opnemen',
+  includeReceipts: 'Bon- en factuurminiaturen bijsluiten',
+  generatePdf: 'PDF Genereren & Downloaden',
+  generatingPdf: 'PDF samenstellen...',
+};
