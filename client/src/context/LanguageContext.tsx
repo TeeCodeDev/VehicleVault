@@ -10,32 +10,32 @@ interface LanguageContextType {
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
-const categoryTranslations: Record<string, { nl: string; en: string; de: string }> = {
-  'Engine Oil & Filter': { nl: 'Motorolie & Oliefilter', en: 'Engine Oil & Filter', de: 'Motoröl & Ölfilter' },
-  'Motorolie & Oliefilter': { nl: 'Motorolie & Oliefilter', en: 'Engine Oil & Filter', de: 'Motoröl & Ölfilter' },
-  'Spark Plugs': { nl: 'Bougies', en: 'Spark Plugs', de: 'Zündkerzen' },
-  'Bougies': { nl: 'Bougies', en: 'Spark Plugs', de: 'Zündkerzen' },
-  'Brake Fluid': { nl: 'Remvloeistof', en: 'Brake Fluid', de: 'Bremsflüssigkeit' },
-  'Remvloeistof': { nl: 'Remvloeistof', en: 'Brake Fluid', de: 'Bremsflüssigkeit' },
-  'Tires (Front)': { nl: 'Banden (Voor)', en: 'Tires (Front)', de: 'Reifen (vorne)' },
-  'Banden (Voor)': { nl: 'Banden (Voor)', en: 'Tires (Front)', de: 'Reifen (vorne)' },
-  'Tires (Rear)': { nl: 'Banden (Achter)', en: 'Tires (Rear)', de: 'Reifen (hinten)' },
-  'Banden (Achter)': { nl: 'Banden (Achter)', en: 'Tires (Rear)', de: 'Reifen (hinten)' },
-  'Transmission Fluid': { nl: 'Versnellingsbakolie', en: 'Transmission Fluid', de: 'Getriebeöl' },
-  'Transmissievloeistof': { nl: 'Versnellingsbakolie', en: 'Transmission Fluid', de: 'Getriebeöl' },
-  'Versnellingsbakolie': { nl: 'Versnellingsbakolie', en: 'Transmission Fluid', de: 'Getriebeöl' },
-  'Air / Cabin Filter': { nl: 'Lucht- / Interieurfilter', en: 'Air / Cabin Filter', de: 'Luft- / Innenraumfilter' },
-  'Lucht- & Interieurfilter': { nl: 'Lucht- / Interieurfilter', en: 'Air / Cabin Filter', de: 'Luft- / Innenraumfilter' },
-  'Lucht- / Interieurfilter': { nl: 'Lucht- / Interieurfilter', en: 'Air / Cabin Filter', de: 'Luft- / Innenraumfilter' },
-  'Chain & Sprockets (Motorcycle)': { nl: 'Ketting & Tandwielen (Motor)', en: 'Chain & Sprockets (Motorcycle)', de: 'Kette & Ritzel (Motorrad)' },
-  'Ketting & Tandwielen (Motor)': { nl: 'Ketting & Tandwielen (Motor)', en: 'Chain & Sprockets (Motorcycle)', de: 'Kette & Ritzel (Motorrad)' },
-  'General Inspection / Custom': { nl: 'Algemene Inspectie / Maatwerk', en: 'General Inspection / Custom', de: 'Allgemeine Inspektion / Individuell' },
-  'Algemene Inspectie / Maatwerk': { nl: 'Algemene Inspectie / Maatwerk', en: 'General Inspection / Custom', de: 'Allgemeine Inspektion / Individuell' },
+const categoryTranslations: Record<string, { nl: string; en: string; de: string; es: string }> = {
+  'Engine Oil & Filter': { nl: 'Motorolie & Oliefilter', en: 'Engine Oil & Filter', de: 'Motoröl & Ölfilter', es: 'Aceite de motor y filtro' },
+  'Motorolie & Oliefilter': { nl: 'Motorolie & Oliefilter', en: 'Engine Oil & Filter', de: 'Motoröl & Ölfilter', es: 'Aceite de motor y filtro' },
+  'Spark Plugs': { nl: 'Bougies', en: 'Spark Plugs', de: 'Zündkerzen', es: 'Bujías' },
+  'Bougies': { nl: 'Bougies', en: 'Spark Plugs', de: 'Zündkerzen', es: 'Bujías' },
+  'Brake Fluid': { nl: 'Remvloeistof', en: 'Brake Fluid', de: 'Bremsflüssigkeit', es: 'Líquido de frenos' },
+  'Remvloeistof': { nl: 'Remvloeistof', en: 'Brake Fluid', de: 'Bremsflüssigkeit', es: 'Líquido de frenos' },
+  'Tires (Front)': { nl: 'Banden (Voor)', en: 'Tires (Front)', de: 'Reifen (vorne)', es: 'Neumáticos (delanteros)' },
+  'Banden (Voor)': { nl: 'Banden (Voor)', en: 'Tires (Front)', de: 'Reifen (vorne)', es: 'Neumáticos (delanteros)' },
+  'Tires (Rear)': { nl: 'Banden (Achter)', en: 'Tires (Rear)', de: 'Reifen (hinten)', es: 'Neumáticos (traseros)' },
+  'Banden (Achter)': { nl: 'Banden (Achter)', en: 'Tires (Rear)', de: 'Reifen (hinten)', es: 'Neumáticos (traseros)' },
+  'Transmission Fluid': { nl: 'Versnellingsbakolie', en: 'Transmission Fluid', de: 'Getriebeöl', es: 'Aceite de la caja de cambios' },
+  'Transmissievloeistof': { nl: 'Versnellingsbakolie', en: 'Transmission Fluid', de: 'Getriebeöl', es: 'Aceite de la caja de cambios' },
+  'Versnellingsbakolie': { nl: 'Versnellingsbakolie', en: 'Transmission Fluid', de: 'Getriebeöl', es: 'Aceite de la caja de cambios' },
+  'Air / Cabin Filter': { nl: 'Lucht- / Interieurfilter', en: 'Air / Cabin Filter', de: 'Luft- / Innenraumfilter', es: 'Filtro de aire / habitáculo' },
+  'Lucht- & Interieurfilter': { nl: 'Lucht- / Interieurfilter', en: 'Air / Cabin Filter', de: 'Luft- / Innenraumfilter', es: 'Filtro de aire / habitáculo' },
+  'Lucht- / Interieurfilter': { nl: 'Lucht- / Interieurfilter', en: 'Air / Cabin Filter', de: 'Luft- / Innenraumfilter', es: 'Filtro de aire / habitáculo' },
+  'Chain & Sprockets (Motorcycle)': { nl: 'Ketting & Tandwielen (Motor)', en: 'Chain & Sprockets (Motorcycle)', de: 'Kette & Ritzel (Motorrad)', es: 'Cadena y piñones (moto)' },
+  'Ketting & Tandwielen (Motor)': { nl: 'Ketting & Tandwielen (Motor)', en: 'Chain & Sprockets (Motorcycle)', de: 'Kette & Ritzel (Motorrad)', es: 'Cadena y piñones (moto)' },
+  'General Inspection / Custom': { nl: 'Algemene Inspectie / Maatwerk', en: 'General Inspection / Custom', de: 'Allgemeine Inspektion / Individuell', es: 'Revisión general / personalizada' },
+  'Algemene Inspectie / Maatwerk': { nl: 'Algemene Inspectie / Maatwerk', en: 'General Inspection / Custom', de: 'Allgemeine Inspektion / Individuell', es: 'Revisión general / personalizada' },
 };
 
 function getInitialLanguage(): Language {
   const saved = localStorage.getItem('vv_lang');
-  if (saved === 'nl' || saved === 'en' || saved === 'de') return saved;
+  if (saved === 'nl' || saved === 'en' || saved === 'de' || saved === 'es') return saved;
 
   if (typeof navigator !== 'undefined') {
     const navLang = (navigator.language || (navigator as any).userLanguage || '').toLowerCase();
@@ -45,6 +45,9 @@ function getInitialLanguage(): Language {
     }
     if (navLang.startsWith('de') || navLangs.some((l) => l.startsWith('de'))) {
       return 'de';
+    }
+    if (navLang.startsWith('es') || navLangs.some((l) => l.startsWith('es'))) {
+      return 'es';
     }
   }
 

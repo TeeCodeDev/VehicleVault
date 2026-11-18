@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 
 interface InitialSetupBannerProps {
-  lang: 'nl' | 'en' | 'de';
+  lang: 'nl' | 'en' | 'de' | 'es';
 }
 
 export const InitialSetupBanner: React.FC<InitialSetupBannerProps> = ({ lang }) => {

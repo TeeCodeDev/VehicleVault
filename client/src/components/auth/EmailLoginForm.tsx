@@ -10,7 +10,7 @@ interface EmailLoginFormProps {
   rememberMe: boolean;
   setRememberMe: (rememberMe: boolean) => void;
   loading: boolean;
-  lang: 'nl' | 'en' | 'de';
+  lang: 'nl' | 'en' | 'de' | 'es';
   onSubmit: (e: React.FormEvent) => void;
 }
 

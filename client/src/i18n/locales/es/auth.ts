@@ -1,0 +1,30 @@
+import type { auth as nl } from '../nl/auth.js';
+
+export const auth: Record<keyof typeof nl, string> = {
+  // Passkeys & Auth
+  loginTitle: 'Inicia sesión en el panel de tu flota autoalojada',
+  loginWithPasskey: 'Iniciar sesión con llave de acceso',
+  lostDevice: '¿Has perdido el dispositivo?',
+  recoveryCode: 'Código de recuperación',
+  loginWithRecoveryCode: 'Iniciar sesión con código de recuperación',
+  invalidRecoveryCode: 'Este código de recuperación no es válido',
+  passkeys: 'Llaves de acceso',
+  passkeysDescription: 'Inicia sesión con tu huella, tu cara o el PIN del dispositivo en lugar de una contraseña. Tu contraseña seguirá funcionando.',
+  saveRecoveryCodesPrompt: 'Guarda ahora estos códigos de recuperación. Solo se muestran una vez.',
+  copied: 'Copiado',
+  copy: 'Copiar',
+  savedThem: 'Ya los he guardado',
+  addPasskey: 'Añadir llave de acceso',
+  passkeyNamePlaceholder: 'Nombre (p. ej., Móvil, Portátil)',
+  noPasskeysYet: 'Todavía no has añadido ninguna llave de acceso.',
+  passkeyAdded: 'Añadida el',
+  passkeyLastUsed: 'último uso',
+  passkeySynced: 'sincronizada',
+  passkeyRename: 'Cambiar nombre',
+  passkeyRenamePrompt: 'Nuevo nombre para esta llave de acceso',
+  passkeyDeleteConfirm: '¿Quitar la llave de acceso "{label}"?',
+  passkeyRegenerateConfirm: '¿Crear nuevos códigos de recuperación? Los anteriores dejarán de funcionar.',
+  passkeyCeremonyAborted: 'La solicitud de la llave de acceso se ha cancelado o ha caducado.',
+  passkeyAlreadyRegistered: 'Este dispositivo ya tiene una llave de acceso para VehicleVault.',
+  passkeyErrorGeneric: 'Se ha producido un error con la llave de acceso.',
+};

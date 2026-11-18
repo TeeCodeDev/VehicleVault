@@ -196,7 +196,7 @@ export const GeneralSettingsTab: React.FC<GeneralSettingsTabProps> = ({
               {lang === 'nl' ? 'Selecteer de taal van de interface.' : 'Select the user interface language.'}
             </p>
 
-            <div className="grid grid-cols-3 gap-2 mt-2">
+            <div className="grid grid-cols-2 gap-2 mt-2">
               <button
                 type="button"
                 onClick={() => setLang('nl')}
@@ -242,6 +242,22 @@ export const GeneralSettingsTab: React.FC<GeneralSettingsTabProps> = ({
                 <div>
                   <span className="font-bold text-xs block">Deutsch</span>
                   <span className="text-[10px] text-slate-500">Deutschland</span>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setLang('es')}
+                className={`p-3 rounded-xl border text-left transition flex items-center space-x-3 ${
+                  lang === 'es'
+                    ? 'border-sky-500 bg-sky-50/60 dark:bg-sky-950/40 text-slate-900 dark:text-white ring-1 ring-sky-500 shadow-xs'
+                    : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-900'
+                }`}
+              >
+                <span className="text-lg">🇪🇸</span>
+                <div>
+                  <span className="font-bold text-xs block">Español</span>
+                  <span className="text-[10px] text-slate-500">España</span>
                 </div>
               </button>
             </div>

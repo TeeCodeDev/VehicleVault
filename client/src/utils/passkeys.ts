@@ -8,7 +8,7 @@ export interface SessionResponse {
 }
 
 /** Turn a failed browser ceremony into a sentence for the person who pressed the button. */
-export function passkeyErrorMessage(err: any, lang: 'nl' | 'en' | 'de' = 'nl'): string {
+export function passkeyErrorMessage(err: any, lang: 'nl' | 'en' | 'de' | 'es' = 'nl'): string {
   const name = err?.name || err?.cause?.name;
   if (name === 'NotAllowedError' || name === 'AbortError' || err?.code === 'ERROR_CEREMONY_ABORTED') {
     return lang === 'nl' ? 'De passkey-prompt is geannuleerd of verlopen.' : 'The passkey prompt was cancelled or timed out.';
