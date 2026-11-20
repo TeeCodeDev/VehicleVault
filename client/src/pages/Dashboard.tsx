@@ -119,10 +119,10 @@ export const Dashboard: React.FC = () => {
         refreshVehicles();
         loadVehicleData(selectedVehicle.id);
       } else {
-        setHaSyncMessage(res.error || (lang === 'nl' ? 'Sync fout' : 'Sync error'));
+        setHaSyncMessage(res.error || t('telematicsSyncFailed'));
       }
     } catch (err: any) {
-      setHaSyncMessage(err?.message || (lang === 'nl' ? 'Sync fout' : 'Sync error'));
+      setHaSyncMessage(err?.message || t('telematicsSyncFailed'));
     } finally {
       setSyncingHa(false);
       setTimeout(() => setHaSyncMessage(null), 4000);
@@ -158,22 +158,22 @@ export const Dashboard: React.FC = () => {
         <div className="bg-gradient-to-br from-slate-900 via-slate-850 to-slate-950 text-white p-6 rounded-3xl shadow-xl border border-slate-800">
           <div className="flex items-center justify-between mb-4">
             <span className="text-xs font-bold text-emerald-400 bg-emerald-950/80 border border-emerald-800/80 px-3 py-1 rounded-full">
-              🚗 Chauffeur Modus
+              {t('dashDriverMode')}
             </span>
             {selectedVehicle?.license_plate && (
               <LicensePlateBadge plate={selectedVehicle.license_plate} country={selectedVehicle.plate_country} size="sm" />
             )}
           </div>
 
-          <h2 className="text-2xl font-black tracking-tight">{selectedVehicle?.name || (lang === 'nl' ? 'Mijn Voertuig' : 'My Vehicle')}</h2>
+          <h2 className="text-2xl font-black tracking-tight">{selectedVehicle?.name || t('dashMyVehicle')}</h2>
           <p className="text-xs text-slate-400 mt-1 font-medium">
-            {selectedVehicle?.make} {selectedVehicle?.model} • {selectedVehicle?.fuel_type || (lang === 'nl' ? 'Brandstof' : 'Fuel')}
+            {selectedVehicle?.make} {selectedVehicle?.model} • {selectedVehicle?.fuel_type || t('dashFuelFallback')}
           </p>
 
           <div className="mt-5 pt-4 border-t border-slate-800 flex items-center justify-between">
             <div>
               <span className="text-[11px] text-slate-400 uppercase font-semibold">
-                {lang === 'nl' ? 'Huidige Stand' : 'Current Odometer'}
+                {t('currentOdometer')}
               </span>
               <div className="text-xl font-mono font-black text-white mt-0.5">
                 {(selectedVehicle?.current_odometer || 0).toLocaleString()} km
@@ -182,7 +182,7 @@ export const Dashboard: React.FC = () => {
             {recentFuels[0] && (
               <div className="text-right">
                 <span className="text-[11px] text-slate-400 uppercase font-semibold">
-                  {lang === 'nl' ? 'Laatst Getankt' : 'Last Refuel'}
+                  {t('dashLastRefuel')}
                 </span>
                 <div className="text-xs font-bold text-slate-200 mt-0.5">
                   {formatDisplayDate(recentFuels[0].date)}
@@ -200,17 +200,17 @@ export const Dashboard: React.FC = () => {
           {isElectricOnly ? (
             <>
               <Zap className="w-6 h-6 shrink-0" />
-              <span>{lang === 'nl' ? '⚡ Laadbeurt Invoeren' : '⚡ Log EV Charge'}</span>
+              <span>{t('dashLogCharge')}</span>
             </>
           ) : isPhev ? (
             <>
               <Fuel className="w-6 h-6 shrink-0" />
-              <span>{lang === 'nl' ? '⛽ Tank- of Laadbeurt Invoeren' : '⛽ Log Fuel or Charge'}</span>
+              <span>{t('dashLogFuelOrCharge')}</span>
             </>
           ) : (
             <>
               <Fuel className="w-6 h-6 shrink-0" />
-              <span>{lang === 'nl' ? '⛽ Tankbeurt Invoeren' : '⛽ Log Fuel Fill-up'}</span>
+              <span>{t('dashLogFuel')}</span>
             </>
           )}
         </Link>
@@ -218,10 +218,10 @@ export const Dashboard: React.FC = () => {
         {/* Recent Fuelings List */}
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 shadow-sm">
           <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">
-            {lang === 'nl' ? 'Laatste 3 Registraties' : 'Recent 3 Logs'}
+            {t('dashRecentLogs', { count: 3 })}
           </h3>
           {recentFuels.length === 0 ? (
-            <p className="text-xs text-slate-400 py-6 text-center">Nog geen tankbeurten geregistreerd.</p>
+            <p className="text-xs text-slate-400 py-6 text-center">{t('dashNoFuelYet')}</p>
           ) : (
             <div className="space-y-2.5">
               {recentFuels.slice(0, 3).map((f) => (
@@ -286,10 +286,10 @@ export const Dashboard: React.FC = () => {
                   type="button"
                   onClick={() => setIsShowcaseModalOpen(true)}
                   className="inline-flex items-center space-x-1.5 px-2 py-1 text-[11px] font-medium text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 rounded-lg transition"
-                  title={lang === 'nl' ? 'Verkooppagina & Digitaal Voertuigpaspoort' : 'Sales Showcase & Vehicle Passport'}
+                  title={t('dashSalesPageTooltip')}
                 >
                   <Sparkles className="w-3.5 h-3.5 text-amber-500/80" />
-                  <span className="hidden sm:inline">{lang === 'nl' ? 'Verkooppagina' : 'Sales Page'}</span>
+                  <span className="hidden sm:inline">{t('dashSalesPage')}</span>
                 </button>
               </div>
 
@@ -326,7 +326,7 @@ export const Dashboard: React.FC = () => {
                   className="w-full sm:w-auto px-2.5 sm:px-3.5 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-xl text-xs font-semibold inline-flex items-center justify-center space-x-1.5 transition border border-slate-200 dark:border-slate-700/60"
                 >
                   <Wrench className="w-3.5 h-3.5 shrink-0" />
-                  <span className="truncate">{lang === 'nl' ? 'Onderhoud' : 'Service'}</span>
+                  <span className="truncate">{t('dashService')}</span>
                 </Link>
 
                 <button
@@ -335,17 +335,17 @@ export const Dashboard: React.FC = () => {
                   title={t('exportPdf')}
                 >
                   <FileDown className="w-3.5 h-3.5 text-sky-500 shrink-0" />
-                  <span className="truncate">{lang === 'nl' ? 'PDF Dossier' : 'Dossier'}</span>
+                  <span className="truncate">{t('dashPdfDossier')}</span>
                 </button>
 
                 <a
                   href={selectedVehicle ? `/api/vehicles/${selectedVehicle.id}/calendar.ics` : '/api/vehicles/calendar.ics'}
                   download={selectedVehicle ? `vehiclevault-${selectedVehicle.name.toLowerCase().replace(/\s+/g, '-')}.ics` : 'vehiclevault-calendar.ics'}
                   className="w-full sm:w-auto px-2.5 sm:px-3.5 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-xl text-xs font-semibold inline-flex items-center justify-center space-x-1.5 transition border border-slate-200 dark:border-slate-700/60"
-                  title={lang === 'nl' ? 'Exporteer APK, beurten en documenten naar je Apple/Google/Outlook kalender' : 'Export inspection, service and documents to Apple/Google/Outlook Calendar'}
+                  title={t('dashCalendarTooltip')}
                 >
                   <Calendar className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                  <span className="truncate">{lang === 'nl' ? 'Kalender' : 'Calendar'}</span>
+                  <span className="truncate">{t('dashCalendar')}</span>
                 </a>
               </div>
             </div>
@@ -380,7 +380,7 @@ export const Dashboard: React.FC = () => {
             <span className="text-xs font-bold text-slate-400 uppercase">km</span>
           </div>
           <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium pt-1 border-t border-slate-100 dark:border-slate-800/80 mt-1">
-            <span>{lang === 'nl' ? 'Aankoopstand' : 'Purchased at'}:</span>
+            <span>{t('purchaseOdometer')}:</span>
             <span className="font-mono font-semibold text-slate-600 dark:text-slate-300">
               {(selectedVehicle?.initial_odometer || 0).toLocaleString()} km
             </span>
@@ -402,7 +402,7 @@ export const Dashboard: React.FC = () => {
                   onClick={handleQuickHaSync}
                   disabled={syncingHa}
                   className="px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 font-bold transition flex items-center space-x-1 border border-emerald-200 dark:border-emerald-800/50 shadow-2xs"
-                  title={lang === 'nl' ? 'Direct synchroniseren met Home Assistant' : 'Sync with Home Assistant now'}
+                  title={t('dashHaSyncNow')}
                 >
                   <RefreshCw className={`w-3 h-3 ${syncingHa ? 'animate-spin' : ''}`} />
                   <span>Sync</span>
@@ -411,7 +411,7 @@ export const Dashboard: React.FC = () => {
                   type="button"
                   onClick={() => setIsHaLogModalOpen(true)}
                   className="p-1 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-                  title={lang === 'nl' ? 'Bekijk sync logboek' : 'View sync log'}
+                  title={t('dashViewSyncLog')}
                 >
                   <History className="w-3 h-3" />
                 </button>
@@ -425,7 +425,7 @@ export const Dashboard: React.FC = () => {
           <div>
             <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-1.5 min-h-[22px]">
               <span className="text-xs font-semibold truncate mr-1">
-                {inspTerm.short} {lang === 'nl' ? 'Keuring' : 'Inspection'}
+                {t('dashInspectionLabel', { term: inspTerm.short })}
               </span>
               {apkStatus?.isOverdue ? (
                 <StatusBadge status="overdue" label={inspTerm.badgeOverdue} />
@@ -449,7 +449,7 @@ export const Dashboard: React.FC = () => {
             <span className="truncate">
               {apkStatus?.daysRemaining !== null && apkStatus?.daysRemaining !== undefined
                 ? apkStatus.isOverdue
-                  ? `${Math.abs(apkStatus.daysRemaining)} ${lang === 'nl' ? 'd verlopen!' : 'd overdue!'}`
+                  ? t('dashDaysOverdue', { days: Math.abs(apkStatus.daysRemaining) })
                   : t('daysRemaining', { days: apkStatus.daysRemaining })
                 : '—'}
             </span>
@@ -478,16 +478,16 @@ export const Dashboard: React.FC = () => {
           <div className="text-2xl font-black text-slate-900 dark:text-white flex items-center space-x-2">
             <span>{overdueCount + warningCount}</span>
             <span className="text-xs font-semibold text-slate-500">
-              {lang === 'nl' ? 'aandachtspunten' : 'alerts'}
+              {t('dashAlerts')}
             </span>
           </div>
           <div className="text-[11px] text-slate-400 flex items-center space-x-2 mt-1 font-medium">
             <span className={overdueCount > 0 ? 'text-rose-600 dark:text-rose-400 font-bold' : ''}>
-              {overdueCount} {lang === 'nl' ? 'verlopen' : 'overdue'}
+              {t('dashOverdueCount', { count: overdueCount })}
             </span>
             <span>•</span>
             <span className={warningCount > 0 ? 'text-amber-600 dark:text-amber-400 font-bold' : ''}>
-              {warningCount} {lang === 'nl' ? 'binnenkort' : 'due soon'}
+              {t('dashDueSoonCount', { count: warningCount })}
             </span>
           </div>
         </div>
@@ -505,7 +505,7 @@ export const Dashboard: React.FC = () => {
             <span className="text-xs font-bold text-slate-400 uppercase">{t('active')}</span>
           </div>
           <span className="text-[11px] text-slate-400 font-medium">
-            {fleetAlerts.length} {lang === 'nl' ? 'totale meldingen' : 'total alerts'}
+            {t('dashTotalAlerts', { count: fleetAlerts.length })}
           </span>
         </div>
       </div>
@@ -560,7 +560,7 @@ export const Dashboard: React.FC = () => {
               <div>
                 <h2 className="text-sm font-bold text-slate-900 dark:text-white">{t('recentFuelEntries')}</h2>
                 <p className="text-[11px] text-slate-500">
-                  {lang === 'nl' ? 'Laatste geregistreerde brandstofuitgaven' : 'Latest logged fuel stops'}
+                  {t('dashLatestFuelHint')}
                 </p>
               </div>
             </div>
@@ -587,7 +587,7 @@ export const Dashboard: React.FC = () => {
                   if (dist > 0 && fuel.liters > 0) {
                     const kml = dist / fuel.liters;
                     const l100 = (fuel.liters / dist) * 100;
-                    consumptionBadge = lang === 'nl' ? `1 op ${kml.toFixed(1)} (${l100.toFixed(1)} L/100)` : `${l100.toFixed(1)} L/100km`;
+                    consumptionBadge = t('dashConsumptionBadge', { kml: kml.toFixed(1), l100: l100.toFixed(1) });
                   }
                 }
 
@@ -609,7 +609,7 @@ export const Dashboard: React.FC = () => {
                     <div className="text-right">
                       <div className="font-black text-slate-900 dark:text-white text-sm">€{fuel.total_cost.toFixed(2)}</div>
                       <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-semibold border border-slate-200 dark:border-slate-700">
-                        {fuel.is_full_tank ? t('fullTank') : (lang === 'nl' ? 'Deeltank' : 'Partial')}
+                        {fuel.is_full_tank ? t('fullTank') : t('partialTank')}
                       </span>
                     </div>
                   </div>

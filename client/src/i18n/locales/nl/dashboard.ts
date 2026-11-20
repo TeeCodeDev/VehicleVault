@@ -1,0 +1,61 @@
+export const dashboard = {
+  // Dashboard page
+  dashDriverMode: '🚗 Chauffeur Modus',
+  dashMyVehicle: 'Mijn Voertuig',
+  dashFuelFallback: 'Brandstof',
+  dashLastRefuel: 'Laatst Getankt',
+  dashLogCharge: '⚡ Laadbeurt Invoeren',
+  dashLogFuelOrCharge: '⛽ Tank- of Laadbeurt Invoeren',
+  dashLogFuel: '⛽ Tankbeurt Invoeren',
+  dashRecentLogs: 'Laatste {count} Registraties',
+  dashNoFuelYet: 'Nog geen tankbeurten geregistreerd.',
+  dashSalesPageTooltip: 'Verkooppagina & Digitaal Voertuigpaspoort',
+  dashSalesPage: 'Verkooppagina',
+  dashService: 'Onderhoud',
+  dashPdfDossier: 'PDF Dossier',
+  dashCalendarTooltip: 'Exporteer APK, beurten en documenten naar je Apple/Google/Outlook kalender',
+  dashCalendar: 'Kalender',
+  dashHaSyncNow: 'Direct synchroniseren met Home Assistant',
+  dashViewSyncLog: 'Bekijk sync logboek',
+  dashInspectionLabel: '{term} Keuring',
+  dashDaysOverdue: '{days} d verlopen!',
+  dashAlerts: 'aandachtspunten',
+  dashOverdueCount: '{count} verlopen',
+  dashDueSoonCount: '{count} binnenkort',
+  dashTotalAlerts: '{count} totale meldingen',
+  dashLatestFuelHint: 'Laatste geregistreerde brandstofuitgaven',
+  dashConsumptionBadge: '1 op {kml} ({l100} L/100)',
+
+  // Mobile bottom navigation
+  navFuel: 'Tanken',
+  navService: 'Beurten',
+  navTires: 'Banden',
+  navDocs: 'Documenten',
+  navVignettes: 'Vignetten',
+  navTrips: 'Ritten',
+  navExpenses: 'Lasten',
+  navSettings: 'Opties',
+
+  // Top navbar
+  navSwitchVehicle: 'Wissel van actief voertuig',
+  navVehicleCount: '{count} voertuigen',
+  navManageVehicles: 'Voertuigen beheren in Mijn Garage',
+  navShowcaseLiveTooltip: 'De openbare verkooppagina van dit voertuig staat LIVE. Klik om te bekijken.',
+  navShowcaseLive: 'Verkoop Live',
+  navLightMode: 'Lichte modus',
+  navDarkMode: 'Donkere modus',
+  navOpenProfile: 'Mijn Profiel & Beveiliging openen',
+  navNoAuthTooltip: 'Inloggen is uitgeschakeld (No-Auth / SSO modus)',
+
+  // Status badges
+  statusGood: 'In orde',
+  statusDueSoon: 'Binnenkort nodig',
+  statusOverdue: 'Verlopen',
+
+  // Date picker
+  dateSelectPlaceholder: 'Selecteer datum...',
+  dateClear: 'Wissen',
+  datePrevMonth: 'Vorige maand',
+  dateNextMonth: 'Volgende maand',
+  dateMinus7Days: '-7 dagen',
+};

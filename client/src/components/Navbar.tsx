@@ -36,7 +36,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const { user, logout, authDisabled } = useAuth();
   const { setTheme, isDark } = useTheme();
-  const { lang, t } = useLanguage();
+  const { t } = useLanguage();
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
@@ -99,7 +99,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     ? 'bg-accent-50/80 border-accent-300 dark:bg-accent-950/40 dark:border-accent-700 ring-2 ring-accent-500/20'
                     : 'bg-slate-50/90 dark:bg-slate-950/70 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800/60'
                 }`}
-                title={lang === 'nl' ? 'Wissel van actief voertuig' : 'Switch active vehicle'}
+                title={t('navSwitchVehicle')}
               >
                 {/* Vehicle Icon Badge */}
                 <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-accent-100/70 dark:bg-accent-950/70 text-accent-600 dark:text-accent-400 flex items-center justify-center shrink-0 border border-accent-200/80 dark:border-accent-800 shadow-2xs">
@@ -133,8 +133,8 @@ export const Navbar: React.FC<NavbarProps> = ({
               {isDropdownOpen && (
                 <div className="absolute left-0 mt-2 w-72 sm:w-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
                   <div className="p-2 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                    <span>{lang === 'nl' ? 'Mijn Garage' : 'My Garage'}</span>
-                    <span className="text-accent-500 font-mono">{vehicles.length} {lang === 'nl' ? 'voertuigen' : 'vehicles'}</span>
+                    <span>{t('myGarage')}</span>
+                    <span className="text-accent-500 font-mono">{t('navVehicleCount', { count: vehicles.length })}</span>
                   </div>
 
                   <div className="max-h-72 overflow-y-auto p-1.5 space-y-1">
@@ -193,7 +193,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       className="w-full px-3 py-2 text-xs font-bold text-accent-600 dark:text-accent-400 hover:bg-slate-50 dark:hover:bg-slate-800/60 rounded-xl flex items-center space-x-2 transition"
                     >
                       <Plus className="w-3.5 h-3.5" />
-                      <span>{lang === 'nl' ? 'Voertuigen beheren in Mijn Garage' : 'Manage vehicles in garage'}</span>
+                      <span>{t('navManageVehicles')}</span>
                     </NavLink>
                   </div>
                 </div>
@@ -207,14 +207,14 @@ export const Navbar: React.FC<NavbarProps> = ({
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center space-x-1.5 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-xl text-xs font-black bg-emerald-50 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 shadow-2xs hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition group shrink-0"
-                title="De openbare verkooppagina van dit voertuig staat LIVE. Klik om te bekijken."
+                title={t('navShowcaseLiveTooltip')}
               >
                 <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
                 </span>
                 <span className="hidden sm:inline">
-                  {lang === 'nl' ? 'Verkoop Live' : 'Showcase Live'}
+                  {t('navShowcaseLive')}
                 </span>
                 <span className="sm:hidden">Live</span>
                 <ExternalLink className="w-3.5 h-3.5 opacity-70 group-hover:opacity-100" />
@@ -231,7 +231,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button
             onClick={() => setTheme(isDark ? 'light' : 'dark')}
             className="p-1.5 sm:p-2 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 transition shadow-2xs"
-            title={isDark ? (lang === 'nl' ? 'Lichte modus' : 'Light mode') : (lang === 'nl' ? 'Donkere modus' : 'Dark mode')}
+            title={isDark ? t('navLightMode') : t('navDarkMode')}
           >
             {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-700" />}
           </button>
@@ -241,7 +241,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <NavLink
               to="/profile"
               className="flex items-center space-x-1 sm:space-x-1.5 px-1.5 sm:px-2 py-1 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition group"
-              title={lang === 'nl' ? 'Mijn Profiel & Beveiliging openen' : 'Open My Profile & Security'}
+              title={t('navOpenProfile')}
             >
               <span className="truncate max-w-[150px] font-medium hidden md:inline group-hover:text-accent-600 dark:group-hover:text-accent-400">
                 {user?.email || 'admin@local'}
@@ -253,7 +253,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             {authDisabled ? (
               <span
                 className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800"
-                title="Inloggen is uitgeschakeld (No-Auth / SSO modus)"
+                title={t('navNoAuthTooltip')}
               >
                 No-Auth
               </span>

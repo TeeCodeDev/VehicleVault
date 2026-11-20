@@ -26,7 +26,7 @@ import { useLanguage } from '../context/LanguageContext.js';
 export const Layout: React.FC = () => {
   const { user } = useAuth();
   const { isModuleEnabled } = useModules();
-  const { lang } = useLanguage();
+  const { t } = useLanguage();
   const isDriver = user?.role === 'driver';
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
@@ -123,7 +123,7 @@ export const Layout: React.FC = () => {
             }
           >
             <Fuel className="w-4 h-4 mb-0.5" />
-            <span>{lang === 'nl' ? 'Tanken' : 'Fuel'}</span>
+            <span>{t('navFuel')}</span>
           </NavLink>
         )}
 
@@ -137,7 +137,7 @@ export const Layout: React.FC = () => {
             }
           >
             <Wrench className="w-4 h-4 mb-0.5" />
-            <span>{lang === 'nl' ? 'Beurten' : 'Service'}</span>
+            <span>{t('navService')}</span>
           </NavLink>
         )}
 
@@ -151,7 +151,7 @@ export const Layout: React.FC = () => {
             }
           >
             <Disc className="w-4 h-4 mb-0.5" />
-            <span>{lang === 'nl' ? 'Banden' : 'Tires'}</span>
+            <span>{t('navTires')}</span>
           </NavLink>
         )}
 
@@ -165,7 +165,7 @@ export const Layout: React.FC = () => {
             }
           >
             <FolderLock className="w-4 h-4 mb-0.5" />
-            <span>{lang === 'nl' ? 'Documenten' : 'Docs'}</span>
+            <span>{t('navDocs')}</span>
           </NavLink>
         )}
 
@@ -179,7 +179,7 @@ export const Layout: React.FC = () => {
             }
           >
             <Ticket className="w-4 h-4 mb-0.5" />
-            <span>{lang === 'nl' ? 'Vignetten' : 'Vignettes'}</span>
+            <span>{t('navVignettes')}</span>
           </NavLink>
         )}
 
@@ -193,7 +193,7 @@ export const Layout: React.FC = () => {
             }
           >
             <Route className="w-4 h-4 mb-0.5" />
-            <span>{lang === 'nl' ? 'Ritten' : 'Trips'}</span>
+            <span>{t('navTrips')}</span>
           </NavLink>
         )}
 
@@ -209,7 +209,7 @@ export const Layout: React.FC = () => {
                 }
               >
                 <Landmark className="w-4 h-4 mb-0.5" />
-                <span>{lang === 'nl' ? 'Lasten' : 'Expenses'}</span>
+                <span>{t('navExpenses')}</span>
               </NavLink>
             )}
 
@@ -236,7 +236,7 @@ export const Layout: React.FC = () => {
               }
             >
               <SettingsIcon className="w-4 h-4 mb-0.5" />
-              <span>{lang === 'nl' ? 'Opties' : 'Settings'}</span>
+              <span>{t('navSettings')}</span>
             </NavLink>
           </>
         )}

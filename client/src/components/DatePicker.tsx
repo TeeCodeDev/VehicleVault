@@ -39,8 +39,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   required = false,
 }) => {
   const { lang, t } = useLanguage();
-  const defaultPlaceholder = lang === 'nl' ? 'Selecteer datum...' : 'Select date...';
-  const effectivePlaceholder = placeholder || defaultPlaceholder;
+  const effectivePlaceholder = placeholder || t('dateSelectPlaceholder');
 
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -158,7 +157,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
               onChange('');
             }}
             className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5"
-            title={lang === 'nl' ? 'Wissen' : 'Clear'}
+            title={t('dateClear')}
           >
             <X className="w-3 h-3" />
           </button>
@@ -174,7 +173,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
               type="button"
               onClick={handlePrevMonth}
               className="p-1 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-              title={lang === 'nl' ? 'Vorige maand' : 'Previous month'}
+              title={t('datePrevMonth')}
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
@@ -187,7 +186,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
               type="button"
               onClick={handleNextMonth}
               className="p-1 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-              title={lang === 'nl' ? 'Volgende maand' : 'Next month'}
+              title={t('dateNextMonth')}
             >
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -252,7 +251,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
               onClick={() => handleQuickSelect(-7)}
               className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white font-medium hover:underline"
             >
-              {lang === 'nl' ? '-7 dagen' : '-7 days'}
+              {t('dateMinus7Days')}
             </button>
           </div>
         </div>
