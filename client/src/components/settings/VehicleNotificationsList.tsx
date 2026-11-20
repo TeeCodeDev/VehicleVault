@@ -17,7 +17,7 @@ import { useLanguage } from '../../context/LanguageContext.js';
 import { LicensePlateBadge } from '../LicensePlateBadge.js';
 
 export const VehicleNotificationsList: React.FC = () => {
-  const { lang } = useLanguage();
+  const { t } = useLanguage();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
@@ -59,7 +59,7 @@ export const VehicleNotificationsList: React.FC = () => {
         prev.map((v) => (v.id === vehicleId ? { ...v, [field]: value } : v))
       );
     } catch (err: any) {
-      alert(err?.message || 'Fout bij bijwerken van voertuig notificatie-instelling');
+      alert(err?.message || t('vehicleNotifUpdateFailed'));
     } finally {
       setUpdatingId(null);
     }
@@ -75,7 +75,7 @@ export const VehicleNotificationsList: React.FC = () => {
     return (
       <div className="flex items-center justify-center p-8 bg-slate-50 dark:bg-slate-950/40 rounded-2xl border border-slate-200 dark:border-slate-800 text-xs text-slate-500">
         <Loader2 className="w-4 h-4 animate-spin mr-2" />
-        <span>{lang === 'nl' ? 'Voertuiginstellingen laden...' : 'Loading vehicle preferences...'}</span>
+        <span>{t('vehicleNotifLoading')}</span>
       </div>
     );
   }
@@ -89,12 +89,10 @@ export const VehicleNotificationsList: React.FC = () => {
       <div>
         <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center space-x-1.5">
           <Bell className="w-3.5 h-3.5 text-purple-500" />
-          <span>{lang === 'nl' ? 'Notificaties per Voertuig' : 'Per-Vehicle Notifications'}</span>
+          <span>{t('vehicleNotifTitle')}</span>
         </h4>
         <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-          {lang === 'nl'
-            ? 'Beheer hier per voertuig of je algemene meldingen, onderhouds-, APK- of banden-herinneringen wilt ontvangen.'
-            : 'Configure alerts per vehicle. Mute maintenance, inspection, or tire notices for secondary vehicles.'}
+          {t('vehicleNotifHint')}
         </p>
       </div>
 
@@ -157,7 +155,7 @@ export const VehicleNotificationsList: React.FC = () => {
                       ) : (
                         <BellOff className="w-3 h-3 text-slate-400" />
                       )}
-                      <span>{lang === 'nl' ? 'Notificaties' : 'Alerts'}</span>
+                      <span>{t('vehicleNotifAlerts')}</span>
                     </span>
                   </label>
 
@@ -182,7 +180,7 @@ export const VehicleNotificationsList: React.FC = () => {
                     />
                     <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 flex items-center space-x-1">
                       <Wrench className="w-3 h-3 text-amber-500" />
-                      <span>{lang === 'nl' ? 'Onderhoud' : 'Maint.'}</span>
+                      <span>{t('vehicleNotifMaintenance')}</span>
                     </span>
                   </label>
 
@@ -234,7 +232,7 @@ export const VehicleNotificationsList: React.FC = () => {
                     />
                     <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 flex items-center space-x-1">
                       <RefreshCw className="w-3 h-3 text-sky-500" />
-                      <span>{lang === 'nl' ? 'Bandenwissel' : 'Swap'}</span>
+                      <span>{t('vehicleNotifTireSwap')}</span>
                     </span>
                   </label>
 
@@ -259,7 +257,7 @@ export const VehicleNotificationsList: React.FC = () => {
                     />
                     <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 flex items-center space-x-1">
                       <CircleGauge className="w-3 h-3 text-rose-500" />
-                      <span>{lang === 'nl' ? 'Profiel' : 'Tread'}</span>
+                      <span>{t('vehicleNotifTread')}</span>
                     </span>
                   </label>
                 </div>

@@ -15,7 +15,7 @@ import { WebPushSettings } from '../WebPushSettings.js';
 import { VehicleNotificationsList } from './VehicleNotificationsList.js';
 
 export const NotificationsSettingsTab: React.FC = () => {
-  const { lang } = useLanguage();
+  const { t } = useLanguage();
 
   const [notifProvider, setNotifProvider] = useState<'none' | 'email' | 'webpush' | 'pushover' | 'ntfy' | 'gotify' | 'webhook'>('none');
   const [pushoverUserKey, setPushoverUserKey] = useState('');
@@ -83,7 +83,7 @@ export const NotificationsSettingsTab: React.FC = () => {
       setNotifSaveSuccess(true);
       setTimeout(() => setNotifSaveSuccess(false), 3000);
     } catch (err: any) {
-      alert(err?.message || 'Fout bij opslaan van notificatie-instellingen');
+      alert(err?.message || t('notifSaveFailed'));
     } finally {
       setNotifSaving(false);
     }
@@ -98,7 +98,7 @@ export const NotificationsSettingsTab: React.FC = () => {
       });
       setNotifTestResult(res);
     } catch (err: any) {
-      setNotifTestResult({ success: false, message: err?.message || 'Fout bij verzenden van testmelding' });
+      setNotifTestResult({ success: false, message: err?.message || t('notifTestFailed') });
     } finally {
       setNotifTesting(false);
     }
@@ -109,23 +109,23 @@ export const NotificationsSettingsTab: React.FC = () => {
       <div>
         <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center space-x-2">
           <Bell className="w-4 h-4 text-purple-500" />
-          <span>Notificatiesysteem (APK &amp; Onderhoud Meldingen)</span>
+          <span>{t('notifTitle')}</span>
         </h2>
         <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-          Ontvang automatische herinneringen op je telefoon wanneer een APK bijna verloopt (&lt; 30d, &lt; 7d) of een onderhoudsbeurt nodig is.
+          {t('notifSubtitle')}
         </p>
       </div>
 
       {/* Provider Buttons */}
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
         {[
-          { id: 'none', label: lang === 'nl' ? 'Uitgeschakeld' : 'Disabled' },
+          { id: 'none', label: t('notifProviderDisabled') },
           { id: 'webpush', label: 'Web Push (PWA)' },
-          { id: 'email', label: lang === 'nl' ? 'E-mail' : 'Email' },
+          { id: 'email', label: t('notifProviderEmail') },
           { id: 'pushover', label: 'Pushover' },
           { id: 'ntfy', label: 'Ntfy.sh / Self-Hosted' },
           { id: 'gotify', label: 'Gotify' },
-          { id: 'webhook', label: lang === 'nl' ? 'Aangepaste Webhook' : 'Custom Webhook' },
+          { id: 'webhook', label: t('notifProviderWebhook') },
         ].map((p) => (
           <button
             key={p.id}
@@ -156,7 +156,7 @@ export const NotificationsSettingsTab: React.FC = () => {
                 type="text"
                 value={pushoverUserKey}
                 onChange={(e) => setPushoverUserKey(e.target.value)}
-                placeholder="30-karakter User of Group Key"
+                placeholder={t('pushoverUserKeyPlaceholder')}
                 className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 font-mono"
               />
             </div>
@@ -168,20 +168,20 @@ export const NotificationsSettingsTab: React.FC = () => {
                 type="password"
                 value={pushoverApiToken}
                 onChange={(e) => setPushoverApiToken(e.target.value)}
-                placeholder="30-karakter Application Token"
+                placeholder={t('pushoverTokenPlaceholder')}
                 className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 font-mono"
               />
             </div>
           </div>
           <div>
             <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-              Apparaatnaam (Optioneel)
+              {t('pushoverDeviceLabel')}
             </label>
             <input
               type="text"
               value={pushoverDevice}
               onChange={(e) => setPushoverDevice(e.target.value)}
-              placeholder="Optionele specifieke apparaatnaam"
+              placeholder={t('pushoverDevicePlaceholder')}
               className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 font-mono"
             />
           </div>
@@ -194,19 +194,19 @@ export const NotificationsSettingsTab: React.FC = () => {
         <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/50 border border-slate-200/80 dark:border-slate-800/80 space-y-3 text-xs">
           <div>
             <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-              Ntfy Topic of Volledige URL *
+              {t('ntfyUrlLabel')}
             </label>
             <input
               type="text"
               value={ntfyUrl}
               onChange={(e) => setNtfyUrl(e.target.value)}
-              placeholder="https://ntfy.sh/mijn-geheime-auto-notificaties"
+              placeholder={t('ntfyUrlPlaceholder')}
               className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 font-mono"
             />
           </div>
           <div>
             <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-              Authenticatie Token (Optioneel voor privé ntfy servers)
+              {t('ntfyTokenLabel')}
             </label>
             <input
               type="password"
@@ -229,7 +229,7 @@ export const NotificationsSettingsTab: React.FC = () => {
               type="text"
               value={gotifyUrl}
               onChange={(e) => setGotifyUrl(e.target.value)}
-              placeholder="https://gotify.mijnnetwerk.nl"
+              placeholder={t('gotifyUrlPlaceholder')}
               className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 font-mono"
             />
           </div>
@@ -276,7 +276,7 @@ export const NotificationsSettingsTab: React.FC = () => {
               className="rounded border-slate-300 text-purple-600 focus:ring-purple-500"
             />
             <span className="font-semibold text-slate-800 dark:text-slate-200">
-              APK Herinneringen (30d en 7d voor verloop)
+              {t('notifTriggerApk')}
             </span>
           </label>
 
@@ -288,7 +288,7 @@ export const NotificationsSettingsTab: React.FC = () => {
               className="rounded border-slate-300 text-purple-600 focus:ring-purple-500"
             />
             <span className="font-semibold text-slate-800 dark:text-slate-200">
-              Onderhoud Overschreden Herinneringen
+              {t('notifTriggerMaintenance')}
             </span>
           </label>
 
@@ -300,7 +300,7 @@ export const NotificationsSettingsTab: React.FC = () => {
               className="rounded border-slate-300 text-purple-600 focus:ring-purple-500"
             />
             <span className="font-semibold text-slate-800 dark:text-slate-200">
-              Bandenwissel Herinneringen (Seizoenswissel)
+              {t('notifTriggerTireSwap')}
             </span>
           </label>
 
@@ -312,7 +312,7 @@ export const NotificationsSettingsTab: React.FC = () => {
               className="rounded border-slate-300 text-purple-600 focus:ring-purple-500"
             />
             <span className="font-semibold text-slate-800 dark:text-slate-200">
-              Bandenprofiel Waarschuwingen (≤ 3.0 mm en ≤ 1.6 mm)
+              {t('notifTriggerTireTread')}
             </span>
           </label>
 
@@ -356,10 +356,10 @@ export const NotificationsSettingsTab: React.FC = () => {
             )}
             <span>
               {notifTesting
-                ? 'Verzenden...'
+                ? t('notifSending')
                 : notifProvider === 'email'
-                ? 'Test E-mail Verzenden'
-                : 'Test Notificatie Verzenden'}
+                ? t('notifSendTestEmail')
+                : t('notifSendTest')}
             </span>
           </button>
         ) : <div />}
@@ -368,7 +368,7 @@ export const NotificationsSettingsTab: React.FC = () => {
           {notifSaveSuccess && (
             <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center space-x-1">
               <Check className="w-3.5 h-3.5" />
-              <span>Opgeslagen</span>
+              <span>{t('notifSaved')}</span>
             </span>
           )}
           <button
@@ -377,7 +377,7 @@ export const NotificationsSettingsTab: React.FC = () => {
             disabled={notifSaving}
             className="px-5 py-2 bg-slate-900 text-white hover:bg-black dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white rounded-xl text-xs font-bold transition disabled:opacity-50 shadow-sm"
           >
-            {notifSaving ? 'Opslaan...' : 'Notificaties Opslaan'}
+            {notifSaving ? t('saving') : t('notifSave')}
           </button>
         </div>
       </div>
