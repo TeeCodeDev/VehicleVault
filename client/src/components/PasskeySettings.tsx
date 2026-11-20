@@ -15,7 +15,6 @@ interface PasskeyList {
 export const PasskeySettings: React.FC = () => {
   const { t, lang } = useLanguage();
   const { passkeyAvailable, passkeyUnavailableReason, authDisabled } = useAuth();
-  const nl = lang === 'nl';
 
   const [data, setData] = useState<PasskeyList | null>(null);
   const [label, setLabel] = useState('');
@@ -97,7 +96,8 @@ export const PasskeySettings: React.FC = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const formatDate = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString(nl ? 'nl-NL' : 'en-GB') : null);
+  const formatDate = (iso: string | null) =>
+    iso ? new Date(iso).toLocaleDateString(lang === 'en' ? 'en-GB' : lang) : null;
 
   return (
     <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
@@ -216,11 +216,7 @@ export const PasskeySettings: React.FC = () => {
         <div className="flex items-center justify-between gap-3 pt-3 border-t border-slate-100 dark:border-slate-800/60 text-xs">
           <div className="flex items-center space-x-2 text-slate-600 dark:text-slate-300">
             <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
-            <span>
-              {nl
-                ? `Herstelcodes: ${data.recoveryCodesRemaining} over`
-                : `Recovery codes: ${data.recoveryCodesRemaining} left`}
-            </span>
+            <span>{t('passkeyRecoveryCodesLeft', { count: data.recoveryCodesRemaining })}</span>
           </div>
           <button
             type="button"
@@ -228,7 +224,7 @@ export const PasskeySettings: React.FC = () => {
             disabled={busy}
             className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg font-bold transition disabled:opacity-50"
           >
-            {nl ? 'Nieuwe codes maken' : 'Create new codes'}
+            {t('passkeyCreateNewCodes')}
           </button>
         </div>
       )}

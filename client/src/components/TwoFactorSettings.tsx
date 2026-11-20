@@ -30,9 +30,8 @@ interface TwoFactorSetup {
 }
 
 export const TwoFactorSettings: React.FC = () => {
-  const { lang } = useLanguage();
+  const { t } = useLanguage();
   const { authDisabled } = useAuth();
-  const nl = lang === 'nl';
 
   const [status, setStatus] = useState<TwoFactorStatus | null>(null);
   const [loading, setLoading] = useState(true);
@@ -83,7 +82,7 @@ export const TwoFactorSettings: React.FC = () => {
       setVerifyCode('');
       setIsSetupOpen(true);
     } catch (err: any) {
-      setError(err?.message || (nl ? 'Fout bij initialiseren van 2FA' : 'Failed to initialize 2FA'));
+      setError(err?.message || t('twoFactorInitFailed'));
     } finally {
       setBusy(false);
     }
@@ -102,10 +101,10 @@ export const TwoFactorSettings: React.FC = () => {
       });
       setIsSetupOpen(false);
       setSetupData(null);
-      setSuccess(res.message || (nl ? '2FA succesvol ingeschakeld!' : '2FA enabled successfully!'));
+      setSuccess(res.message || t('twoFactorEnabledSuccess'));
       await loadStatus();
     } catch (err: any) {
-      setError(err?.message || (nl ? 'Ongeldige code. Controleer je app.' : 'Invalid code'));
+      setError(err?.message || t('twoFactorInvalidCode'));
     } finally {
       setBusy(false);
     }
@@ -127,21 +126,17 @@ export const TwoFactorSettings: React.FC = () => {
       setIsDisableOpen(false);
       setConfirmPassword('');
       setConfirmCode('');
-      setSuccess(res.message || (nl ? '2FA is uitgeschakeld' : '2FA disabled'));
+      setSuccess(res.message || t('twoFactorDisabledSuccess'));
       await loadStatus();
     } catch (err: any) {
-      setError(err?.message || (nl ? 'Fout bij uitschakelen 2FA' : 'Failed to disable 2FA'));
+      setError(err?.message || t('twoFactorDisableFailed'));
     } finally {
       setBusy(false);
     }
   };
 
   const handleRegenerateCodes = async () => {
-    const pwd = prompt(
-      nl
-        ? 'Voer je wachtwoord in om nieuwe noodherstelcodes te genereren:'
-        : 'Enter your password to regenerate recovery codes:'
-    );
+    const pwd = prompt(t('twoFactorRegeneratePrompt'));
     if (!pwd) return;
 
     setError(null);
@@ -158,7 +153,7 @@ export const TwoFactorSettings: React.FC = () => {
       setSuccess(res.message);
       await loadStatus();
     } catch (err: any) {
-      setError(err?.message || (nl ? 'Fout bij genereren van codes' : 'Failed to regenerate codes'));
+      setError(err?.message || t('twoFactorRegenerateFailed'));
     } finally {
       setBusy(false);
     }
@@ -176,7 +171,7 @@ export const TwoFactorSettings: React.FC = () => {
   };
 
   const downloadCodes = (codes: string[]) => {
-    const content = `VehicleVault Noodherstelcodes\nGegenereerd op: ${new Date().toLocaleString()}\n\nElke code kan eenmalig gebruikt worden om in te loggen wanneer je geen toegang hebt tot je authenticator app:\n\n${codes.join('\n')}\n`;
+    const content = t('twoFactorCodesFile', { date: new Date().toLocaleString(), codes: codes.join('\n') });
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -189,7 +184,7 @@ export const TwoFactorSettings: React.FC = () => {
   if (loading) {
     return (
       <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-sm text-center text-xs text-slate-400">
-        2FA status laden...
+        {t('twoFactorStatusLoading')}
       </div>
     );
   }
@@ -203,12 +198,10 @@ export const TwoFactorSettings: React.FC = () => {
         <div>
           <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center space-x-2">
             <ShieldCheck className="w-4 h-4 text-accent-500" />
-            <span>{nl ? 'Tweefactorauthenticatie (TOTP 2FA)' : 'Two-Factor Authentication (2FA)'}</span>
+            <span>{t('twoFactorSettingsTitle')}</span>
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            {nl
-              ? 'Bescherm je account met een 6-cijferige verificatiecode via Google Authenticator, 1Password, Authy of Microsoft Authenticator.'
-              : 'Secure your account with an extra verification step using Google Authenticator, 1Password, Authy, or Microsoft Authenticator.'}
+            {t('twoFactorSettingsHint')}
           </p>
         </div>
 
@@ -220,7 +213,7 @@ export const TwoFactorSettings: React.FC = () => {
           }`}
         >
           {isEnabled ? <ShieldCheck className="w-3.5 h-3.5" /> : <ShieldAlert className="w-3.5 h-3.5" />}
-          <span>{isEnabled ? (nl ? '2FA Actief & Beveiligd' : '2FA Enabled') : (nl ? '2FA Uitgeschakeld' : '2FA Disabled')}</span>
+          <span>{isEnabled ? t('twoFactorEnabledBadge') : t('twoFactorDisabledBadge')}</span>
         </span>
       </div>
 
@@ -244,12 +237,10 @@ export const TwoFactorSettings: React.FC = () => {
         <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
             <span className="text-xs font-bold text-slate-900 dark:text-white block">
-              {nl ? 'Verhoog de beveiliging van je garage' : 'Strengthen your account security'}
+              {t('twoFactorPromoTitle')}
             </span>
             <span className="text-[11px] text-slate-500 dark:text-slate-400 block max-w-xl">
-              {nl
-                ? 'Elke keer dat je inlogt, wordt er gevraagd om een code uit je authenticator app. Noodherstelcodes worden automatisch aangemaakt zodat je nooit buitengesloten raakt.'
-                : 'Every sign-in will require a code from your mobile authenticator. Emergency recovery codes are included.'}
+              {t('twoFactorPromoHint')}
             </span>
           </div>
 
@@ -260,7 +251,7 @@ export const TwoFactorSettings: React.FC = () => {
             className="px-4 py-2 bg-accent-600 hover:bg-accent-700 text-white font-bold text-xs rounded-xl transition shadow-sm flex items-center space-x-2 self-start sm:self-auto shrink-0"
           >
             {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <QrCode className="w-4 h-4" />}
-            <span>{nl ? '2FA Inschakelen' : 'Enable 2FA'}</span>
+            <span>{t('enableTwoFactor')}</span>
           </button>
         </div>
       ) : (
@@ -269,12 +260,10 @@ export const TwoFactorSettings: React.FC = () => {
             <div className="space-y-1">
               <span className="text-xs font-bold text-emerald-950 dark:text-emerald-200 flex items-center space-x-1.5">
                 <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                <span>{nl ? 'Account is beveiligd met tweefactorauthenticatie' : 'Account is protected by 2FA'}</span>
+                <span>{t('twoFactorProtected')}</span>
               </span>
               <span className="text-[11px] text-emerald-800/80 dark:text-emerald-300/80 block">
-                {nl
-                  ? `Beschikbare eenmalige noodherstelcodes: ${status?.backupCodesCount || 0}`
-                  : `Available one-time recovery codes: ${status?.backupCodesCount || 0}`}
+                {t('twoFactorCodesAvailable', { count: status?.backupCodesCount || 0 })}
               </span>
             </div>
 
@@ -286,7 +275,7 @@ export const TwoFactorSettings: React.FC = () => {
                 className="px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow-xs"
               >
                 <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
-                <span>{nl ? 'Nieuwe herstelcodes' : 'New recovery codes'}</span>
+                <span>{t('newRecoveryCodes')}</span>
               </button>
 
               <button
@@ -299,7 +288,7 @@ export const TwoFactorSettings: React.FC = () => {
                 className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 border border-rose-200 dark:border-rose-800/60 text-rose-700 dark:text-rose-300 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow-xs"
               >
                 <Trash2 className="w-3.5 h-3.5" />
-                <span>{nl ? '2FA Uitschakelen' : 'Disable 2FA'}</span>
+                <span>{t('disableTwoFactor')}</span>
               </button>
             </div>
           </div>
@@ -313,7 +302,7 @@ export const TwoFactorSettings: React.FC = () => {
             <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
               <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center space-x-2">
                 <QrCode className="w-4 h-4 text-accent-500" />
-                <span>{nl ? '2FA Instellen & Koppelen' : 'Set up 2FA'}</span>
+                <span>{t('twoFactorSetupTitle')}</span>
               </h3>
               <button
                 onClick={() => setIsSetupOpen(false)}
@@ -327,12 +316,12 @@ export const TwoFactorSettings: React.FC = () => {
               {/* Stap 1: QR Code */}
               <div className="space-y-2">
                 <span className="font-bold text-slate-800 dark:text-slate-200 block">
-                  {nl ? '1. Scan deze QR-code in je Authenticator app' : '1. Scan QR code in your Authenticator app'}
+                  {t('twoFactorStepScan')}
                 </span>
                 <div className="flex flex-col items-center justify-center p-3 bg-white rounded-xl border border-slate-200 dark:border-slate-700 shadow-inner">
                   <img src={setupData.qrCodeUrl} alt="2FA QR Code" className="w-48 h-48 object-contain" />
                   <div className="mt-2 text-center">
-                    <span className="text-[10px] text-slate-500 block">{nl ? 'Handmatige sleutel:' : 'Manual key:'}</span>
+                    <span className="text-[10px] text-slate-500 block">{t('twoFactorManualKey')}</span>
                     <div className="flex items-center justify-center space-x-1 mt-0.5">
                       <code className="font-mono text-[11px] font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded select-all">
                         {setupData.secret}
@@ -341,7 +330,7 @@ export const TwoFactorSettings: React.FC = () => {
                         type="button"
                         onClick={() => copyToClipboard(setupData.secret, 'secret')}
                         className="p-1 hover:bg-slate-200 rounded text-slate-600 transition"
-                        title={nl ? 'Kopieer sleutel' : 'Copy key'}
+                        title={t('twoFactorCopyKey')}
                       >
                         {copiedSecret ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
                       </button>
@@ -354,7 +343,7 @@ export const TwoFactorSettings: React.FC = () => {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-slate-800 dark:text-slate-200 block">
-                    {nl ? '2. Noodherstelcodes (sla deze veilig op!)' : '2. Recovery backup codes (save safely!)'}
+                    {t('twoFactorStepCodes')}
                   </span>
                   <div className="flex items-center space-x-1">
                     <button
@@ -363,7 +352,7 @@ export const TwoFactorSettings: React.FC = () => {
                       className="text-[11px] font-bold text-accent-600 hover:text-accent-700 flex items-center space-x-1"
                     >
                       {copiedCodes ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
-                      <span>{copiedCodes ? (nl ? 'Gekopieerd' : 'Copied') : (nl ? 'Kopiëren' : 'Copy')}</span>
+                      <span>{copiedCodes ? t('copied') : t('copy')}</span>
                     </button>
                     <span className="text-slate-300">•</span>
                     <button
@@ -372,7 +361,7 @@ export const TwoFactorSettings: React.FC = () => {
                       className="text-[11px] font-bold text-accent-600 hover:text-accent-700 flex items-center space-x-1"
                     >
                       <Download className="w-3 h-3" />
-                      <span>{nl ? 'Opslaan' : 'Download'}</span>
+                      <span>{t('download')}</span>
                     </button>
                   </div>
                 </div>
@@ -389,7 +378,7 @@ export const TwoFactorSettings: React.FC = () => {
               {/* Stap 3: Bevestigen met 6 cijfers */}
               <form onSubmit={handleEnable} className="space-y-2.5 pt-2 border-t border-slate-100 dark:border-slate-800">
                 <label className="font-bold text-slate-800 dark:text-slate-200 block">
-                  {nl ? '3. Voer de 6-cijferige verificatiecode uit je app in' : '3. Enter 6-digit verification code'}
+                  {t('twoFactorStepVerify')}
                 </label>
                 <div className="flex items-center space-x-2">
                   <input
@@ -408,7 +397,7 @@ export const TwoFactorSettings: React.FC = () => {
                     className="px-4 py-2 bg-accent-600 hover:bg-accent-700 text-white font-bold rounded-xl transition shadow-sm disabled:opacity-50 flex items-center space-x-1.5 shrink-0"
                   >
                     {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                    <span>{nl ? 'Activeren' : 'Activate'}</span>
+                    <span>{t('twoFactorActivate')}</span>
                   </button>
                 </div>
               </form>
@@ -424,7 +413,7 @@ export const TwoFactorSettings: React.FC = () => {
             <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
               <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center space-x-2">
                 <Trash2 className="w-4 h-4 text-rose-500" />
-                <span>{nl ? '2FA Uitschakelen' : 'Disable 2FA'}</span>
+                <span>{t('disableTwoFactor')}</span>
               </h3>
               <button
                 onClick={() => setIsDisableOpen(false)}
@@ -435,15 +424,13 @@ export const TwoFactorSettings: React.FC = () => {
             </div>
 
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              {nl
-                ? 'Voer ter verificatie je wachtwoord óf de huidige 6-cijferige code uit je authenticator app in:'
-                : 'Enter your password or current 6-digit TOTP code to confirm:'}
+              {t('twoFactorDisableHint')}
             </p>
 
             <form onSubmit={handleDisable} className="space-y-3 text-xs">
               <div>
                 <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
-                  {nl ? 'Wachtwoord' : 'Password'}
+                  {t('passwordLabel')}
                 </label>
                 <input
                   type="password"
@@ -454,11 +441,11 @@ export const TwoFactorSettings: React.FC = () => {
                 />
               </div>
 
-              <div className="text-center text-[10px] uppercase font-bold text-slate-400">— of —</div>
+              <div className="text-center text-[10px] uppercase font-bold text-slate-400">{t('orDivider')}</div>
 
               <div>
                 <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
-                  {nl ? '6-cijferige verificatiecode' : '6-digit code'}
+                  {t('sixDigitCode')}
                 </label>
                 <input
                   type="text"
@@ -475,14 +462,14 @@ export const TwoFactorSettings: React.FC = () => {
                   onClick={() => setIsDisableOpen(false)}
                   className="flex-1 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold rounded-xl transition"
                 >
-                  {nl ? 'Annuleren' : 'Cancel'}
+                  {t('cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={busy || (!confirmPassword && !confirmCode)}
                   className="flex-1 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl transition disabled:opacity-50"
                 >
-                  {busy ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : (nl ? 'Uitschakelen' : 'Disable')}
+                  {busy ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : t('twoFactorDisableConfirm')}
                 </button>
               </div>
             </form>
@@ -497,7 +484,7 @@ export const TwoFactorSettings: React.FC = () => {
             <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
               <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center space-x-2">
                 <KeyRound className="w-4 h-4 text-emerald-500" />
-                <span>{nl ? 'Nieuwe Noodherstelcodes' : 'New Backup Codes'}</span>
+                <span>{t('newBackupCodesTitle')}</span>
               </h3>
               <button
                 onClick={() => setNewBackupCodes(null)}
@@ -508,9 +495,7 @@ export const TwoFactorSettings: React.FC = () => {
             </div>
 
             <p className="text-xs text-slate-500">
-              {nl
-                ? 'Je vorige herstelcodes zijn komen te vervallen. Sla deze nieuwe codes veilig op:'
-                : 'Previous codes are revoked. Save these new ones safely:'}
+              {t('newBackupCodesHint')}
             </p>
 
             <div className="grid grid-cols-2 gap-1.5 p-2.5 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 text-center select-all">
@@ -528,7 +513,7 @@ export const TwoFactorSettings: React.FC = () => {
                 className="flex-1 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl transition flex items-center justify-center space-x-1.5"
               >
                 {copiedCodes ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                <span>{copiedCodes ? (nl ? 'Gekopieerd' : 'Copied') : (nl ? 'Kopiëren' : 'Copy')}</span>
+                <span>{copiedCodes ? t('copied') : t('copy')}</span>
               </button>
               <button
                 type="button"
@@ -536,7 +521,7 @@ export const TwoFactorSettings: React.FC = () => {
                 className="flex-1 py-2 bg-accent-600 hover:bg-accent-700 text-white font-bold text-xs rounded-xl transition flex items-center justify-center space-x-1.5"
               >
                 <Download className="w-3.5 h-3.5" />
-                <span>{nl ? 'Downloaden' : 'Download'}</span>
+                <span>{t('download')}</span>
               </button>
             </div>
           </div>
