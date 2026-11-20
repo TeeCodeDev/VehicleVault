@@ -4,7 +4,7 @@ import { useLanguage } from '../../context/LanguageContext.js';
 import { apiFetch } from '../../api/client.js';
 
 export const ProfilePasswordForm: React.FC = () => {
-  const { t, lang } = useLanguage();
+  const { t } = useLanguage();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -18,12 +18,12 @@ export const ProfilePasswordForm: React.FC = () => {
     setSuccess(null);
 
     if (newPassword !== confirmPassword) {
-      setError(lang === 'nl' ? 'Nieuwe wachtwoorden komen niet overeen.' : 'New passwords do not match.');
+      setError(t('passwordsDoNotMatch'));
       return;
     }
 
     if (newPassword.length < 8) {
-      setError(lang === 'nl' ? 'Het nieuwe wachtwoord moet minimaal 8 tekens lang zijn.' : 'New password must be at least 8 characters long.');
+      setError(t('passwordMinLength', { min: 8 }));
       return;
     }
 
@@ -33,12 +33,12 @@ export const ProfilePasswordForm: React.FC = () => {
         method: 'POST',
         body: JSON.stringify({ currentPassword, newPassword }),
       });
-      setSuccess(res.message || (lang === 'nl' ? 'Wachtwoord succesvol gewijzigd.' : 'Password updated successfully.'));
+      setSuccess(res.message || t('passwordChanged'));
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
     } catch (err: any) {
-      setError(err?.message || (lang === 'nl' ? 'Fout bij wijzigen van wachtwoord.' : 'Failed to change password.'));
+      setError(err?.message || t('profilePasswordChangeFailed'));
     } finally {
       setLoading(false);
     }
@@ -53,7 +53,7 @@ export const ProfilePasswordForm: React.FC = () => {
         <div>
           <h3 className="font-bold text-sm text-slate-900 dark:text-white">{t('changePassword')}</h3>
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            {lang === 'nl' ? 'Werk je accountwachtwoord bij. Minimaal 8 tekens.' : 'Update your account password. Minimum 8 characters.'}
+            {t('profilePasswordHint', { min: 8 })}
           </p>
         </div>
       </div>

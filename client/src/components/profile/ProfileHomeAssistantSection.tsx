@@ -9,10 +9,12 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { apiFetch } from '../../api/client.js';
+import { useLanguage } from '../../context/LanguageContext.js';
 import { ApiKeyItem } from '../../types/index.js';
 import { formatDisplayDate } from '../../utils/format.js';
 
 export const ProfileHomeAssistantSection: React.FC = () => {
+  const { t } = useLanguage();
   const [apiKeys, setApiKeys] = useState<ApiKeyItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [newKeyName, setNewKeyName] = useState('');
@@ -45,19 +47,19 @@ export const ProfileHomeAssistantSection: React.FC = () => {
       setNewKeyName('');
       loadKeys();
     } catch (err: any) {
-      alert(err?.message || 'API key genereren mislukt');
+      alert(err?.message || t('profileKeyCreateFailed'));
     } finally {
       setLoading(false);
     }
   };
 
   const handleDeleteKey = async (id: string) => {
-    if (!confirm('Weet je zeker dat je deze API-sleutel wilt intrekken?')) return;
+    if (!confirm(t('profileConfirmRevokeKey'))) return;
     try {
       await apiFetch(`/api/auth/api-keys/${id}`, { method: 'DELETE' });
       loadKeys();
     } catch (err: any) {
-      alert(err?.message || 'Verwijderen mislukt');
+      alert(err?.message || t('deleteFailed'));
     }
   };
 
@@ -104,10 +106,10 @@ rest_command:
           </div>
           <div>
             <h3 className="font-bold text-sm text-slate-900 dark:text-white flex items-center space-x-2">
-              <span>Home Assistant &amp; API-Sleutels</span>
+              <span>{t('profileHaTitle')}</span>
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Koppel je eigen voertuigen aan Home Assistant via een persoonlijke API-sleutel
+              {t('profileHaHint')}
             </p>
           </div>
         </div>
@@ -117,7 +119,7 @@ rest_command:
           rel="noreferrer"
           className="text-xs text-sky-600 dark:text-sky-400 font-bold hover:underline flex items-center space-x-1"
         >
-          <span>HACS Integratie</span>
+          <span>{t('profileHacsLink')}</span>
           <ExternalLink className="w-3.5 h-3.5" />
         </a>
       </div>
@@ -126,7 +128,7 @@ rest_command:
         <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl space-y-1.5 animate-fade-in">
           <div className="flex items-center space-x-2 text-emerald-800 dark:text-emerald-300 font-bold text-xs">
             <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-            <span>Nieuwe API-sleutel aangemaakt! Kopieer deze nu:</span>
+            <span>{t('profileKeyCreated')}</span>
           </div>
           <div className="flex items-center space-x-2">
             <input
@@ -145,7 +147,7 @@ rest_command:
               className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold inline-flex items-center space-x-1 shrink-0"
             >
               {copiedKey ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-              <span>{copiedKey ? 'Gekopieerd!' : 'Kopiëren'}</span>
+              <span>{copiedKey ? t('copied') : t('copy')}</span>
             </button>
           </div>
         </div>
@@ -154,10 +156,10 @@ rest_command:
       {/* Active API keys */}
       <div className="space-y-2">
         <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
-          Mijn API-sleutels ({apiKeys.length})
+          {t('profileMyApiKeys', { count: apiKeys.length })}
         </span>
         {apiKeys.length === 0 ? (
-          <p className="text-xs text-slate-400 italic">Je hebt nog geen API-sleutel aangemaakt.</p>
+          <p className="text-xs text-slate-400 italic">{t('profileNoApiKeys')}</p>
         ) : (
           <div className="divide-y divide-slate-100 dark:divide-slate-800/80 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden bg-slate-50/50 dark:bg-slate-950/30">
             {apiKeys.map((k) => (
@@ -165,15 +167,15 @@ rest_command:
                 <div>
                   <span className="font-bold text-slate-900 dark:text-white block">{k.name}</span>
                   <span className="font-mono text-[10px] text-slate-400">
-                    {k.prefix}... • Aangemaakt op {formatDisplayDate(k.created_at)}
-                    {k.last_used_at ? ` • Laatst gebruikt: ${formatDisplayDate(k.last_used_at)}` : ''}
+                    {k.prefix}... • {t('profileKeyCreatedOn', { date: formatDisplayDate(k.created_at) })}
+                    {k.last_used_at ? ` • ${t('profileKeyLastUsed', { date: formatDisplayDate(k.last_used_at) })}` : ''}
                   </span>
                 </div>
                 <button
                   type="button"
                   onClick={() => handleDeleteKey(k.id)}
                   className="text-rose-500 hover:text-rose-700 p-1.5 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition"
-                  title="Sleutel intrekken"
+                  title={t('profileRevokeKey')}
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -187,7 +189,7 @@ rest_command:
       <form onSubmit={handleCreateKey} className="flex items-center space-x-2">
         <input
           type="text"
-          placeholder="bijv. Home Assistant Mijn Voertuigen"
+          placeholder={t('profileKeyNamePlaceholder')}
           value={newKeyName}
           onChange={(e) => setNewKeyName(e.target.value)}
           className="flex-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-accent-500"
@@ -198,7 +200,7 @@ rest_command:
           className="px-3.5 py-1.5 bg-accent-600 hover:bg-accent-700 text-white rounded-lg text-xs font-bold inline-flex items-center space-x-1 transition disabled:opacity-50 shrink-0"
         >
           <Plus className="w-3.5 h-3.5" />
-          <span>Sleutel Aanmaken</span>
+          <span>{t('profileCreateKey')}</span>
         </button>
       </form>
 
@@ -207,7 +209,7 @@ rest_command:
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
-              1. Sensoren Uitlezen (REST Sensors YAML)
+              {t('profileSensorYamlTitle')}
             </span>
             <button
               type="button"
@@ -219,7 +221,7 @@ rest_command:
               className="text-xs text-sky-600 dark:text-sky-400 font-bold hover:underline flex items-center space-x-1"
             >
               {copiedYaml ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
-              <span>{copiedYaml ? 'Gekopieerd!' : 'Kopieer Sensor YAML'}</span>
+              <span>{copiedYaml ? t('copied') : t('profileCopySensorYaml')}</span>
             </button>
           </div>
           <pre className="p-3 bg-slate-950 text-slate-300 font-mono text-[11px] rounded-xl overflow-x-auto border border-slate-800">
@@ -230,7 +232,7 @@ rest_command:
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
-              2. Kilometerstand Syncen (REST Command YAML)
+              {t('profileOdoYamlTitle')}
             </span>
             <button
               type="button"
@@ -242,7 +244,7 @@ rest_command:
               className="text-xs text-sky-600 dark:text-sky-400 font-bold hover:underline flex items-center space-x-1"
             >
               {copiedCommand ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
-              <span>{copiedCommand ? 'Gekopieerd!' : 'Kopieer Commando YAML'}</span>
+              <span>{copiedCommand ? t('copied') : t('profileCopyCommandYaml')}</span>
             </button>
           </div>
           <pre className="p-3 bg-slate-950 text-slate-300 font-mono text-[11px] rounded-xl overflow-x-auto border border-slate-800">

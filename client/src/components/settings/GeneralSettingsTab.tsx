@@ -19,20 +19,10 @@ import {
   Coffee,
   ExternalLink,
 } from 'lucide-react';
-import { useTheme, ACCENT_COLOR_OPTIONS } from '../../context/ThemeContext.js';
+import { useTheme, ACCENT_COLOR_OPTIONS, ACCENT_LABEL_KEYS } from '../../context/ThemeContext.js';
 import { useLanguage } from '../../context/LanguageContext.js';
 import { useModules, EnabledModules } from '../../context/ModuleContext.js';
 import { apiFetch } from '../../api/client.js';
-import type { TranslationKey } from '../../i18n/translations.js';
-
-const ACCENT_LABEL_KEYS: Record<string, TranslationKey> = {
-  indigo: 'accentIndigo',
-  sky: 'accentSky',
-  emerald: 'accentEmerald',
-  amber: 'accentAmber',
-  rose: 'accentRose',
-  violet: 'accentViolet',
-};
 
 interface GeneralSettingsTabProps {
   health?: any;
@@ -241,7 +231,7 @@ export const GeneralSettingsTab: React.FC<GeneralSettingsTabProps> = ({
                   >
                     <span className="w-5 h-5 rounded-full mb-1.5 shadow-xs" style={{ backgroundColor: opt.dotColor }} />
                     <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 truncate w-full text-center">
-                      {ACCENT_LABEL_KEYS[opt.id] ? t(ACCENT_LABEL_KEYS[opt.id]) : opt.enName}
+                      {t(ACCENT_LABEL_KEYS[opt.id])}
                     </span>
                   </button>
                 );

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import type { TranslationKey } from '../i18n/translations.js';
 
 export type Theme = 'dark' | 'light' | 'system';
 export type AccentColor = 'indigo' | 'sky' | 'emerald' | 'amber' | 'rose' | 'violet';
@@ -19,6 +20,16 @@ export const ACCENT_COLOR_OPTIONS: AccentColorOption[] = [
   { id: 'rose', name: 'Robijnrood', enName: 'Ruby Red', previewBg: 'bg-rose-600', dotColor: '#e11d48' },
   { id: 'violet', name: 'Dieppaars', enName: 'Deep Purple', previewBg: 'bg-purple-600', dotColor: '#9333ea' },
 ];
+
+/** Translation key for each accent color's display name. */
+export const ACCENT_LABEL_KEYS: Record<AccentColor, TranslationKey> = {
+  indigo: 'accentIndigo',
+  sky: 'accentSky',
+  emerald: 'accentEmerald',
+  amber: 'accentAmber',
+  rose: 'accentRose',
+  violet: 'accentViolet',
+};
 
 interface ThemeContextType {
   theme: Theme;

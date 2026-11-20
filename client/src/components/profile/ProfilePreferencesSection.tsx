@@ -1,17 +1,17 @@
 import React from 'react';
 import { Palette, Globe, Sun, Moon, Laptop, Check } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext.js';
-import { useTheme, ACCENT_COLOR_OPTIONS } from '../../context/ThemeContext.js';
+import { useTheme, ACCENT_COLOR_OPTIONS, ACCENT_LABEL_KEYS } from '../../context/ThemeContext.js';
 
 export const ProfilePreferencesSection: React.FC = () => {
-  const { lang, setLang } = useLanguage();
+  const { lang, setLang, t } = useLanguage();
   const { theme, setTheme, accentColor, setAccentColor } = useTheme();
 
   return (
     <div className="space-y-6">
       <div className="flex items-center space-x-2 text-slate-900 dark:text-white font-bold text-base">
         <Palette className="w-5 h-5 text-accent-500" />
-        <span>{lang === 'nl' ? 'Weergave & Voorkeuren' : 'Appearance & Preferences'}</span>
+        <span>{t('profileAppearancePrefs')}</span>
       </div>
 
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm transition-colors space-y-6">
@@ -19,7 +19,7 @@ export const ProfilePreferencesSection: React.FC = () => {
         <div>
           <label className="block text-xs font-bold text-slate-900 dark:text-white mb-2 flex items-center space-x-2">
             <Globe className="w-4 h-4 text-sky-500" />
-            <span>{lang === 'nl' ? 'Taal / Language' : 'Language'}</span>
+            <span>{t('languageLabel')}</span>
           </label>
           <div className="flex items-center space-x-3">
             <button
@@ -67,7 +67,7 @@ export const ProfilePreferencesSection: React.FC = () => {
         <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
           <label className="block text-xs font-bold text-slate-900 dark:text-white mb-2 flex items-center space-x-2">
             <Sun className="w-4 h-4 text-amber-500" />
-            <span>{lang === 'nl' ? 'Thema' : 'Theme'}</span>
+            <span>{t('profileThemeLabel')}</span>
           </label>
           <div className="grid grid-cols-3 gap-3 max-w-md">
             <button
@@ -80,7 +80,7 @@ export const ProfilePreferencesSection: React.FC = () => {
               }`}
             >
               <Sun className="w-4 h-4 text-amber-500" />
-              <span className="text-xs">{lang === 'nl' ? 'Licht' : 'Light'}</span>
+              <span className="text-xs">{t('themeLight')}</span>
             </button>
 
             <button
@@ -93,7 +93,7 @@ export const ProfilePreferencesSection: React.FC = () => {
               }`}
             >
               <Moon className="w-4 h-4 text-indigo-400" />
-              <span className="text-xs">{lang === 'nl' ? 'Donker' : 'Dark'}</span>
+              <span className="text-xs">{t('themeDark')}</span>
             </button>
 
             <button
@@ -106,7 +106,7 @@ export const ProfilePreferencesSection: React.FC = () => {
               }`}
             >
               <Laptop className="w-4 h-4 text-slate-400" />
-              <span className="text-xs">{lang === 'nl' ? 'Systeem' : 'System'}</span>
+              <span className="text-xs">{t('themeSystem')}</span>
             </button>
           </div>
         </div>
@@ -115,7 +115,7 @@ export const ProfilePreferencesSection: React.FC = () => {
         <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
           <label className="block text-xs font-bold text-slate-900 dark:text-white mb-2 flex items-center space-x-2">
             <Palette className="w-4 h-4 text-accent-500" />
-            <span>{lang === 'nl' ? 'Accentkleur' : 'Accent Color'}</span>
+            <span>{t('accentColor')}</span>
           </label>
           <div className="flex flex-wrap gap-2.5">
             {ACCENT_COLOR_OPTIONS.map((opt) => (
@@ -133,7 +133,7 @@ export const ProfilePreferencesSection: React.FC = () => {
                   className="w-3.5 h-3.5 rounded-full shrink-0 shadow-2xs"
                   style={{ backgroundColor: opt.dotColor }}
                 />
-                <span>{lang === 'nl' ? opt.name : opt.enName}</span>
+                <span>{t(ACCENT_LABEL_KEYS[opt.id])}</span>
               </button>
             ))}
           </div>
