@@ -19,10 +19,17 @@ interface HomeAssistantSettingsTabProps {
   onNavigateToUsers: () => void;
 }
 
+/** Replaces `{name}` placeholders in a translated string with React nodes (e.g. <code> or <strong>). */
+const fillSlots = (text: string, slots: Record<string, React.ReactNode>) =>
+  text.split(/(\{\w+\})/).map((part, i) => {
+    const name = part.match(/^\{(\w+)\}$/)?.[1];
+    return <React.Fragment key={i}>{name && name in slots ? slots[name] : part}</React.Fragment>;
+  });
+
 export const HomeAssistantSettingsTab: React.FC<HomeAssistantSettingsTabProps> = ({
   onNavigateToUsers,
 }) => {
-  const { lang } = useLanguage();
+  const { t } = useLanguage();
   const [haCopied, setHaCopied] = useState(false);
   const [haOdoCopied, setHaOdoCopied] = useState(false);
   const [apiKeys, setApiKeys] = useState<ApiKeyItem[]>([]);
@@ -98,18 +105,16 @@ action:
           <div>
             <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center space-x-2">
               <Radio className="w-4 h-4 text-sky-500" />
-              <span>{lang === 'nl' ? 'Home Assistant Integratie' : 'Home Assistant Integration'}</span>
+              <span>{t('haIntegrationTitle')}</span>
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              {lang === 'nl'
-                ? 'Koppel VehicleVault in Home Assistant om kilometerstanden, APK status en verbruik in je dashboards weer te geven.'
-                : 'Connect VehicleVault to Home Assistant to display odometers, APK inspection alerts, and fuel telemetry in your dashboards.'}
+              {t('haIntegrationHint')}
             </p>
           </div>
 
           <span className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-sky-50 text-sky-700 dark:bg-sky-950/60 dark:text-sky-400 border border-sky-200 dark:border-sky-800/60 shrink-0 self-start sm:self-auto">
             <span className="w-2 h-2 rounded-full bg-sky-500 animate-pulse"></span>
-            <span>{lang === 'nl' ? 'REST API Actief' : 'REST API Active'}</span>
+            <span>{t('haRestApiActive')}</span>
           </span>
         </div>
 
@@ -117,7 +122,7 @@ action:
         <div className="p-3.5 bg-slate-50 dark:bg-slate-950/60 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
           <div className="min-w-0">
             <span className="text-[10px] text-slate-400 uppercase font-bold block">
-              {lang === 'nl' ? 'VehicleVault Sensoren Endpoint' : 'VehicleVault Sensors Endpoint'}
+              {t('haSensorsEndpoint')}
             </span>
             <span className="font-mono text-slate-800 dark:text-slate-200 truncate block mt-0.5">
               {haHost}/api/integrations/ha/sensors
@@ -133,7 +138,7 @@ action:
             className="px-3 py-1.5 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 border border-slate-200 dark:border-slate-700 shrink-0"
           >
             {haCopied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
-            <span>{haCopied ? (lang === 'nl' ? 'Gekopieerd' : 'Copied') : (lang === 'nl' ? 'Kopieer Endpoint URL' : 'Copy Endpoint URL')}</span>
+            <span>{haCopied ? t('copied') : t('haCopyEndpointUrl')}</span>
           </button>
         </div>
 
@@ -142,12 +147,10 @@ action:
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <span className="px-2 py-0.5 rounded-full bg-sky-500 text-white text-[10px] font-black uppercase tracking-wider">
-                {lang === 'nl' ? 'Aanbevolen' : 'Recommended'}
+                {t('haRecommended')}
               </span>
               <h3 className="text-xs font-bold text-slate-900 dark:text-white">
-                {lang === 'nl'
-                  ? 'HACS Custom Integration (Configuratie via HA Interface)'
-                  : 'HACS Custom Integration (Setup via Home Assistant Web UI)'}
+                {t('haHacsTitle')}
               </h3>
             </div>
             <a
@@ -162,29 +165,28 @@ action:
           </div>
 
           <p className="text-xs text-slate-600 dark:text-slate-300">
-            {lang === 'nl'
-              ? 'Geen handmatige YAML configuratie nodig! Installeer de integratie via HACS en voeg VehicleVault met 1 klik toe via Instellingen → Apparaten & Diensten. Elk voertuig krijgt automatisch een eigen Apparaat en sensoren in Home Assistant.'
-              : 'Zero manual YAML configuration required! Install the integration via HACS and add VehicleVault in 1 click via Settings → Devices & Services. Each vehicle is automatically exposed with its own dedicated device and entities in Home Assistant.'}
+            {t('haHacsHint')}
           </p>
 
           <ol className="list-decimal list-inside text-xs text-slate-600 dark:text-slate-300 space-y-1.5 pl-1">
             <li>
-              {lang === 'nl' ? 'Voeg ' : 'Add '}
-              <code className="px-1.5 py-0.5 bg-white dark:bg-slate-900 rounded font-mono text-[11px] border border-sky-200 dark:border-sky-800">https://github.com/TeeCodeDev/ha-vehiclevault</code>
-              {lang === 'nl' ? ' toe als Custom Repository in HACS.' : ' as a Custom Repository in HACS.'}
+              {fillSlots(t('haHacsStepAddRepo'), {
+                repo: <code className="px-1.5 py-0.5 bg-white dark:bg-slate-900 rounded font-mono text-[11px] border border-sky-200 dark:border-sky-800">https://github.com/TeeCodeDev/ha-vehiclevault</code>,
+              })}
             </li>
             <li>
-              {lang === 'nl' ? 'Download de integratie en herstart Home Assistant.' : 'Download the integration and restart Home Assistant.'}
+              {t('haHacsStepDownload')}
             </li>
             <li>
-              {lang === 'nl'
-                ? <>Ga in Home Assistant naar <strong>Instellingen → Apparaten &amp; Diensten → Integratie toevoegen</strong> en kies <strong>VehicleVault</strong>.</>
-                : <>In Home Assistant, navigate to <strong>Settings → Devices &amp; Services → Add Integration</strong> and select <strong>VehicleVault</strong>.</>}
+              {fillSlots(t('haHacsStepAddIntegration'), {
+                path: <strong>{t('haHacsIntegrationPath')}</strong>,
+                name: <strong>VehicleVault</strong>,
+              })}
             </li>
             <li>
-              {lang === 'nl'
-                ? <>Vul je URL (<code className="px-1.5 py-0.5 bg-white dark:bg-slate-900 rounded font-mono text-[11px] border border-sky-200 dark:border-sky-800">{haHost}</code>) en je API-sleutel in.</>
-                : <>Enter your server URL (<code className="px-1.5 py-0.5 bg-white dark:bg-slate-900 rounded font-mono text-[11px] border border-sky-200 dark:border-sky-800">{haHost}</code>) and your API key.</>}
+              {fillSlots(t('haHacsStepCredentials'), {
+                url: <code className="px-1.5 py-0.5 bg-white dark:bg-slate-900 rounded font-mono text-[11px] border border-sky-200 dark:border-sky-800">{haHost}</code>,
+              })}
             </li>
           </ol>
         </div>
@@ -194,7 +196,7 @@ action:
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center space-x-1.5">
               <Terminal className="w-3.5 h-3.5 text-slate-500" />
-              <span>{lang === 'nl' ? 'Optie 2: Handmatige REST Sensor YAML (configuration.yaml)' : 'Option 2: Manual REST Sensor YAML (configuration.yaml)'}</span>
+              <span>{t('haYamlOptionTitle')}</span>
             </span>
             <button
               type="button"
@@ -206,7 +208,7 @@ action:
               className="px-3 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-bold transition flex items-center space-x-1.5"
             >
               {haCopied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
-              <span>{haCopied ? (lang === 'nl' ? 'Gekopieerd!' : 'Copied!') : (lang === 'nl' ? 'Kopieer YAML' : 'Copy YAML')}</span>
+              <span>{haCopied ? t('copied') : t('haCopyYaml')}</span>
             </button>
           </div>
 
@@ -223,12 +225,10 @@ action:
             <div>
               <h3 className="font-bold text-xs text-slate-900 dark:text-white flex items-center space-x-2">
                 <Zap className="w-4 h-4 text-sky-500" />
-                <span>{lang === 'nl' ? 'Optie 3: Kilometerstand automatisch doorgeven vanuit Home Assistant' : 'Option 3: Auto-Push Odometer from Home Assistant'}</span>
+                <span>{t('haOdoPushTitle')}</span>
               </h3>
               <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                {lang === 'nl'
-                  ? 'Heeft je auto een integratie in Home Assistant (Tesla, Kia/Hyundai Bluelink, BMW, OBD2)? Laat Home Assistant na elke rit de tellerstand automatisch naar VehicleVault sturen!'
-                  : 'Car integration in Home Assistant (Tesla, Bluelink, BMW, OBD2)? Push odometer readings automatically into VehicleVault!'}
+                {t('haOdoPushHint')}
               </p>
             </div>
             <button
@@ -241,7 +241,7 @@ action:
               className="px-3 py-1 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-xs font-bold transition flex items-center space-x-1.5 shrink-0 shadow-2xs"
             >
               {haOdoCopied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-              <span>{haOdoCopied ? (lang === 'nl' ? 'Gekopieerd!' : 'Copied!') : (lang === 'nl' ? 'Kopieer YAML' : 'Copy YAML')}</span>
+              <span>{haOdoCopied ? t('copied') : t('haCopyYaml')}</span>
             </button>
           </div>
 
@@ -259,12 +259,10 @@ action:
           <div>
             <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center space-x-2">
               <KeyRound className="w-4 h-4 text-sky-500" />
-              <span>{lang === 'nl' ? 'Home Assistant API-Sleutel' : 'Home Assistant API Key'}</span>
+              <span>{t('haApiKeyTitle')}</span>
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              {lang === 'nl'
-                ? 'Gebruik een persoonlijke API-sleutel om Home Assistant veilig toegang te geven tot de sensoren.'
-                : 'Use a personal API key to allow Home Assistant secure access to sensors and webhook endpoints.'}
+              {t('haApiKeyHint')}
             </p>
           </div>
           <button
@@ -272,7 +270,7 @@ action:
             onClick={onNavigateToUsers}
             className="text-xs text-sky-600 dark:text-sky-400 font-bold hover:underline flex items-center space-x-1"
           >
-            <span>{lang === 'nl' ? 'Alle API-sleutels beheren' : 'Manage all API keys'}</span>
+            <span>{t('haManageApiKeys')}</span>
             <ExternalLink className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -283,7 +281,9 @@ action:
               <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
               <div>
                 <span className="font-bold text-emerald-900 dark:text-emerald-200 block">
-                  {lang === 'nl' ? 'Home Assistant API-sleutel actief' : 'Home Assistant API key active'} ({apiKeys.find((k) => k.name.toLowerCase().includes('home assistant') || k.name.toLowerCase().includes('ha'))?.name})
+                  {t('haApiKeyActive', {
+                    name: apiKeys.find((k) => k.name.toLowerCase().includes('home assistant') || k.name.toLowerCase().includes('ha'))?.name || '',
+                  })}
                 </span>
                 <span className="text-slate-500 dark:text-slate-400 font-mono text-[11px]">
                   {apiKeys.find((k) => k.name.toLowerCase().includes('home assistant') || k.name.toLowerCase().includes('ha'))?.prefix}••••••••
@@ -294,7 +294,7 @@ action:
         ) : (
           <div className="p-3 bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
             <span className="text-slate-600 dark:text-slate-300">
-              {lang === 'nl' ? 'Nog geen specifieke sleutel voor Home Assistant aangemaakt.' : 'No dedicated Home Assistant API key created yet.'}
+              {t('haNoApiKey')}
             </span>
             <button
               type="button"
@@ -302,7 +302,7 @@ action:
               className="px-3.5 py-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-xs font-bold transition flex items-center space-x-1 self-start sm:self-auto shrink-0"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>{lang === 'nl' ? 'Sleutel Aanmaken' : 'Create Key'}</span>
+              <span>{t('haCreateKey')}</span>
             </button>
           </div>
         )}

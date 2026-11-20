@@ -4,7 +4,7 @@ import { apiFetch } from '../../api/client.js';
 import { useLanguage } from '../../context/LanguageContext.js';
 
 export const HomeAssistantTelematicsCard: React.FC = () => {
-  const { lang } = useLanguage();
+  const { t } = useLanguage();
   const [baseUrl, setBaseUrl] = useState('');
   const [token, setToken] = useState('');
   const [hasToken, setHasToken] = useState(false);
@@ -45,12 +45,12 @@ export const HomeAssistantTelematicsCard: React.FC = () => {
       setConfigured(Boolean(baseUrl));
       setMessage({
         type: 'success',
-        text: lang === 'nl' ? 'Home Assistant instellingen succesvol opgeslagen!' : 'Settings saved successfully!',
+        text: t('haSettingsSaved'),
       });
     } catch (err: any) {
       setMessage({
         type: 'error',
-        text: err?.message || (lang === 'nl' ? 'Opslaan mislukt' : 'Failed to save settings'),
+        text: err?.message || t('haSettingsSaveFailed'),
       });
     } finally {
       setLoading(false);
@@ -74,13 +74,13 @@ export const HomeAssistantTelematicsCard: React.FC = () => {
       } else {
         setMessage({
           type: 'error',
-          text: res.message || 'Verbindingstest mislukt',
+          text: res.message || t('haConnectionTestFailed'),
         });
       }
     } catch (err: any) {
       setMessage({
         type: 'error',
-        text: err?.message || 'Verbindingstest mislukt',
+        text: err?.message || t('haConnectionTestFailed'),
       });
     } finally {
       setTesting(false);
@@ -98,15 +98,12 @@ export const HomeAssistantTelematicsCard: React.FC = () => {
 
       setMessage({
         type: 'success',
-        text:
-          lang === 'nl'
-            ? `Synchronisatie voltooid: ${res.synced} van ${res.total} voertuigen gesynchroniseerd (${res.errors} fouten).`
-            : `Sync completed: ${res.synced} of ${res.total} vehicles updated (${res.errors} errors).`,
+        text: t('haSyncAllResult', { synced: res.synced, total: res.total, errors: res.errors }),
       });
     } catch (err: any) {
       setMessage({
         type: 'error',
-        text: err?.message || 'Synchronisatie mislukt',
+        text: err?.message || t('telematicsSyncFailed'),
       });
     } finally {
       setSyncingAll(false);
@@ -119,16 +116,10 @@ export const HomeAssistantTelematicsCard: React.FC = () => {
         <div>
           <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center space-x-2">
             <Radio className="w-4 h-4 text-emerald-500" />
-            <span>
-              {lang === 'nl'
-                ? 'Telematica Ophalen (Home Assistant → VehicleVault)'
-                : 'Fetch Telematics (Home Assistant → VehicleVault)'}
-            </span>
+            <span>{t('haTelematicsTitle')}</span>
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            {lang === 'nl'
-              ? 'Haal automatisch 1x per dag de kilometerstand op uit Home Assistant sensoren (bijv. Kia Connect, Mercedes me, Stellantis, VW).'
-              : 'Automatically pull daily odometer telemetry from Home Assistant sensors (e.g. Kia Connect, Mercedes me, Stellantis, VW).'}
+            {t('haTelematicsHint')}
           </p>
         </div>
 
@@ -136,7 +127,7 @@ export const HomeAssistantTelematicsCard: React.FC = () => {
           {configured && (
             <span className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60">
               <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-              <span>{lang === 'nl' ? 'Ingesteld' : 'Configured'}</span>
+              <span>{t('haConfigured')}</span>
             </span>
           )}
         </div>
@@ -158,7 +149,7 @@ export const HomeAssistantTelematicsCard: React.FC = () => {
       <form onSubmit={handleSave} className="space-y-4 text-xs">
         <div>
           <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
-            {lang === 'nl' ? 'Home Assistant Server URL' : 'Home Assistant Server URL'}
+            {t('haServerUrlLabel')}
           </label>
           <div className="relative">
             <Server className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
@@ -167,20 +158,18 @@ export const HomeAssistantTelematicsCard: React.FC = () => {
               required
               value={baseUrl}
               onChange={(e) => setBaseUrl(e.target.value)}
-              placeholder="http://homeassistant.local:8123 of http://192.168.1.100:8123"
+              placeholder={t('haServerUrlPlaceholder')}
               className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl pl-9 pr-3 py-2 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-emerald-500 font-mono text-xs"
             />
           </div>
           <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
-            {lang === 'nl'
-              ? 'Het lokale of externe adres van je Home Assistant installatie.'
-              : 'The local LAN or remote address of your Home Assistant server.'}
+            {t('haServerUrlHint')}
           </p>
         </div>
 
         <div>
           <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
-            {lang === 'nl' ? 'Long-Lived Access Token' : 'Long-Lived Access Token'}
+            {t('haAccessTokenLabel')}
           </label>
           <div className="relative">
             <Key className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
@@ -188,14 +177,12 @@ export const HomeAssistantTelematicsCard: React.FC = () => {
               type="password"
               value={token}
               onChange={(e) => setToken(e.target.value)}
-              placeholder={hasToken ? '•••••••••••••••••••••••••••••••• (reeds opgeslagen)' : 'Plak hier je token uit Home Assistant'}
+              placeholder={hasToken ? t('haTokenSavedPlaceholder') : t('haTokenPlaceholder')}
               className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl pl-9 pr-3 py-2 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-emerald-500 font-mono text-xs"
             />
           </div>
           <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
-            {lang === 'nl'
-              ? 'Aanmaken in Home Assistant via je profiel linksonder → tabblad Beveiliging → "Tokens voor lange levensduur".'
-              : 'Create in Home Assistant via your profile bottom-left → Security tab → "Long-Lived Access Tokens".'}
+            {t('haAccessTokenHint')}
           </p>
         </div>
 
@@ -206,7 +193,7 @@ export const HomeAssistantTelematicsCard: React.FC = () => {
             className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold transition flex items-center space-x-2 disabled:opacity-50 shadow-sm"
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
-            <span>{loading ? (lang === 'nl' ? 'Opslaan...' : 'Saving...') : (lang === 'nl' ? 'Instellingen Opslaan' : 'Save Settings')}</span>
+            <span>{loading ? t('saving') : t('haSaveSettings')}</span>
           </button>
 
           <button
@@ -216,7 +203,7 @@ export const HomeAssistantTelematicsCard: React.FC = () => {
             className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold transition flex items-center space-x-1.5 disabled:opacity-50"
           >
             {testing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-            <span>{testing ? (lang === 'nl' ? 'Testen...' : 'Testing...') : (lang === 'nl' ? 'Verbinding Testen' : 'Test Connection')}</span>
+            <span>{testing ? t('haTesting') : t('haTestConnection')}</span>
           </button>
 
           {configured && (
@@ -227,7 +214,7 @@ export const HomeAssistantTelematicsCard: React.FC = () => {
               className="px-3.5 py-2 bg-sky-50 dark:bg-sky-950/50 hover:bg-sky-100 dark:hover:bg-sky-900/50 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800/60 rounded-xl font-bold transition flex items-center space-x-1.5 disabled:opacity-50"
             >
               {syncingAll ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-              <span>{syncingAll ? (lang === 'nl' ? 'Synchroniseren...' : 'Syncing...') : (lang === 'nl' ? 'Alle Voertuigen Syncen' : 'Sync All Vehicles')}</span>
+              <span>{syncingAll ? t('syncing') : t('haSyncAllVehicles')}</span>
             </button>
           )}
         </div>

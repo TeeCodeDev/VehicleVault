@@ -42,7 +42,7 @@ export const TelematicsSyncLogModal: React.FC<TelematicsSyncLogModalProps> = ({
   vehicleName,
   onSyncCompleted,
 }) => {
-  const { lang } = useLanguage();
+  const { lang, t } = useLanguage();
   const [logs, setLogs] = useState<TelematicsSyncLogItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
@@ -79,23 +79,20 @@ export const TelematicsSyncLogModal: React.FC<TelematicsSyncLogModalProps> = ({
       if (res.success) {
         setFeedback({
           type: 'ok',
-          text:
-            lang === 'nl'
-              ? `Gesynchroniseerd! Kilometerstand: ${(res.odometer || 0).toLocaleString()} km`
-              : `Synced! Odometer: ${(res.odometer || 0).toLocaleString()} km`,
+          text: t('telematicsSyncSuccess', { km: (res.odometer || 0).toLocaleString() }),
         });
         if (onSyncCompleted) onSyncCompleted(res.odometer);
       } else {
         setFeedback({
           type: 'err',
-          text: res.error || (lang === 'nl' ? 'Synchronisatie mislukt' : 'Sync failed'),
+          text: res.error || t('telematicsSyncFailed'),
         });
       }
       await fetchLogs();
     } catch (err: any) {
       setFeedback({
         type: 'err',
-        text: err?.message || (lang === 'nl' ? 'Synchronisatie mislukt' : 'Sync failed'),
+        text: err?.message || t('telematicsSyncFailed'),
       });
     } finally {
       setSyncing(false);
@@ -103,7 +100,7 @@ export const TelematicsSyncLogModal: React.FC<TelematicsSyncLogModalProps> = ({
   };
 
   const handleClearLogs = async () => {
-    if (!confirm(lang === 'nl' ? 'Weet je zeker dat je het sync-logboek wilt wissen?' : 'Clear sync log history?')) {
+    if (!confirm(t('confirmClearSyncLog'))) {
       return;
     }
     try {
@@ -125,7 +122,7 @@ export const TelematicsSyncLogModal: React.FC<TelematicsSyncLogModalProps> = ({
             </div>
             <div>
               <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                {lang === 'nl' ? 'Home Assistant Sync Logboek' : 'Home Assistant Sync Log'}
+                {t('syncLogTitle')}
               </h3>
               <p className="text-xs text-slate-400 font-medium">{vehicleName}</p>
             </div>
@@ -149,14 +146,14 @@ export const TelematicsSyncLogModal: React.FC<TelematicsSyncLogModalProps> = ({
               className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow-sm disabled:opacity-50"
             >
               {syncing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-              <span>{syncing ? (lang === 'nl' ? 'Ophalen...' : 'Syncing...') : (lang === 'nl' ? 'Nu Syncen' : 'Sync Now')}</span>
+              <span>{syncing ? t('syncLogFetching') : t('syncLogSyncNow')}</span>
             </button>
             <button
               type="button"
               onClick={fetchLogs}
               disabled={loading}
               className="px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-semibold transition"
-              title={lang === 'nl' ? 'Logboek vernieuwen' : 'Refresh log'}
+              title={t('syncLogRefresh')}
             >
               <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
             </button>
@@ -169,7 +166,7 @@ export const TelematicsSyncLogModal: React.FC<TelematicsSyncLogModalProps> = ({
               className="px-2.5 py-1.5 text-xs text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition flex items-center space-x-1"
             >
               <Trash2 className="w-3.5 h-3.5" />
-              <span>{lang === 'nl' ? 'Log wissen' : 'Clear log'}</span>
+              <span>{t('syncLogClear')}</span>
             </button>
           )}
         </div>
@@ -197,18 +194,16 @@ export const TelematicsSyncLogModal: React.FC<TelematicsSyncLogModalProps> = ({
           {loading && logs.length === 0 ? (
             <div className="py-8 text-center text-xs text-slate-400 flex items-center justify-center space-x-2">
               <Loader2 className="w-4 h-4 animate-spin text-emerald-500" />
-              <span>{lang === 'nl' ? 'Logboek laden...' : 'Loading logs...'}</span>
+              <span>{t('syncLogLoading')}</span>
             </div>
           ) : logs.length === 0 ? (
             <div className="py-8 text-center text-xs text-slate-400 bg-slate-50 dark:bg-slate-950/40 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 p-6">
               <Clock className="w-8 h-8 text-slate-300 mx-auto mb-2" />
               <p className="font-semibold text-slate-600 dark:text-slate-300">
-                {lang === 'nl' ? 'Nog geen synchronisaties geregistreerd' : 'No sync logs recorded yet'}
+                {t('syncLogEmpty')}
               </p>
               <p className="text-[11px] text-slate-400 mt-1">
-                {lang === 'nl'
-                  ? 'Klik op "Nu Syncen" om direct een meting op te halen uit Home Assistant.'
-                  : 'Click "Sync Now" to immediately query Home Assistant.'}
+                {t('syncLogEmptyHint')}
               </p>
             </div>
           ) : (
@@ -222,29 +217,29 @@ export const TelematicsSyncLogModal: React.FC<TelematicsSyncLogModalProps> = ({
                     {log.status === 'success' ? (
                       <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300">
                         <CheckCircle2 className="w-3 h-3" />
-                        <span>{lang === 'nl' ? 'Succesvol' : 'Success'}</span>
+                        <span>{t('syncLogSuccess')}</span>
                       </span>
                     ) : log.status === 'warning' ? (
                       <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300">
                         <AlertTriangle className="w-3 h-3" />
-                        <span>{lang === 'nl' ? 'Waarschuwing' : 'Warning'}</span>
+                        <span>{t('syncLogWarning')}</span>
                       </span>
                     ) : (
                       <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-300">
                         <XCircle className="w-3 h-3" />
-                        <span>{lang === 'nl' ? 'Fout' : 'Error'}</span>
+                        <span>{t('syncLogError')}</span>
                       </span>
                     )}
 
                     <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
                       {log.trigger_source === 'scheduler'
-                        ? (lang === 'nl' ? 'Automatisch schema' : 'Scheduler')
-                        : (lang === 'nl' ? 'Handmatig' : 'Manual')}
+                        ? t('syncLogScheduler')
+                        : t('syncLogManual')}
                     </span>
                   </div>
 
                   <span className="text-[11px] font-mono text-slate-400">
-                    {new Date(log.created_at).toLocaleString(lang === 'nl' ? 'nl-NL' : 'en-US', {
+                    {new Date(log.created_at).toLocaleString(lang, {
                       day: '2-digit',
                       month: 'short',
                       hour: '2-digit',
@@ -281,7 +276,7 @@ export const TelematicsSyncLogModal: React.FC<TelematicsSyncLogModalProps> = ({
             onClick={onClose}
             className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-xl text-xs transition"
           >
-            {lang === 'nl' ? 'Sluiten' : 'Close'}
+            {t('close')}
           </button>
         </div>
       </div>
