@@ -129,4 +129,13 @@ export const vehicles = {
   lastSyncLabel: 'Laatste sync:',
   notYetSynced: 'Nog niet gesynchroniseerd',
   syncLog: 'Sync Log',
+
+  // Inspection terms (utils/inspectionTerms.ts); {term} is the country-specific name (APK, TÜV, MOT, ...)
+  inspShortBe: 'Autokeuring',
+  inspTermBe: 'Keuring',
+  inspDateLabel: '{term} Vervaldatum',
+  inspBadgeValid: 'Geldig',
+  inspBadgeDueSoon: 'Binnenkort',
+  inspBadgeOverdue: 'Verlopen!',
+  inspSyncLabel: '{term} Synchroniseren',
 };

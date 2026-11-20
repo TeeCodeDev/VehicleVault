@@ -2,81 +2,60 @@
  * Dynamic inspection terms helper for VehicleVault.
  * Automatically adapts technical inspection terminology depending on the vehicle's
  * registered country (NL -> APK, BE -> Autokeuring, DE -> TÜV / HU, UK/Intl -> MOT / Inspection).
+ *
+ * The country decides the inspection name; the UI language decides the surrounding words.
+ * Texts come straight from the translation dictionaries so this also works outside the
+ * LanguageProvider (e.g. on the public showcase page).
  */
+import { translations, Language, TranslationKey } from '../i18n/translations.js';
 
 export interface InspectionTerm {
-  short: string;        // "APK", "Autokeuring", "TÜV", "MOT"
-  full: string;         // "Algemene Periodieke Keuring (APK)", "Periodieke Autokeuring", etc.
-  dateLabel: string;    // "APK Vervaldatum", "Keuringsdatum", "TÜV Vervaldatum", etc.
-  dueSoon: string;      // "APK Verloopt Binnenkort", "Keuring Binnenkort", etc.
-  overdue: string;      // "APK Verlopen!", "Keuring Verlopen!", etc.
-  valid: string;        // "APK Geldig", "Keuring In Orde", etc.
-  badgeValid: string;   // "Geldig", "Valid"
-  badgeDueSoon: string; // "Binnenkort", "Due Soon"
-  badgeOverdue: string; // "Verlopen!", "Overdue!"
-  syncLabel: string;    // "RDW APK Synchroniseren"
+  short: string;        // "APK", "Autokeuring", "TÜV / HU", "MOT"
+  dateLabel: string;    // "APK Vervaldatum", "TÜV-Ablaufdatum", "MOT Expiry Date", etc.
+  badgeValid: string;   // "Geldig", "Valid", "Gültig"
+  badgeDueSoon: string; // "Binnenkort", "Due Soon", "Bald fällig"
+  badgeOverdue: string; // "Verlopen!", "Overdue!", "Abgelaufen!"
+  syncLabel: string;    // "RDW APK Synchroniseren", "Sync TÜV", etc.
 }
 
 export function getInspectionTerm(country?: string | null, lang: string = 'nl'): InspectionTerm {
   const c = (country || 'NL').toUpperCase();
+  const dict = translations[lang as Language] || translations.en;
+  const tr = (key: TranslationKey, term?: string) => {
+    const text = dict[key] || translations.en[key];
+    return term === undefined ? text : text.replace(/\{term\}/g, term);
+  };
+
+  // `short` is shown as the inspection name; `term` is used inside the sentences.
+  let short: string;
+  let term: string;
+  let syncTerm: string;
 
   if (c === 'BE') {
-    return {
-      short: lang === 'nl' ? 'Autokeuring' : 'Inspection',
-      full: lang === 'nl' ? 'Periodieke Autokeuring' : 'Technical Vehicle Inspection',
-      dateLabel: lang === 'nl' ? 'Keuringsdatum' : 'Inspection Expiry Date',
-      dueSoon: lang === 'nl' ? 'Keuring Verloopt Binnenkort' : 'Inspection Due Soon',
-      overdue: lang === 'nl' ? 'Keuring Verlopen!' : 'Inspection Overdue!',
-      valid: lang === 'nl' ? 'Keuring In Orde' : 'Inspection Valid',
-      badgeValid: lang === 'nl' ? 'Geldig' : 'Valid',
-      badgeDueSoon: lang === 'nl' ? 'Binnenkort' : 'Due Soon',
-      badgeOverdue: lang === 'nl' ? 'Verlopen!' : 'Overdue!',
-      syncLabel: lang === 'nl' ? 'Keuring Synchroniseren' : 'Sync Inspection',
-    };
+    short = tr('inspShortBe');
+    term = tr('inspTermBe');
+    syncTerm = term;
+  } else if (c === 'DE') {
+    short = 'TÜV / HU';
+    term = 'TÜV';
+    syncTerm = term;
+  } else if (c === 'UK' || c === 'GB' || (lang === 'en' && c !== 'NL')) {
+    short = 'MOT';
+    term = 'MOT';
+    syncTerm = term;
+  } else {
+    // Default: NL (APK, synced from the RDW register)
+    short = 'APK';
+    term = 'APK';
+    syncTerm = 'RDW APK';
   }
 
-  if (c === 'DE') {
-    return {
-      short: 'TÜV / HU',
-      full: 'TÜV Hauptuntersuchung (HU)',
-      dateLabel: lang === 'nl' ? 'TÜV Vervaldatum' : 'TÜV Expiry Date',
-      dueSoon: lang === 'nl' ? 'TÜV Binnenkort' : 'TÜV Due Soon',
-      overdue: lang === 'nl' ? 'TÜV Verlopen!' : 'TÜV Overdue!',
-      valid: lang === 'nl' ? 'TÜV Geldig' : 'TÜV Valid',
-      badgeValid: lang === 'nl' ? 'Geldig' : 'Valid',
-      badgeDueSoon: lang === 'nl' ? 'Binnenkort' : 'Due Soon',
-      badgeOverdue: lang === 'nl' ? 'Verlopen!' : 'Overdue!',
-      syncLabel: lang === 'nl' ? 'TÜV Synchroniseren' : 'Sync TÜV',
-    };
-  }
-
-  if (c === 'UK' || c === 'GB' || (lang === 'en' && c !== 'NL')) {
-    return {
-      short: 'MOT',
-      full: 'Annual MOT Test',
-      dateLabel: 'MOT Expiry Date',
-      dueSoon: 'MOT Due Soon',
-      overdue: 'MOT Overdue!',
-      valid: 'MOT Valid',
-      badgeValid: 'Valid',
-      badgeDueSoon: 'Due Soon',
-      badgeOverdue: 'Overdue!',
-      syncLabel: 'Sync Inspection',
-    };
-  }
-
-  // Default: NL (APK)
   return {
-    short: 'APK',
-    full: 'Algemene Periodieke Keuring (APK)',
-    dateLabel: lang === 'nl' ? 'APK Vervaldatum' : 'APK Expiry Date',
-    dueSoon: lang === 'nl' ? 'APK Verloopt Binnenkort' : 'APK Due Soon',
-    overdue: lang === 'nl' ? 'APK Verlopen!' : 'APK Overdue!',
-    valid: lang === 'nl' ? 'APK Geldig' : 'APK Valid',
-    badgeValid: lang === 'nl' ? 'Geldig' : 'Valid',
-    badgeDueSoon: lang === 'nl' ? 'Binnenkort' : 'Due Soon',
-    badgeOverdue: lang === 'nl' ? 'Verlopen!' : 'Overdue!',
-    syncLabel: lang === 'nl' ? 'RDW APK Synchroniseren' : 'Sync RDW APK',
+    short,
+    dateLabel: tr('inspDateLabel', term),
+    badgeValid: tr('inspBadgeValid'),
+    badgeDueSoon: tr('inspBadgeDueSoon'),
+    badgeOverdue: tr('inspBadgeOverdue'),
+    syncLabel: tr('inspSyncLabel', syncTerm),
   };
 }
-

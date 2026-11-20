@@ -131,4 +131,13 @@ export const vehicles: Record<keyof typeof nl, string> = {
   lastSyncLabel: 'Last sync:',
   notYetSynced: 'Not yet synced',
   syncLog: 'Sync Log',
+
+  // Inspection terms (utils/inspectionTerms.ts); {term} is the country-specific name (APK, TÜV, MOT, ...)
+  inspShortBe: 'Inspection',
+  inspTermBe: 'Inspection',
+  inspDateLabel: '{term} Expiry Date',
+  inspBadgeValid: 'Valid',
+  inspBadgeDueSoon: 'Due Soon',
+  inspBadgeOverdue: 'Overdue!',
+  inspSyncLabel: 'Sync {term}',
 };
