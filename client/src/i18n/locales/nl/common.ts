@@ -66,6 +66,8 @@ export const common = {
   pageOf: 'Pagina {current} van {total}',
   somethingWentWrong: 'Er ging iets mis.',
   optional: 'optioneel',
+  deleting: 'Verwijderen...',
+  noVehicleSelected: 'Geen voertuig geselecteerd',
 
   // Profile page
   profileSystemSettings: 'Systeeminstellingen',

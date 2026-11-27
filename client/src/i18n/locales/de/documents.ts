@@ -28,7 +28,6 @@ export const documents: Record<keyof typeof nl, string> = {
   scanDocumentHint: 'Die KI erkennt Titel, Kategorie, Datum und Details automatisch',
 
   // Documents page
-  noVehicleSelected: 'Kein Fahrzeug ausgewählt',
   selectVehicleForDocuments: 'Wähle oben im Menü ein Fahrzeug aus, um das digitale Handschuhfach zu öffnen.',
   noDocumentsHint: 'Bewahre alle wichtigen Fahrzeugpapiere, die Versicherungskarte, Scans des Fahrzeugscheins und Werkstattrechnungen digital an einem sicheren Ort auf.',
   sortDateNewest: 'Datum: Neueste zuerst',

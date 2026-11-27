@@ -68,6 +68,8 @@ export const common: Record<keyof typeof nl, string> = {
   pageOf: 'Page {current} of {total}',
   somethingWentWrong: 'Something went wrong.',
   optional: 'optional',
+  deleting: 'Deleting...',
+  noVehicleSelected: 'No vehicle selected',
 
   // Profile page
   profileSystemSettings: 'System Settings',

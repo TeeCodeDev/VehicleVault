@@ -28,7 +28,6 @@ export const documents: Record<keyof typeof nl, string> = {
   scanDocumentHint: 'AI automatically detects title, category, date, and details',
 
   // Documents page
-  noVehicleSelected: 'No vehicle selected',
   selectVehicleForDocuments: 'Select a vehicle from the top menu to access the digital glovebox.',
   noDocumentsHint: 'Keep all your important vehicle papers, insurance card, registration scans and garage invoices digitally in one safe place.',
   sortDateNewest: 'Date: Newest first',

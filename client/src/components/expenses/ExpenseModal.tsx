@@ -3,6 +3,19 @@ import { X, AlertCircle, Sparkles } from 'lucide-react';
 import { RecurringExpense } from '../../types/index.js';
 import { DatePicker } from '../DatePicker.js';
 import { useLanguage } from '../../context/LanguageContext.js';
+import { EXPENSE_CATEGORY_LABEL_KEYS, EXPENSE_FREQUENCY_LABEL_KEYS } from './expenseLabels.js';
+
+const CATEGORY_OPTIONS: { value: RecurringExpense['category']; icon: string }[] = [
+  { value: 'tax', icon: '🏛️' },
+  { value: 'insurance', icon: '🛡️' },
+  { value: 'roadside', icon: '🛟' },
+  { value: 'subscription', icon: '📱' },
+  { value: 'lease', icon: '📝' },
+  { value: 'inspection', icon: '🔍' },
+  { value: 'other', icon: '🏷️' },
+];
+
+const FREQUENCY_OPTIONS: RecurringExpense['frequency'][] = ['monthly', 'quarterly', 'yearly'];
 
 export interface PresetOption {
   label: string;
@@ -67,7 +80,7 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
   saving,
   calculatedMonthly,
 }) => {
-  const { lang } = useLanguage();
+  const { t } = useLanguage();
 
   if (!isOpen) return null;
 
@@ -76,9 +89,7 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-lg shadow-2xl p-6 relative max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 mb-4">
           <h3 className="text-base font-bold text-slate-900 dark:text-white">
-            {editingExpense
-              ? (lang === 'nl' ? 'Vaste Last Bewerken' : 'Edit Recurring Expense')
-              : (lang === 'nl' ? 'Nieuwe Vaste Last Toevoegen' : 'Add Recurring Expense')}
+            {editingExpense ? t('expenseEditTitle') : t('expenseNewTitle')}
           </h3>
           <button onClick={onClose} className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
             <X className="w-5 h-5" />
@@ -96,7 +107,7 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
           <div className="mb-4 bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 p-3 rounded-xl space-y-2">
             <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center space-x-1.5">
               <Sparkles className="w-3.5 h-3.5 text-accent-500" />
-              <span>{lang === 'nl' ? 'Kies een standaardsjabloon' : 'Select a template'}</span>
+              <span>{t('expenseSelectTemplate')}</span>
             </div>
             <div className="flex flex-wrap gap-1.5">
               {presets.map((p) => (
@@ -117,14 +128,14 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
         <form onSubmit={onSave} className="space-y-4 text-xs">
           <div>
             <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
-              {lang === 'nl' ? 'Omschrijving *' : 'Description *'}
+              {t('expenseDescriptionRequired')}
             </label>
             <input
               type="text"
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="bijv. Motorrijtuigenbelasting (MRB)"
+              placeholder={t('examplePlaceholder', { value: t('expensePresetTaxName') })}
               className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-accent-500"
             />
           </div>
@@ -132,42 +143,42 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
-                {lang === 'nl' ? 'Categorie' : 'Category'}
+                {t('expenseCategory')}
               </label>
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value as any)}
                 className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-accent-500"
               >
-                <option value="tax">🏛️ Wegenbelasting (MRB)</option>
-                <option value="insurance">🛡️ Autoverzekering</option>
-                <option value="roadside">🛟 Pechhulp</option>
-                <option value="subscription">📱 Abonnement</option>
-                <option value="lease">📝 Lease / Financiering</option>
-                <option value="inspection">🔍 Keuring / APK</option>
-                <option value="other">🏷️ Overig</option>
+                {CATEGORY_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.icon} {t(EXPENSE_CATEGORY_LABEL_KEYS[opt.value])}
+                  </option>
+                ))}
               </select>
             </div>
 
             <div>
               <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
-                {lang === 'nl' ? 'Frequentie' : 'Frequency'}
+                {t('expenseFrequency')}
               </label>
               <select
                 value={frequency}
                 onChange={(e) => setFrequency(e.target.value as any)}
                 className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-accent-500"
               >
-                <option value="monthly">{lang === 'nl' ? 'Maandelijks (1 mnd)' : 'Monthly'}</option>
-                <option value="quarterly">{lang === 'nl' ? 'Per kwartaal (3 mnd)' : 'Quarterly'}</option>
-                <option value="yearly">{lang === 'nl' ? 'Jaarlijks (12 mnd)' : 'Yearly'}</option>
+                {FREQUENCY_OPTIONS.map((freq) => (
+                  <option key={freq} value={freq}>
+                    {t(EXPENSE_FREQUENCY_LABEL_KEYS[freq])}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
 
           <div>
             <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
-              {lang === 'nl' ? 'Bruto Bedrag (€) *' : 'Gross Amount (€) *'}
+              {t('expenseGrossAmountRequired')}
             </label>
             <input
               type="number"
@@ -175,34 +186,34 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
               required
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              placeholder="bijv. 65.00"
+              placeholder={t('examplePlaceholder', { value: '65.00' })}
               className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-white font-mono focus:outline-none focus:ring-2 focus:ring-accent-500"
             />
             {calculatedMonthly !== null && (
               <p className="text-[11px] text-accent-600 dark:text-accent-400 font-bold mt-1">
-                ≈ € {calculatedMonthly.toFixed(2)} per maand
+                {t('expenseApproxPerMonth', { amount: calculatedMonthly.toFixed(2) })}
               </p>
             )}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <DatePicker label={lang === 'nl' ? 'Startdatum *' : 'Start Date *'} value={startDate} onChange={setStartDate} />
+              <DatePicker label={t('expenseStartDateRequired')} value={startDate} onChange={setStartDate} />
             </div>
             <div>
-              <DatePicker label={lang === 'nl' ? 'Einddatum (optioneel)' : 'End Date (optional)'} value={endDate} onChange={setEndDate} />
+              <DatePicker label={t('expenseEndDateOptional')} value={endDate} onChange={setEndDate} />
             </div>
           </div>
 
           <div>
             <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
-              {lang === 'nl' ? 'Notities (optioneel)' : 'Notes (optional)'}
+              {t('expenseNotesOptional')}
             </label>
             <textarea
               rows={2}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder={lang === 'nl' ? 'Polisnummer, dekkingsdetails...' : 'Policy number, coverage...'}
+              placeholder={t('expenseNotesPlaceholder')}
               className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-accent-500"
             />
           </div>
@@ -216,20 +227,20 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
               className="rounded border-slate-300 text-accent-600 focus:ring-accent-500"
             />
             <label htmlFor="isActiveCheck" className="text-slate-700 dark:text-slate-300 font-semibold">
-              {lang === 'nl' ? 'Deze kostenpost is momenteel actief' : 'This expense is currently active'}
+              {t('expenseIsActive')}
             </label>
           </div>
 
           <div className="flex items-center justify-end space-x-2 pt-3 border-t border-slate-100 dark:border-slate-800">
             <button type="button" onClick={onClose} className="px-4 py-2 text-slate-500 hover:text-slate-800 dark:hover:text-white font-medium">
-              Annuleren
+              {t('cancel')}
             </button>
             <button
               type="submit"
               disabled={saving}
               className="px-5 py-2 bg-accent-600 hover:bg-accent-700 text-white rounded-xl font-bold transition shadow-sm disabled:opacity-50"
             >
-              {saving ? 'Opslaan...' : 'Opslaan'}
+              {saving ? t('saving') : t('save')}
             </button>
           </div>
         </form>

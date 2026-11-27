@@ -26,7 +26,6 @@ export const documents = {
   scanDocumentHint: 'AI herkent automatisch de titel, categorie, datum en details',
 
   // Documents page
-  noVehicleSelected: 'Geen voertuig geselecteerd',
   selectVehicleForDocuments: 'Selecteer een voertuig in het menu hierboven om de digitale handschoenenkast te bekijken.',
   noDocumentsHint: 'Bewaar al je belangrijke autopapieren, groene kaart, kentekencard scans en garagefacturen digitaal op één veilige plek.',
   sortDateNewest: 'Datum: Nieuwste eerst',

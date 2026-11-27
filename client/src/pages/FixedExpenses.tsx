@@ -17,53 +17,75 @@ import { formatLicensePlate } from '../utils/licensePlate.js';
 import { ExpenseSummaryCards } from '../components/expenses/ExpenseSummaryCards.js';
 import { ExpenseTable } from '../components/expenses/ExpenseTable.js';
 import { ExpenseModal, PresetOption } from '../components/expenses/ExpenseModal.js';
+import { EXPENSE_CATEGORY_LABEL_KEYS } from '../components/expenses/expenseLabels.js';
+import type { TranslationKey } from '../i18n/translations.js';
 
 interface ContextType {
   vehicles: Vehicle[];
   selectedVehicle: Vehicle | null;
 }
 
-const PRESETS: PresetOption[] = [
+type PresetDefinition = Omit<PresetOption, 'label' | 'name'> & {
+  labelKey: TranslationKey;
+  nameKey: TranslationKey;
+};
+
+const PRESET_DEFINITIONS: PresetDefinition[] = [
   {
-    label: 'MRB / Wegenbelasting',
-    name: 'Motorrijtuigenbelasting (MRB)',
+    labelKey: 'expensePresetTaxLabel',
+    nameKey: 'expensePresetTaxName',
     category: 'tax',
     frequency: 'quarterly',
     icon: '🏛️',
   },
   {
-    label: 'Autoverzekering',
-    name: 'Autoverzekering (All-Risk / WA+)',
+    labelKey: 'expensePresetInsuranceLabel',
+    nameKey: 'expensePresetInsuranceName',
     category: 'insurance',
     frequency: 'monthly',
     icon: '🛡️',
   },
   {
-    label: 'ANWB Pechhulp',
-    name: 'ANWB Wegenwacht Europa',
+    labelKey: 'expensePresetRoadsideLabel',
+    nameKey: 'expensePresetRoadsideName',
     category: 'roadside',
     frequency: 'yearly',
     icon: '🛟',
   },
   {
-    label: 'Flitsmeister PRO',
-    name: 'Flitsmeister PRO Abonnement',
+    labelKey: 'expensePresetSubscriptionLabel',
+    nameKey: 'expensePresetSubscriptionName',
     category: 'subscription',
     frequency: 'yearly',
     icon: '📱',
   },
   {
-    label: 'Private Lease',
-    name: 'Private Lease Maandtermijn',
+    labelKey: 'expensePresetLeaseLabel',
+    nameKey: 'expensePresetLeaseName',
     category: 'lease',
     frequency: 'monthly',
     icon: '📝',
   },
 ];
 
+const CATEGORY_FILTERS: { id: RecurringExpense['category']; icon: string }[] = [
+  { id: 'tax', icon: '🏛️' },
+  { id: 'insurance', icon: '🛡️' },
+  { id: 'roadside', icon: '🛟' },
+  { id: 'subscription', icon: '📱' },
+  { id: 'lease', icon: '📝' },
+  { id: 'other', icon: '🏷️' },
+];
+
 export const FixedExpenses: React.FC = () => {
   const { selectedVehicle } = useOutletContext<ContextType>();
-  const { lang } = useLanguage();
+  const { t } = useLanguage();
+
+  const presets: PresetOption[] = PRESET_DEFINITIONS.map(({ labelKey, nameKey, ...rest }) => ({
+    ...rest,
+    label: t(labelKey),
+    name: t(nameKey),
+  }));
 
   const [expenses, setExpenses] = useState<RecurringExpense[]>([]);
   const [monthlyTotal, setMonthlyTotal] = useState<number>(0);
@@ -110,7 +132,7 @@ export const FixedExpenses: React.FC = () => {
       setMonthlyTotal(res.monthlyTotal || 0);
       setYearlyTotal(res.yearlyTotal || 0);
     } catch (err: any) {
-      setError(err?.message || 'Kon vaste lasten niet ophalen');
+      setError(err?.message || t('expensesLoadFailed'));
     } finally {
       setLoading(false);
     }
@@ -194,11 +216,7 @@ export const FixedExpenses: React.FC = () => {
 
     const amt = parseFloat(amount);
     if (!name.trim() || isNaN(amt) || amt <= 0 || !startDate) {
-      setModalError(
-        lang === 'nl'
-          ? 'Naam, een geldig positief bedrag (> € 0) en begindatum zijn verplicht.'
-          : 'Name, positive amount and start date are required.'
-      );
+      setModalError(t('expenseValidation'));
       return;
     }
 
@@ -232,7 +250,7 @@ export const FixedExpenses: React.FC = () => {
       setIsModalOpen(false);
       await fetchExpenses();
     } catch (err: any) {
-      setModalError(err?.message || 'Fout bij opslaan vaste last');
+      setModalError(err?.message || t('expenseSaveFailed'));
     } finally {
       setSaving(false);
     }
@@ -247,7 +265,7 @@ export const FixedExpenses: React.FC = () => {
       });
       await fetchExpenses();
     } catch (err: any) {
-      alert(err?.message || 'Kon status niet bijwerken');
+      alert(err?.message || t('expenseStatusUpdateFailed'));
     }
   };
 
@@ -259,7 +277,7 @@ export const FixedExpenses: React.FC = () => {
       setExpenseToDelete(null);
       await fetchExpenses();
     } catch (err: any) {
-      alert(err?.message || 'Kon vaste last niet verwijderen');
+      alert(err?.message || t('expenseDeleteFailed'));
     } finally {
       setDeleting(false);
     }
@@ -279,12 +297,10 @@ export const FixedExpenses: React.FC = () => {
       <div className="p-8 text-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md mx-auto my-12">
         <Car className="w-12 h-12 text-slate-400 mx-auto mb-3" />
         <h2 className="text-base font-bold text-slate-800 dark:text-slate-100">
-          {lang === 'nl' ? 'Geen voertuig geselecteerd' : 'No vehicle selected'}
+          {t('noVehicleSelected')}
         </h2>
         <p className="text-xs text-slate-500 mt-1">
-          {lang === 'nl'
-            ? 'Selecteer een voertuig in de balk bovenin om vaste lasten te bekijken of te beheren.'
-            : 'Select a vehicle from the top selector to manage its recurring expenses.'}
+          {t('expensesNoVehicleHint')}
         </p>
       </div>
     );
@@ -299,12 +315,13 @@ export const FixedExpenses: React.FC = () => {
             <div className="w-8 h-8 rounded-xl bg-accent-50 dark:bg-accent-100/10 text-accent-600 dark:text-accent-400 flex items-center justify-center shrink-0 border border-accent-200/60 dark:border-accent-500/20">
               <Landmark className="w-4 h-4" />
             </div>
-            <span>{lang === 'nl' ? 'Vaste Lasten' : 'Fixed Recurring Expenses'}</span>
+            <span>{t('fixedExpenses')}</span>
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            {lang === 'nl'
-              ? `${selectedVehicle.name} (${formatLicensePlate(selectedVehicle.license_plate) || 'Geen kenteken'}) • Beheer wegenbelasting (MRB), verzekering, abonnementen en lease.`
-              : `${selectedVehicle.name} • Manage recurring vehicle taxes, insurance policies, and subscriptions.`}
+            {t('expensesSubtitle', {
+              vehicle: selectedVehicle.name,
+              plate: formatLicensePlate(selectedVehicle.license_plate) || t('expensesNoPlate'),
+            })}
           </p>
         </div>
 
@@ -314,7 +331,7 @@ export const FixedExpenses: React.FC = () => {
             className="px-3.5 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold inline-flex items-center space-x-2 transition border border-slate-200 dark:border-slate-700 shadow-sm"
           >
             <LineChart className="w-4 h-4 text-accent-500" />
-            <span>{lang === 'nl' ? 'Bekijk in TCO' : 'View in TCO'}</span>
+            <span>{t('expensesViewInTco')}</span>
           </Link>
 
           <button
@@ -322,7 +339,7 @@ export const FixedExpenses: React.FC = () => {
             className="px-4 py-2 bg-accent-600 hover:bg-accent-700 text-white rounded-xl text-xs font-bold inline-flex items-center space-x-2 shadow-sm transition"
           >
             <Plus className="w-4 h-4" />
-            <span>{lang === 'nl' ? 'Vaste Last Toevoegen' : 'Add Fixed Expense'}</span>
+            <span>{t('expensesAdd')}</span>
           </button>
         </div>
       </div>
@@ -345,7 +362,7 @@ export const FixedExpenses: React.FC = () => {
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder={lang === 'nl' ? 'Zoek op omschrijving of notitie...' : 'Search by description or notes...'}
+              placeholder={t('expensesSearchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-xl pl-9 pr-8 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-accent-500"
@@ -369,7 +386,7 @@ export const FixedExpenses: React.FC = () => {
                   : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
               }`}
             >
-              {lang === 'nl' ? 'Alle' : 'All'}
+              {t('all')}
             </button>
             <button
               onClick={() => setSelectedStatus('active')}
@@ -379,7 +396,7 @@ export const FixedExpenses: React.FC = () => {
                   : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
               }`}
             >
-              {lang === 'nl' ? 'Actief' : 'Active'} ({activeExpenses.length})
+              {t('active')} ({activeExpenses.length})
             </button>
             <button
               onClick={() => setSelectedStatus('paused')}
@@ -389,7 +406,7 @@ export const FixedExpenses: React.FC = () => {
                   : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
               }`}
             >
-              {lang === 'nl' ? 'Gepauzeerd' : 'Paused'} ({inactiveExpenses.length})
+              {t('expensePaused')} ({inactiveExpenses.length})
             </button>
           </div>
         </div>
@@ -397,13 +414,12 @@ export const FixedExpenses: React.FC = () => {
         {/* Category Pills */}
         <div className="flex items-center space-x-1.5 overflow-x-auto pb-1 scrollbar-thin pt-1 border-t border-slate-100 dark:border-slate-800">
           {[
-            { id: 'all', label: lang === 'nl' ? 'Alle Categorieën' : 'All Categories', icon: '' },
-            { id: 'tax', label: 'MRB / Belasting', icon: '🏛️' },
-            { id: 'insurance', label: 'Verzekering', icon: '🛡️' },
-            { id: 'roadside', label: 'Pechhulp', icon: '🛟' },
-            { id: 'subscription', label: 'Abonnementen', icon: '📱' },
-            { id: 'lease', label: 'Lease & Financiering', icon: '📝' },
-            { id: 'other', label: 'Overig', icon: '🏷️' },
+            { id: 'all', label: t('expensesAllCategories'), icon: '' },
+            ...CATEGORY_FILTERS.map((cat) => ({
+              id: cat.id,
+              label: t(EXPENSE_CATEGORY_LABEL_KEYS[cat.id]),
+              icon: cat.icon,
+            })),
           ].map((cat) => (
             <button
               key={cat.id}
@@ -426,7 +442,7 @@ export const FixedExpenses: React.FC = () => {
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-12 text-center shadow-sm">
           <div className="w-8 h-8 border-2 border-accent-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
           <p className="text-xs text-slate-500 font-mono">
-            {lang === 'nl' ? 'Vaste lasten laden...' : 'Loading recurring expenses...'}
+            {t('expensesLoading')}
           </p>
         </div>
       ) : error ? (
@@ -441,16 +457,14 @@ export const FixedExpenses: React.FC = () => {
           </div>
           <div className="space-y-2 max-w-xl mx-auto">
             <h2 className="text-base font-black text-slate-900 dark:text-white">
-              {lang === 'nl' ? 'Nog geen vaste lasten geregistreerd' : 'No recurring expenses configured'}
+              {t('expensesEmptyTitle')}
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-              {lang === 'nl'
-                ? 'Voeg terugkerende kosten toe zoals motorrijtuigenbelasting (MRB), autoverzekering, pechhulp of abonnementen.'
-                : 'Add recurring costs like road tax (MRB), auto insurance, roadside assistance, or subscriptions.'}
+              {t('expensesEmptyHint')}
             </p>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-2.5">
-            {PRESETS.map((p) => (
+            {presets.map((p) => (
               <button
                 key={p.label}
                 onClick={() => openCreateModal(p)}
@@ -478,7 +492,7 @@ export const FixedExpenses: React.FC = () => {
           editingExpense={editingExpense}
           onClose={() => setIsModalOpen(false)}
           onSave={handleSaveExpense}
-          presets={PRESETS}
+          presets={presets}
           onApplyPreset={(p) => {
             setName(p.name);
             setCategory(p.category);
@@ -511,26 +525,24 @@ export const FixedExpenses: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-sm shadow-2xl p-5 relative">
             <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-2">
-              {lang === 'nl' ? 'Vaste Last Verwijderen?' : 'Delete Fixed Expense?'}
+              {t('expenseDeleteTitle')}
             </h3>
             <p className="text-xs text-slate-500 mb-4">
-              {lang === 'nl'
-                ? `Weet je zeker dat je "${expenseToDelete.name}" wilt verwijderen? Dit kan niet ongedaan worden gemaakt.`
-                : `Are you sure you want to delete "${expenseToDelete.name}"?`}
+              {t('expenseDeleteConfirm', { name: expenseToDelete.name })}
             </p>
             <div className="flex items-center justify-end space-x-2">
               <button
                 onClick={() => setExpenseToDelete(null)}
                 className="px-3.5 py-1.5 rounded-xl text-xs font-semibold text-slate-500 hover:text-slate-700"
               >
-                Annuleren
+                {t('cancel')}
               </button>
               <button
                 onClick={confirmDeleteExpense}
                 disabled={deleting}
                 className="px-4 py-1.5 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white"
               >
-                {deleting ? 'Verwijderen...' : 'Verwijderen'}
+                {deleting ? t('deleting') : t('delete')}
               </button>
             </div>
           </div>

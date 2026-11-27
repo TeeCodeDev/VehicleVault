@@ -15,6 +15,7 @@ import {
 import { RecurringExpense } from '../../types/index.js';
 import { useLanguage } from '../../context/LanguageContext.js';
 import { formatDisplayDate } from '../../utils/format.js';
+import { EXPENSE_CATEGORY_LABEL_KEYS, EXPENSE_FREQUENCY_LABEL_KEYS } from './expenseLabels.js';
 
 interface ExpenseTableProps {
   expenses: RecurringExpense[];
@@ -29,7 +30,7 @@ export const ExpenseTable: React.FC<ExpenseTableProps> = ({
   onEdit,
   onDeleteRequest,
 }) => {
-  const { lang } = useLanguage();
+  const { t } = useLanguage();
 
   const getCategoryIcon = (cat: RecurringExpense['category']) => {
     switch (cat) {
@@ -62,17 +63,8 @@ export const ExpenseTable: React.FC<ExpenseTableProps> = ({
     }
   };
 
-  const getCategoryLabel = (cat: RecurringExpense['category']) => {
-    switch (cat) {
-      case 'tax': return 'Wegenbelasting (MRB)';
-      case 'insurance': return 'Autoverzekering';
-      case 'roadside': return 'Pechhulp';
-      case 'subscription': return 'Abonnement';
-      case 'lease': return 'Lease / Financiering';
-      case 'inspection': return 'Keuring / APK';
-      default: return 'Overig';
-    }
-  };
+  const getCategoryLabel = (cat: RecurringExpense['category']) =>
+    t(EXPENSE_CATEGORY_LABEL_KEYS[cat] ?? 'expenseCatOther');
 
   return (
     <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
@@ -80,14 +72,14 @@ export const ExpenseTable: React.FC<ExpenseTableProps> = ({
         <table className="w-full text-left text-xs border-collapse">
           <thead>
             <tr className="border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-bold">
-              <th className="py-3 px-4">{lang === 'nl' ? 'Omschrijving' : 'Description'}</th>
-              <th className="py-3 px-3">{lang === 'nl' ? 'Categorie' : 'Category'}</th>
-              <th className="py-3 px-3">{lang === 'nl' ? 'Frequentie' : 'Frequency'}</th>
-              <th className="py-3 px-3 text-right">{lang === 'nl' ? 'Bruto Bedrag' : 'Amount'}</th>
-              <th className="py-3 px-3 text-right">{lang === 'nl' ? 'Per Maand' : 'Per Month'}</th>
-              <th className="py-3 px-3">{lang === 'nl' ? 'Looptijd' : 'Duration'}</th>
-              <th className="py-3 px-3 text-center">{lang === 'nl' ? 'Status' : 'Status'}</th>
-              <th className="py-3 px-4 text-center">{lang === 'nl' ? 'Acties' : 'Actions'}</th>
+              <th className="py-3 px-4">{t('expenseDescription')}</th>
+              <th className="py-3 px-3">{t('expenseCategory')}</th>
+              <th className="py-3 px-3">{t('expenseFrequency')}</th>
+              <th className="py-3 px-3 text-right">{t('expenseGrossAmount')}</th>
+              <th className="py-3 px-3 text-right">{t('expensePerMonth')}</th>
+              <th className="py-3 px-3">{t('expenseDuration')}</th>
+              <th className="py-3 px-3 text-center">{t('status')}</th>
+              <th className="py-3 px-4 text-center">{t('actions')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
@@ -121,11 +113,7 @@ export const ExpenseTable: React.FC<ExpenseTableProps> = ({
                   </td>
 
                   <td className="py-3 px-3 text-slate-600 dark:text-slate-300 font-medium whitespace-nowrap">
-                    {exp.frequency === 'monthly'
-                      ? (lang === 'nl' ? 'Maandelijks (1 mnd)' : 'Monthly')
-                      : exp.frequency === 'quarterly'
-                      ? (lang === 'nl' ? 'Per kwartaal (3 mnd)' : 'Quarterly')
-                      : (lang === 'nl' ? 'Jaarlijks (12 mnd)' : 'Yearly')}
+                    {t(EXPENSE_FREQUENCY_LABEL_KEYS[exp.frequency] ?? 'expenseFreqYearly')}
                   </td>
 
                   <td className="py-3 px-3 text-right font-mono font-bold text-slate-900 dark:text-white whitespace-nowrap">
@@ -134,18 +122,18 @@ export const ExpenseTable: React.FC<ExpenseTableProps> = ({
 
                   <td className="py-3 px-3 text-right font-mono font-black text-accent-600 dark:text-accent-400 whitespace-nowrap">
                     € {normMonthly.toFixed(2)}{' '}
-                    <span className="text-[10px] font-normal text-slate-400">/ mnd</span>
+                    <span className="text-[10px] font-normal text-slate-400">{t('expensePerMonthShort')}</span>
                   </td>
 
                   <td className="py-3 px-3 text-[11px] text-slate-600 dark:text-slate-400 whitespace-nowrap">
                     <div>
-                      <span className="text-slate-400 font-normal">{lang === 'nl' ? 'Sinds' : 'From'}: </span>
+                      <span className="text-slate-400 font-normal">{t('expenseSince')}: </span>
                       <span className="font-semibold text-slate-700 dark:text-slate-300">{formatDisplayDate(exp.start_date)}</span>
                     </div>
                     {exp.end_date ? (
-                      <div className="text-[10px] text-slate-400 mt-0.5">Tot: {formatDisplayDate(exp.end_date)}</div>
+                      <div className="text-[10px] text-slate-400 mt-0.5">{t('expenseUntil')}: {formatDisplayDate(exp.end_date)}</div>
                     ) : (
-                      <div className="text-[10px] text-slate-400 mt-0.5">{lang === 'nl' ? 'Doorlopend' : 'Ongoing'}</div>
+                      <div className="text-[10px] text-slate-400 mt-0.5">{t('expenseOngoing')}</div>
                     )}
                   </td>
 
@@ -159,7 +147,7 @@ export const ExpenseTable: React.FC<ExpenseTableProps> = ({
                       }`}
                     >
                       {exp.is_active ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> : <XCircle className="w-3.5 h-3.5 text-slate-400" />}
-                      <span>{exp.is_active ? (lang === 'nl' ? 'Actief' : 'Active') : (lang === 'nl' ? 'Gepauzeerd' : 'Paused')}</span>
+                      <span>{exp.is_active ? t('active') : t('expensePaused')}</span>
                     </button>
                   </td>
 

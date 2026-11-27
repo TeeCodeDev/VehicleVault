@@ -9,6 +9,7 @@ import { notifications } from './notifications.js';
 import { documents } from './documents.js';
 import { auth } from './auth.js';
 import { dashboard } from './dashboard.js';
+import { expenses } from './expenses.js';
 
 export const de = {
   ...common,
@@ -22,4 +23,5 @@ export const de = {
   ...documents,
   ...auth,
   ...dashboard,
+  ...expenses,
 };
