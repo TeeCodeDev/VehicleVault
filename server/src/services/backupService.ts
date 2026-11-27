@@ -144,5 +144,148 @@ export class BackupService {
       dataDir: env.DATA_DIR,
     };
   }
+
+  public static getBackupDir(): string {
+    const dir = path.join(env.DATA_DIR, 'backups');
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    return dir;
+  }
+
+  public static getAutoBackupConfig(): {
+    enabled: boolean;
+    intervalHours: number;
+    retention: number;
+    lastRunAt: string | null;
+  } {
+    const getSetting = (key: string): string | null => {
+      const row = db.get<{ value: string }>('SELECT value FROM system_settings WHERE key = ?', [key]);
+      return row ? row.value : null;
+    };
+    const enabled = getSetting('auto_backup_enabled') === 'true';
+    const intervalHours = Math.max(1, Number(getSetting('auto_backup_interval_hours') || 24) || 24);
+    const retention = Math.max(1, Math.min(90, Number(getSetting('auto_backup_retention') || 7) || 7));
+    const lastRunAt = getSetting('auto_backup_last_run');
+    return { enabled, intervalHours, retention, lastRunAt };
+  }
+
+  public static saveAutoBackupConfig(input: {
+    enabled: boolean;
+    intervalHours: number;
+    retention: number;
+  }): { enabled: boolean; intervalHours: number; retention: number; lastRunAt: string | null } {
+    const now = new Date().toISOString();
+    const intervalHours = Math.max(1, Math.min(720, Math.round(Number(input.intervalHours) || 24)));
+    const retention = Math.max(1, Math.min(90, Math.round(Number(input.retention) || 7)));
+
+    const upsert = (key: string, value: string) => {
+      db.run('INSERT OR REPLACE INTO system_settings (key, value, updated_at) VALUES (?, ?, ?)', [key, value, now]);
+    };
+
+    upsert('auto_backup_enabled', input.enabled ? 'true' : 'false');
+    upsert('auto_backup_interval_hours', String(intervalHours));
+    upsert('auto_backup_retention', String(retention));
+    return this.getAutoBackupConfig();
+  }
+
+  public static getStoredBackupPath(filename: string): string {
+    if (!/^[a-zA-Z0-9._-]+\.zip$/.test(filename)) {
+      throw new Error('Ongeldige bestandsnaam voor backup.');
+    }
+    const backupDir = path.resolve(this.getBackupDir());
+    const targetPath = path.resolve(backupDir, filename);
+    if (path.dirname(targetPath) !== backupDir) {
+      throw new Error('Ongeldig backup-pad.');
+    }
+    return targetPath;
+  }
+
+  public static listStoredBackups(): Array<{
+    filename: string;
+    sizeBytes: number;
+    sizeFormatted: string;
+    createdAt: string;
+  }> {
+    const dir = this.getBackupDir();
+    const files = fs.readdirSync(dir).filter((f) => f.endsWith('.zip'));
+    const formatBytes = (bytes: number) => {
+      if (bytes === 0) return '0 B';
+      const k = 1024;
+      const sizes = ['B', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`;
+    };
+
+    return files
+      .map((filename) => {
+        const stat = fs.statSync(path.join(dir, filename));
+        return {
+          filename,
+          sizeBytes: stat.size,
+          sizeFormatted: formatBytes(stat.size),
+          createdAt: stat.mtime.toISOString(),
+        };
+      })
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }
+
+  public static async createScheduledBackup(): Promise<{ filename: string; sizeBytes: number; createdAt: string }> {
+    const zipBuffer = await this.createBackupZip();
+    const now = new Date();
+    const stamp = now.toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const filename = `vehiclevault-auto-${stamp}.zip`;
+    const filePath = this.getStoredBackupPath(filename);
+    fs.writeFileSync(filePath, zipBuffer);
+
+    const nowIso = now.toISOString();
+    db.run('INSERT OR REPLACE INTO system_settings (key, value, updated_at) VALUES (?, ?, ?)', [
+      'auto_backup_last_run',
+      nowIso,
+      nowIso,
+    ]);
+
+    const { retention } = this.getAutoBackupConfig();
+    const stored = this.listStoredBackups().filter((b) => b.filename.startsWith('vehiclevault-auto-'));
+    for (const old of stored.slice(retention)) {
+      try {
+        fs.unlinkSync(this.getStoredBackupPath(old.filename));
+      } catch {}
+    }
+
+    return { filename, sizeBytes: zipBuffer.length, createdAt: nowIso };
+  }
+
+  public static async runScheduledBackupIfDue(): Promise<boolean> {
+    const config = this.getAutoBackupConfig();
+    if (!config.enabled) return false;
+
+    if (config.lastRunAt) {
+      const elapsedMs = Date.now() - new Date(config.lastRunAt).getTime();
+      if (elapsedMs < config.intervalHours * 60 * 60 * 1000) {
+        return false;
+      }
+    }
+
+    await this.createScheduledBackup();
+    return true;
+  }
+
+  public static async restoreStoredBackup(filename: string): Promise<{ success: boolean; message: string }> {
+    const filePath = this.getStoredBackupPath(filename);
+    if (!fs.existsSync(filePath)) {
+      throw new Error('Backupbestand niet gevonden op de server.');
+    }
+    const zipBuffer = fs.readFileSync(filePath);
+    return this.restoreFromZip(zipBuffer);
+  }
+
+  public static deleteStoredBackup(filename: string): void {
+    const filePath = this.getStoredBackupPath(filename);
+    if (!fs.existsSync(filePath)) {
+      throw new Error('Backupbestand niet gevonden op de server.');
+    }
+    fs.unlinkSync(filePath);
+  }
 }
 

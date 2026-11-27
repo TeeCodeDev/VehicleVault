@@ -13,6 +13,12 @@ const router = Router();
 router.get('/export', requireAuth, requireAdmin, BackupController.exportBackup);
 router.post('/import', requireAuth, requireAdmin, upload.single('backup'), BackupController.importBackup);
 router.get('/stats', requireAuth, requireAdmin, BackupController.getStorageStats);
+router.get('/schedule', requireAuth, requireAdmin, BackupController.getSchedule);
+router.put('/schedule', requireAuth, requireAdmin, BackupController.updateSchedule);
+router.post('/run-now', requireAuth, requireAdmin, BackupController.runNow);
+router.get('/stored/:filename', requireAuth, requireAdmin, BackupController.downloadStored);
+router.post('/stored/:filename/restore', requireAuth, requireAdmin, BackupController.restoreStored);
+router.delete('/stored/:filename', requireAuth, requireAdmin, BackupController.deleteStored);
 
 export default router;
 

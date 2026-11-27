@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { apiFetch, getAuthToken } from '../../api/client.js';
 import { useLanguage } from '../../context/LanguageContext.js';
+import { AutoBackupCard } from './AutoBackupCard.js';
 
 export const BackupSettingsTab: React.FC = () => {
   const { t } = useLanguage();
@@ -229,6 +230,8 @@ export const BackupSettingsTab: React.FC = () => {
           </a>
         </div>
       </div>
+
+      <AutoBackupCard onRestored={loadStorageStats} />
     </div>
   );
 };

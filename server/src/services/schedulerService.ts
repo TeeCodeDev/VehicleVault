@@ -1,6 +1,7 @@
 import { ToadScheduler, SimpleIntervalJob, AsyncTask } from 'toad-scheduler';
 import { NotificationService } from './notificationService.js';
 import { TelematicsService } from './telematicsService.js';
+import { BackupService } from './backupService.js';
 import { logger } from '../utils/logger.js';
 
 export class SchedulerService {
@@ -62,8 +63,33 @@ export class SchedulerService {
 
     this.scheduler.addSimpleIntervalJob(telematicsJob);
 
+    // 3. Scheduled Automatic Backup Check (hourly check against configured interval)
+    const autoBackupTask = new AsyncTask(
+      'auto-backup-check',
+      async () => {
+        try {
+          const ran = await BackupService.runScheduledBackupIfDue();
+          if (ran) {
+            logger.info('Scheduler: Scheduled automatic backup created successfully');
+          }
+        } catch (err: any) {
+          logger.error({ err: err?.message }, 'Scheduler: Error creating automatic backup');
+        }
+      },
+      (err: Error) => {
+        logger.error({ err: err.message }, 'Scheduler: Unhandled error in auto-backup task');
+      }
+    );
+
+    const autoBackupJob = new SimpleIntervalJob({ hours: 1, runImmediately: false }, autoBackupTask, {
+      id: 'job-auto-backup',
+      preventOverrun: true,
+    });
+
+    this.scheduler.addSimpleIntervalJob(autoBackupJob);
+
     this.isInitialized = true;
-    logger.info('ToadScheduler: Initialized background tasks (vehicle alerts & telematics)');
+    logger.info('ToadScheduler: Initialized background tasks (vehicle alerts, telematics & auto-backup)');
   }
 
   public static stop(): void {
@@ -78,7 +104,7 @@ export class SchedulerService {
   public static getStatus(): { isRunning: boolean; jobCount: number } {
     return {
       isRunning: this.isInitialized && this.scheduler !== null,
-      jobCount: this.scheduler ? 2 : 0,
+      jobCount: this.scheduler ? 3 : 0,
     };
   }
 }
