@@ -1,5 +1,6 @@
 import { common } from './common.js';
 import { vehicles } from './vehicles.js';
+import { vignettes } from './vignettes.js';
 import { maintenance } from './maintenance.js';
 import { fuel } from './fuel.js';
 import { analytics } from './analytics.js';
@@ -13,6 +14,7 @@ import { dashboard } from './dashboard.js';
 export const nl = {
   ...common,
   ...vehicles,
+  ...vignettes,
   ...maintenance,
   ...fuel,
   ...analytics,

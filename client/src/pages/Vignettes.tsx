@@ -12,7 +12,7 @@ interface ContextType {
 
 export const Vignettes: React.FC = () => {
   const { selectedVehicle } = useOutletContext<ContextType>();
-  const { t, lang } = useLanguage();
+  const { t } = useLanguage();
 
   if (!selectedVehicle) {
     return (
@@ -21,19 +21,17 @@ export const Vignettes: React.FC = () => {
           <Car className="w-8 h-8" />
         </div>
         <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-          {lang === 'nl' ? 'Geen actief voertuig geselecteerd' : 'No active vehicle selected'}
+          {t('vignettesNoVehicleTitle')}
         </h2>
         <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto">
-          {lang === 'nl'
-            ? 'Selecteer een voertuig in de balk bovenin of voeg eerst een voertuig toe om tolvignetten en milieustickers te beheren.'
-            : 'Select a vehicle from the top bar or add a vehicle first to manage toll vignettes and emission stickers.'}
+          {t('vignettesNoVehicleHint')}
         </p>
         <NavLink
           to="/vehicles"
           className="inline-flex items-center space-x-2 px-4 py-2 bg-accent-600 text-white rounded-xl text-xs font-bold hover:bg-accent-500 transition shadow-sm"
         >
           <Plus className="w-4 h-4" />
-          <span>{lang === 'nl' ? 'Naar Mijn Garage' : 'Go to My Garage'}</span>
+          <span>{t('vignettesGoToGarage')}</span>
         </NavLink>
       </div>
     );

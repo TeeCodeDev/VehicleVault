@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Tag,
   Plus,
@@ -12,28 +12,72 @@ import { apiFetch } from '../api/client.js';
 import { useLanguage } from '../context/LanguageContext.js';
 import { formatDisplayDate } from '../utils/format.js';
 import { DatePicker } from './DatePicker.js';
+import type { TranslationKey } from '../i18n/translations.js';
 
 interface Props {
   vehicle: Vehicle;
 }
 
+type VignetteType = VehicleVignette['vignette_type'];
+
 const COUNTRIES = [
-  { code: 'AT', name: 'Oostenrijk', flag: '🇦🇹', defaultTypes: ['toll_digital', 'toll_sticker'] },
-  { code: 'CH', name: 'Zwitserland', flag: '🇨🇭', defaultTypes: ['toll_digital', 'toll_sticker'] },
-  { code: 'FR', name: 'Frankrijk', flag: '🇫🇷', defaultTypes: ['emission_sticker'] },
-  { code: 'DE', name: 'Duitsland', flag: '🇩🇪', defaultTypes: ['emission_sticker'] },
-  { code: 'SI', name: 'Slovenië', flag: '🇸🇮', defaultTypes: ['toll_digital'] },
-  { code: 'CZ', name: 'Tsjechië', flag: '🇨🇿', defaultTypes: ['toll_digital'] },
-  { code: 'SK', name: 'Slowakije', flag: '🇸🇰', defaultTypes: ['toll_digital'] },
-  { code: 'HU', name: 'Hongarije', flag: '🇭🇺', defaultTypes: ['toll_digital'] },
-  { code: 'BE', name: 'België', flag: '🇧🇪', defaultTypes: ['other'] },
-  { code: 'IT', name: 'Italië', flag: '🇮🇹', defaultTypes: ['toll_digital', 'other'] },
-  { code: 'ES', name: 'Spanje', flag: '🇪🇸', defaultTypes: ['emission_sticker', 'other'] },
-  { code: 'OTHER', name: 'Overig land', flag: '🌍', defaultTypes: ['other'] },
+  { code: 'AT', flag: '🇦🇹', defaultTypes: ['toll_digital', 'toll_sticker'] },
+  { code: 'CH', flag: '🇨🇭', defaultTypes: ['toll_digital', 'toll_sticker'] },
+  { code: 'FR', flag: '🇫🇷', defaultTypes: ['emission_sticker'] },
+  { code: 'DE', flag: '🇩🇪', defaultTypes: ['emission_sticker'] },
+  { code: 'SI', flag: '🇸🇮', defaultTypes: ['toll_digital'] },
+  { code: 'CZ', flag: '🇨🇿', defaultTypes: ['toll_digital'] },
+  { code: 'SK', flag: '🇸🇰', defaultTypes: ['toll_digital'] },
+  { code: 'HU', flag: '🇭🇺', defaultTypes: ['toll_digital'] },
+  { code: 'BE', flag: '🇧🇪', defaultTypes: ['other'] },
+  { code: 'IT', flag: '🇮🇹', defaultTypes: ['toll_digital', 'other'] },
+  { code: 'ES', flag: '🇪🇸', defaultTypes: ['emission_sticker', 'other'] },
+  { code: 'OTHER', flag: '🌍', defaultTypes: ['other'] },
 ];
 
+// Pre-filled type and name when picking a country for a new vignette
+const COUNTRY_DEFAULTS: Record<string, { type: VignetteType; nameKey: TranslationKey }> = {
+  AT: { type: 'toll_digital', nameKey: 'vignetteDefaultAT' },
+  CH: { type: 'toll_digital', nameKey: 'vignetteDefaultCH' },
+  FR: { type: 'emission_sticker', nameKey: 'vignetteDefaultFR' },
+  DE: { type: 'emission_sticker', nameKey: 'vignetteDefaultDE' },
+  SI: { type: 'toll_digital', nameKey: 'vignetteDefaultSI' },
+};
+
+const TYPE_LABEL_KEYS: Record<VignetteType, TranslationKey> = {
+  toll_digital: 'vignetteTypeTollDigital',
+  toll_sticker: 'vignetteTypeTollSticker',
+  emission_sticker: 'vignetteTypeEmission',
+  other: 'vignetteTypeOther',
+};
+
+const TYPE_OPTION_KEYS: Record<VignetteType, TranslationKey> = {
+  toll_digital: 'vignetteOptionTollDigital',
+  toll_sticker: 'vignetteOptionTollSticker',
+  emission_sticker: 'vignetteOptionEmission',
+  other: 'vignetteOptionOther',
+};
+
 export const VignetteManager: React.FC<Props> = ({ vehicle }) => {
-  const { lang } = useLanguage();
+  const { t, lang } = useLanguage();
+
+  const regionNames = useMemo(() => {
+    try {
+      return new Intl.DisplayNames([lang], { type: 'region' });
+    } catch {
+      return null;
+    }
+  }, [lang]);
+
+  const getCountryName = (code: string) => {
+    if (code === 'OTHER') return t('vignetteOtherCountry');
+    try {
+      return regionNames?.of(code) || code;
+    } catch {
+      return code;
+    }
+  };
+
   const [vignettes, setVignettes] = useState<VehicleVignette[]>([]);
   const [documents, setDocuments] = useState<VehicleDocument[]>([]);
   const [loading, setLoading] = useState(false);
@@ -42,7 +86,7 @@ export const VignetteManager: React.FC<Props> = ({ vehicle }) => {
 
   // Form state
   const [country, setCountry] = useState('AT');
-  const [vignetteType, setVignetteType] = useState<'toll_digital' | 'toll_sticker' | 'emission_sticker' | 'other'>('toll_digital');
+  const [vignetteType, setVignetteType] = useState<VignetteType>('toll_digital');
   const [name, setName] = useState('');
   const [validFrom, setValidFrom] = useState(new Date().toISOString().split('T')[0]);
   const [validUntil, setValidUntil] = useState('');
@@ -82,7 +126,7 @@ export const VignetteManager: React.FC<Props> = ({ vehicle }) => {
     setEditingVignette(null);
     setCountry('AT');
     setVignetteType('toll_digital');
-    setName('Digitaal Tolvignet (10 dagen)');
+    setName(t('vignetteDefaultName'));
     setValidFrom(new Date().toISOString().split('T')[0]);
     setValidUntil('');
     setCost('');
@@ -108,23 +152,10 @@ export const VignetteManager: React.FC<Props> = ({ vehicle }) => {
 
   const handleCountryChange = (c: string) => {
     setCountry(c);
-    if (!editingVignette) {
-      if (c === 'AT') {
-        setVignetteType('toll_digital');
-        setName('Digitaal Tolvignet Oostenrijk (10 dagen)');
-      } else if (c === 'CH') {
-        setVignetteType('toll_digital');
-        setName('E-Vignet Zwitserland');
-      } else if (c === 'FR') {
-        setVignetteType('emission_sticker');
-        setName("Crit'Air Milieusticker Categorie 1");
-      } else if (c === 'DE') {
-        setVignetteType('emission_sticker');
-        setName('Umweltplakette Duitsland (Groen 4)');
-      } else if (c === 'SI') {
-        setVignetteType('toll_digital');
-        setName('E-Vignet Slovenië (7 dagen)');
-      }
+    const defaults = COUNTRY_DEFAULTS[c];
+    if (!editingVignette && defaults) {
+      setVignetteType(defaults.type);
+      setName(t(defaults.nameKey));
     }
   };
 
@@ -162,14 +193,14 @@ export const VignetteManager: React.FC<Props> = ({ vehicle }) => {
       setIsModalOpen(false);
       loadVignettes();
     } catch (err: any) {
-      alert(err?.message || 'Fout bij opslaan van vignet');
+      alert(err?.message || t('vignetteSaveFailed'));
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm(lang === 'nl' ? 'Weet je zeker dat je dit vignet wilt verwijderen?' : 'Delete this vignette?')) return;
+    if (!confirm(t('vignetteDeleteConfirm'))) return;
     try {
       await apiFetch(`/api/vignettes/${id}`, { method: 'DELETE' });
       loadVignettes();
@@ -178,22 +209,12 @@ export const VignetteManager: React.FC<Props> = ({ vehicle }) => {
     }
   };
 
-  const getCountryInfo = (code: string) => {
-    return COUNTRIES.find((c) => c.code === code) || { flag: '🌍', name: code };
-  };
+  const getCountryInfo = (code: string) => ({
+    flag: COUNTRIES.find((c) => c.code === code)?.flag || '🌍',
+    name: getCountryName(code),
+  });
 
-  const getTypeLabel = (type: string) => {
-    switch (type) {
-      case 'toll_digital':
-        return lang === 'nl' ? 'Digitaal Tolvignet' : 'Digital Toll Vignette';
-      case 'toll_sticker':
-        return lang === 'nl' ? 'Fysieke Sticker' : 'Physical Toll Sticker';
-      case 'emission_sticker':
-        return lang === 'nl' ? 'Milieusticker' : 'Environmental Badge';
-      default:
-        return lang === 'nl' ? 'Overig Vignet' : 'Other Vignette';
-    }
-  };
+  const getTypeLabel = (type: VignetteType) => t(TYPE_LABEL_KEYS[type] ?? 'vignetteTypeOther');
 
   const activeCount = vignettes.filter((v) => v.status === 'active' || v.status === 'lifetime').length;
   const totalCost = vignettes.reduce((acc, v) => acc + (Number(v.cost) || 0), 0);
@@ -204,17 +225,17 @@ export const VignetteManager: React.FC<Props> = ({ vehicle }) => {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="p-4 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-2xs">
           <span className="text-[11px] font-bold text-slate-400 block mb-1 uppercase tracking-wider">
-            {lang === 'nl' ? 'Actieve Vignetten' : 'Active Vignettes'}
+            {t('vignettesActive')}
           </span>
           <div className="flex items-baseline space-x-2">
             <span className="text-2xl font-black text-slate-900 dark:text-white">{activeCount}</span>
-            <span className="text-xs text-slate-500 font-semibold">/ {vignettes.length} geregistreerd</span>
+            <span className="text-xs text-slate-500 font-semibold">{t('vignettesRegisteredCount', { count: vignettes.length })}</span>
           </div>
         </div>
 
         <div className="p-4 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-2xs">
           <span className="text-[11px] font-bold text-slate-400 block mb-1 uppercase tracking-wider">
-            {lang === 'nl' ? 'Totale Kosten' : 'Total Expense'}
+            {t('vignettesTotalCost')}
           </span>
           <span className="text-2xl font-black font-mono text-emerald-600 dark:text-emerald-400">
             € {totalCost.toFixed(2)}
@@ -224,10 +245,10 @@ export const VignetteManager: React.FC<Props> = ({ vehicle }) => {
         <div className="p-4 bg-sky-50/60 dark:bg-sky-950/30 border border-sky-100 dark:border-sky-900/40 rounded-2xl flex items-center justify-between">
           <div>
             <span className="text-xs font-bold text-sky-900 dark:text-sky-300 block">
-              {lang === 'nl' ? 'Vakantie & Reis Vignetten' : 'Travel & Toll Badges'}
+              {t('vignettesTravelTitle')}
             </span>
             <span className="text-[11px] text-sky-700/80 dark:text-sky-400 block mt-0.5">
-              {lang === 'nl' ? 'Automatische herinnering vóór verloopdatum' : 'Automatic expiry notifications'}
+              {t('vignettesTravelHint')}
             </span>
           </div>
           <button
@@ -235,7 +256,7 @@ export const VignetteManager: React.FC<Props> = ({ vehicle }) => {
             className="px-3.5 py-2 bg-accent-600 hover:bg-accent-700 text-white rounded-xl text-xs font-bold inline-flex items-center space-x-1.5 transition shadow-sm shrink-0"
           >
             <Plus className="w-4 h-4" />
-            <span>{lang === 'nl' ? 'Nieuw Vignet' : 'Add Vignette'}</span>
+            <span>{t('vignettesAdd')}</span>
           </button>
         </div>
       </div>
@@ -243,25 +264,23 @@ export const VignetteManager: React.FC<Props> = ({ vehicle }) => {
       {/* Vignettes List */}
       {loading ? (
         <div className="p-12 text-center text-xs text-slate-400 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800">
-          {lang === 'nl' ? 'Vignetten laden...' : 'Loading vignettes...'}
+          {t('vignettesLoading')}
         </div>
       ) : vignettes.length === 0 ? (
         <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-12 text-center shadow-sm">
           <Tag className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
           <h3 className="text-sm font-bold text-slate-800 dark:text-white">
-            {lang === 'nl' ? 'Nog geen tolvignetten of milieustickers geregistreerd' : 'No vignettes registered yet'}
+            {t('vignettesEmptyTitle')}
           </h3>
           <p className="text-xs text-slate-500 max-w-md mx-auto mt-1 mb-5">
-            {lang === 'nl'
-              ? 'Houd al je tolvignetten voor Oostenrijk, Zwitserland, Frankrijk (Crit\'Air), Duitsland (Umweltplakette) en andere landen georganiseerd met automatische verval-alerts.'
-              : 'Keep all your toll vignettes and low-emission badges organized with expiry notifications.'}
+            {t('vignettesEmptyHint')}
           </p>
           <button
             onClick={openCreateModal}
             className="px-4 py-2 bg-accent-600 hover:bg-accent-700 text-white rounded-xl text-xs font-bold inline-flex items-center space-x-1.5 transition shadow-sm"
           >
             <Plus className="w-4 h-4" />
-            <span>{lang === 'nl' ? 'Eerste Vignet Toevoegen' : 'Add First Vignette'}</span>
+            <span>{t('vignettesAddFirst')}</span>
           </button>
         </div>
       ) : (
@@ -293,23 +312,23 @@ export const VignetteManager: React.FC<Props> = ({ vehicle }) => {
                     {/* Status badge */}
                     {isLifetime ? (
                       <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200 dark:bg-purple-950/50 dark:text-purple-300 dark:border-purple-800 shrink-0">
-                        {lang === 'nl' ? 'Levenslang' : 'Lifetime'}
+                        {t('vignetteStatusLifetime')}
                       </span>
                     ) : isExpired ? (
                       <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/50 dark:text-rose-300 dark:border-rose-800 shrink-0">
-                        {lang === 'nl' ? 'Verlopen' : 'Expired'}
+                        {t('vignetteStatusExpired')}
                       </span>
                     ) : isExpiring ? (
                       <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800 shrink-0">
-                        {lang === 'nl' ? `Verloopt (${vig.days_remaining}d)` : `Expires (${vig.days_remaining}d)`}
+                        {t('vignetteStatusExpiring', { days: vig.days_remaining ?? 0 })}
                       </span>
                     ) : isFuture ? (
                       <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-50 text-sky-700 border border-sky-200 dark:bg-sky-950/50 dark:text-sky-300 dark:border-sky-800 shrink-0">
-                        {lang === 'nl' ? `Actief over ${vig.days_remaining}d` : `Starts in ${vig.days_remaining}d`}
+                        {t('vignetteStatusFuture', { days: vig.days_remaining ?? 0 })}
                       </span>
                     ) : (
                       <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800 shrink-0">
-                        {lang === 'nl' ? `Actief (${vig.days_remaining}d)` : `Active (${vig.days_remaining}d)`}
+                        {t('vignetteStatusActive', { days: vig.days_remaining ?? 0 })}
                       </span>
                     )}
                   </div>
@@ -327,18 +346,18 @@ export const VignetteManager: React.FC<Props> = ({ vehicle }) => {
 
                   <div className="space-y-1.5 text-xs text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-950/60 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 mb-3">
                     <div className="flex items-center justify-between text-[11px]">
-                      <span className="text-slate-400">{lang === 'nl' ? 'Geldig van:' : 'Valid from:'}</span>
+                      <span className="text-slate-400">{t('vignetteValidFromLabel')}</span>
                       <span className="font-semibold">{vig.valid_from ? formatDisplayDate(vig.valid_from) : '—'}</span>
                     </div>
                     <div className="flex items-center justify-between text-[11px]">
-                      <span className="text-slate-400">{lang === 'nl' ? 'Geldig tot:' : 'Valid until:'}</span>
+                      <span className="text-slate-400">{t('vignetteValidUntilLabel')}</span>
                       <span className="font-bold text-slate-900 dark:text-white">
-                        {vig.valid_until ? formatDisplayDate(vig.valid_until) : (lang === 'nl' ? 'Onbeperkt / Levenslang' : 'Indefinite')}
+                        {vig.valid_until ? formatDisplayDate(vig.valid_until) : t('vignetteIndefinite')}
                       </span>
                     </div>
                     {vig.reference_number && (
                       <div className="flex items-center justify-between text-[11px] pt-1 border-t border-slate-200/60 dark:border-slate-800">
-                        <span className="text-slate-400">{lang === 'nl' ? 'Bestel-/Vignetnr:' : 'Ref / Number:'}</span>
+                        <span className="text-slate-400">{t('vignetteRefLabel')}</span>
                         <span className="font-mono text-[10px] font-bold truncate max-w-[140px]">{vig.reference_number}</span>
                       </div>
                     )}
@@ -359,7 +378,7 @@ export const VignetteManager: React.FC<Props> = ({ vehicle }) => {
                         className="inline-flex items-center space-x-1.5 text-[11px] font-semibold text-purple-600 dark:text-purple-400 hover:underline"
                       >
                         <Receipt className="w-3.5 h-3.5" />
-                        <span className="truncate max-w-[200px]">{vig.document_name || (lang === 'nl' ? 'Aankoopbewijs bekijken' : 'View invoice')}</span>
+                        <span className="truncate max-w-[200px]">{vig.document_name || t('vignetteViewProof')}</span>
                       </a>
                     </div>
                   )}
@@ -369,14 +388,14 @@ export const VignetteManager: React.FC<Props> = ({ vehicle }) => {
                   <button
                     onClick={() => openEditModal(vig)}
                     className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition"
-                    title={lang === 'nl' ? 'Bewerken' : 'Edit'}
+                    title={t('edit')}
                   >
                     <Pencil className="w-3.5 h-3.5" />
                   </button>
                   <button
                     onClick={() => handleDelete(vig.id)}
                     className="p-1.5 text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition"
-                    title={lang === 'nl' ? 'Verwijderen' : 'Delete'}
+                    title={t('delete')}
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -395,9 +414,7 @@ export const VignetteManager: React.FC<Props> = ({ vehicle }) => {
               <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center space-x-2">
                 <Tag className="w-4 h-4 text-sky-500" />
                 <span>
-                  {editingVignette
-                    ? (lang === 'nl' ? 'Vignet / Milieusticker Bewerken' : 'Edit Vignette / Badge')
-                    : (lang === 'nl' ? 'Nieuw Vignet of Milieusticker Toevoegen' : 'Add New Vignette / Badge')}
+                  {editingVignette ? t('vignetteEditTitle') : t('vignetteNewTitle')}
                 </span>
               </h3>
               <button
@@ -413,7 +430,7 @@ export const VignetteManager: React.FC<Props> = ({ vehicle }) => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    {lang === 'nl' ? 'Land' : 'Country'}
+                    {t('vignetteCountry')}
                   </label>
                   <select
                     value={country}
@@ -422,7 +439,7 @@ export const VignetteManager: React.FC<Props> = ({ vehicle }) => {
                   >
                     {COUNTRIES.map((c) => (
                       <option key={c.code} value={c.code}>
-                        {c.flag} {c.name} ({c.code})
+                        {c.flag} {getCountryName(c.code)}{c.code !== 'OTHER' ? ` (${c.code})` : ''}
                       </option>
                     ))}
                   </select>
@@ -430,29 +447,30 @@ export const VignetteManager: React.FC<Props> = ({ vehicle }) => {
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    {lang === 'nl' ? 'Type Vignet / Sticker' : 'Vignette Type'}
+                    {t('vignetteTypeLabel')}
                   </label>
                   <select
                     value={vignetteType}
                     onChange={(e) => setVignetteType(e.target.value as any)}
                     className="w-full text-xs font-semibold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
                   >
-                    <option value="toll_digital">{lang === 'nl' ? 'Digitaal Tolvignet (E-Vignet)' : 'Digital Toll (E-Vignette)'}</option>
-                    <option value="toll_sticker">{lang === 'nl' ? 'Fysieke Tolsticker' : 'Physical Toll Sticker'}</option>
-                    <option value="emission_sticker">{lang === 'nl' ? 'Milieusticker (Crit\'Air / Umweltplakette)' : 'Low-Emission Badge'}</option>
-                    <option value="other">{lang === 'nl' ? 'Overig Vignet / Pas' : 'Other Pass'}</option>
+                    {(Object.keys(TYPE_OPTION_KEYS) as VignetteType[]).map((type) => (
+                      <option key={type} value={type}>
+                        {t(TYPE_OPTION_KEYS[type])}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  {lang === 'nl' ? 'Naam of Omschrijving' : 'Title / Description'} *
+                  {t('vignetteNameLabel')}
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder={lang === 'nl' ? 'bijv. Digitaal Vignet 10 Dagen' : 'e.g. 10-Day Digital Toll'}
+                  placeholder={t('vignetteNamePlaceholder')}
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="w-full text-xs font-bold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
@@ -462,14 +480,14 @@ export const VignetteManager: React.FC<Props> = ({ vehicle }) => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <DatePicker
-                    label={lang === 'nl' ? 'Geldig vanaf' : 'Valid from'}
+                    label={t('vignetteValidFrom')}
                     value={validFrom}
                     onChange={setValidFrom}
                   />
                 </div>
                 <div>
                   <DatePicker
-                    label={lang === 'nl' ? 'Geldig t/m (leeg = levenslang)' : 'Valid until (empty = lifetime)'}
+                    label={t('vignetteValidUntil')}
                     value={validUntil}
                     onChange={setValidUntil}
                   />
@@ -479,7 +497,7 @@ export const VignetteManager: React.FC<Props> = ({ vehicle }) => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    {lang === 'nl' ? 'Aanschafkosten (€)' : 'Cost (€)'}
+                    {t('vignetteCost')}
                   </label>
                   <input
                     type="number"
@@ -494,11 +512,11 @@ export const VignetteManager: React.FC<Props> = ({ vehicle }) => {
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    {lang === 'nl' ? 'Bestel- / Referentienummer' : 'Order / Reference Nr'}
+                    {t('vignetteReference')}
                   </label>
                   <input
                     type="text"
-                    placeholder="bijv. ASFINAG-982137"
+                    placeholder={t('examplePlaceholder', { value: 'ASFINAG-982137' })}
                     value={referenceNumber}
                     onChange={(e) => setReferenceNumber(e.target.value)}
                     className="w-full text-xs font-mono bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
@@ -508,14 +526,14 @@ export const VignetteManager: React.FC<Props> = ({ vehicle }) => {
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  {lang === 'nl' ? 'Gekoppeld Aankoopbewijs uit Documenten' : 'Linked Proof from Documents'}
+                  {t('vignetteLinkedProof')}
                 </label>
                 <select
                   value={documentId}
                   onChange={(e) => setDocumentId(e.target.value)}
                   className="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
                 >
-                  <option value="">{lang === 'nl' ? 'Geen aankoopbewijs gekoppeld' : 'No document linked'}</option>
+                  <option value="">{t('vignetteNoProof')}</option>
                   {documents.map((d) => (
                     <option key={d.id} value={d.id}>
                       {d.name} ({formatDisplayDate(d.document_date || d.created_at)})
@@ -526,11 +544,11 @@ export const VignetteManager: React.FC<Props> = ({ vehicle }) => {
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  {lang === 'nl' ? 'Notities (optioneel)' : 'Notes (optional)'}
+                  {t('vignetteNotesOptional')}
                 </label>
                 <textarea
                   rows={2}
-                  placeholder={lang === 'nl' ? 'bijv. Gekocht voor zomervakantie naar Karinthië' : 'Optional notes...'}
+                  placeholder={t('vignetteNotesPlaceholder')}
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   className="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
@@ -543,14 +561,14 @@ export const VignetteManager: React.FC<Props> = ({ vehicle }) => {
                   onClick={() => setIsModalOpen(false)}
                   className="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition"
                 >
-                  {lang === 'nl' ? 'Annuleren' : 'Cancel'}
+                  {t('cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
                   className="px-4 py-2 text-xs font-bold bg-accent-600 hover:bg-accent-700 text-white rounded-xl shadow-sm transition disabled:opacity-50"
                 >
-                  {saving ? (lang === 'nl' ? 'Opslaan...' : 'Saving...') : (lang === 'nl' ? 'Vignet Opslaan' : 'Save Vignette')}
+                  {saving ? t('saving') : t('vignetteSave')}
                 </button>
               </div>
             </form>
