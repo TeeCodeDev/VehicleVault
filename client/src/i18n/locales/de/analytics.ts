@@ -147,4 +147,11 @@ export const analytics: Record<keyof typeof nl, string> = {
   categoryMotorcycles: 'Motorräder',
   categoryVans: 'Transporter',
   categoryTrailers: 'Anhänger',
+  includeInactiveVehicles: 'Verkaufte / archivierte Fahrzeuge einbeziehen',
+
+  // Period comparison
+  periodComparisonTitle: 'Periodenvergleich (Jahresvergleich & Monatstrend)',
+  periodComparisonSubtitle: 'Vergleiche monatliche Gesamtkosten zwischen Jahren oder sieh den Trend zum Vormonat.',
+  previousMonthLabel: 'Vormonat',
+  periodDeltaLabel: 'Differenz',
 };

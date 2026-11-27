@@ -25,6 +25,7 @@ export const AnalyticsTco: React.FC = () => {
   const { t } = useLanguage();
   const [reportScope, setReportScope] = useState<'vehicle' | 'fleet'>('vehicle');
   const [fleetVehicleType, setFleetVehicleType] = useState<string>('all');
+  const [includeInactiveFleet, setIncludeInactiveFleet] = useState(false);
   const [tco, setTco] = useState<TcoSummary | null>(null);
   const [fleetData, setFleetData] = useState<any>(null);
   const [fleetLoading, setFleetLoading] = useState(false);
@@ -67,6 +68,7 @@ export const AnalyticsTco: React.FC = () => {
       if (startDate) query += `&startDate=${startDate}`;
       if (endDate) query += `&endDate=${endDate}`;
       if (fleetVehicleType && fleetVehicleType !== 'all') query += `&vehicleType=${fleetVehicleType}`;
+      if (includeInactiveFleet) query += '&includeInactive=true';
       const res = await apiFetch<any>(`/api/analytics/fleet${query}`);
       setFleetData(res);
     } catch {
@@ -92,6 +94,7 @@ export const AnalyticsTco: React.FC = () => {
     includePurchasePrice,
     includeFixedExpenses,
     fleetVehicleType,
+    includeInactiveFleet,
   ]);
 
   const exportCsv = () => {
@@ -246,6 +249,8 @@ export const AnalyticsTco: React.FC = () => {
           exportCsv={exportCsv}
           vehicleType={fleetVehicleType}
           onVehicleTypeChange={setFleetVehicleType}
+          includeInactive={includeInactiveFleet}
+          onIncludeInactiveChange={setIncludeInactiveFleet}
         />
       ) : (
         <VehicleAnalyticsView

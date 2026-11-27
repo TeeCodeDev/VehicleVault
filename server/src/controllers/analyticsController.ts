@@ -40,18 +40,20 @@ export class AnalyticsController {
       const userId = req.user?.userId;
       const role = req.user?.role;
 
+      const { startDate, endDate, includeFixedExpenses, includePurchasePrice, vehicleType, includeInactive } = req.query;
+      const statusClause = includeInactive === 'true' ? "status IN ('active', 'sold', 'archived')" : "status = 'active'";
+      const vStatusClause = includeInactive === 'true' ? "v.status IN ('active', 'sold', 'archived')" : "v.status = 'active'";
+
       let allActiveVehicles: any[] = [];
       if (role === 'admin') {
-        allActiveVehicles = db.query("SELECT * FROM vehicles WHERE status = 'active'");
+        allActiveVehicles = db.query(`SELECT * FROM vehicles WHERE ${statusClause}`);
       } else {
         allActiveVehicles = db.query(`
           SELECT v.* FROM vehicles v
           LEFT JOIN vehicle_shares vs ON vs.vehicle_id = v.id AND vs.user_id = ?
-          WHERE v.status = 'active' AND (v.user_id = ? OR vs.id IS NOT NULL)
+          WHERE ${vStatusClause} AND (v.user_id = ? OR vs.id IS NOT NULL)
         `, [userId, userId]);
       }
-
-      const { startDate, endDate, includeFixedExpenses, includePurchasePrice, vehicleType } = req.query;
       const availableTypes = Array.from(new Set(allActiveVehicles.map((v) => v.type).filter(Boolean)));
       const vehicles =
         vehicleType && vehicleType !== 'all'
@@ -82,6 +84,7 @@ export class AnalyticsController {
             name: v.name,
             license_plate: v.license_plate,
             type: v.type,
+            status: v.status,
             totalCost: s.totalCost,
             fuelTotal: s.fuelTotal,
             serviceTotal: s.serviceTotal,

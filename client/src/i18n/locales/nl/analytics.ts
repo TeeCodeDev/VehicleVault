@@ -145,4 +145,11 @@ export const analytics = {
   categoryMotorcycles: 'Motoren',
   categoryVans: 'Bedrijfswagens',
   categoryTrailers: 'Aanhangers',
+  includeInactiveVehicles: 'Inclusief verkochte / gearchiveerde voertuigen',
+
+  // Period comparison
+  periodComparisonTitle: 'Periodevergelijking (Jaar-op-jaar & Maandtrend)',
+  periodComparisonSubtitle: 'Vergelijk maandelijkse totale kosten tussen jaren of bekijk de trend t.o.v. vorige maand.',
+  previousMonthLabel: 'Vorige maand',
+  periodDeltaLabel: 'Verschil',
 };

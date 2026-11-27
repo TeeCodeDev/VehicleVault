@@ -12,6 +12,8 @@ import {
 } from 'recharts';
 import { useLanguage } from '../../context/LanguageContext.js';
 import { FleetBenchmarkCard } from './FleetBenchmarkCard.js';
+import { PeriodComparisonCard } from './PeriodComparisonCard.js';
+import { StatusBadge } from '../StatusBadge.js';
 
 interface FleetAnalyticsViewProps {
   fleetData: any;
@@ -19,6 +21,8 @@ interface FleetAnalyticsViewProps {
   exportCsv: () => void;
   vehicleType?: string;
   onVehicleTypeChange?: (type: string) => void;
+  includeInactive?: boolean;
+  onIncludeInactiveChange?: (val: boolean) => void;
 }
 
 export const FleetAnalyticsView: React.FC<FleetAnalyticsViewProps> = ({
@@ -27,6 +31,8 @@ export const FleetAnalyticsView: React.FC<FleetAnalyticsViewProps> = ({
   exportCsv,
   vehicleType = 'all',
   onVehicleTypeChange,
+  includeInactive = false,
+  onIncludeInactiveChange,
 }) => {
   const { t } = useLanguage();
 
@@ -49,22 +55,40 @@ export const FleetAnalyticsView: React.FC<FleetAnalyticsViewProps> = ({
 
   return (
     <div className="space-y-6">
-      {onVehicleTypeChange && categoryOptions.length > 1 && (
-        <div className="flex items-center gap-1.5 flex-wrap bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-1.5 rounded-xl w-fit shadow-xs">
-          {categoryOptions.map((opt) => (
-            <button
-              key={opt.id}
-              type="button"
-              onClick={() => onVehicleTypeChange(opt.id)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
-                vehicleType === opt.id
-                  ? 'bg-accent-600 text-white shadow-xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
+      {(onVehicleTypeChange && categoryOptions.length > 1 || onIncludeInactiveChange) && (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          {onVehicleTypeChange && categoryOptions.length > 1 ? (
+            <div className="flex items-center gap-1.5 flex-wrap bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-1.5 rounded-xl w-fit shadow-xs">
+              {categoryOptions.map((opt) => (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => onVehicleTypeChange(opt.id)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                    vehicleType === opt.id
+                      ? 'bg-accent-600 text-white shadow-xs'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div />
+          )}
+
+          {onIncludeInactiveChange && (
+            <label className="inline-flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer shadow-xs">
+              <input
+                type="checkbox"
+                checked={includeInactive}
+                onChange={(e) => onIncludeInactiveChange(e.target.checked)}
+                className="rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+              />
+              <span>{t('includeInactiveVehicles')}</span>
+            </label>
+          )}
         </div>
       )}
 
@@ -143,6 +167,9 @@ export const FleetAnalyticsView: React.FC<FleetAnalyticsViewProps> = ({
       {/* Voertuig-Benchmark & Kostenranking */}
       <FleetBenchmarkCard vehicles={fleetData?.vehicles || []} />
 
+      {/* Periodevergelijking (Jaar-op-jaar & Maandtrend) */}
+      <PeriodComparisonCard monthlyBreakdown={fleetData?.monthlyBreakdown || []} />
+
       {/* Wagenpark Vergelijkingstabel */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-xs space-y-3 transition-colors">
         <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
@@ -174,7 +201,10 @@ export const FleetAnalyticsView: React.FC<FleetAnalyticsViewProps> = ({
               {(fleetData?.vehicles || []).map((fv: any) => (
                 <tr key={fv.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
                   <td className="py-2.5 px-3 font-bold text-slate-800 dark:text-slate-200">
-                    {fv.name}
+                    <div className="flex items-center space-x-2">
+                      <span>{fv.name}</span>
+                      {fv.status && fv.status !== 'active' && <StatusBadge status={fv.status} />}
+                    </div>
                   </td>
                   <td className="py-2.5 px-3 font-mono font-bold text-slate-700 dark:text-slate-300">
                     {fv.license_plate || '—'}

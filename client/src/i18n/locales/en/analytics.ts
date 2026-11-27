@@ -147,4 +147,11 @@ export const analytics: Record<keyof typeof nl, string> = {
   categoryMotorcycles: 'Motorcycles',
   categoryVans: 'Vans',
   categoryTrailers: 'Trailers',
+  includeInactiveVehicles: 'Include sold / archived vehicles',
+
+  // Period comparison
+  periodComparisonTitle: 'Period Comparison (Year-over-Year & Monthly Trend)',
+  periodComparisonSubtitle: 'Compare monthly total costs across years or inspect the change from the previous month.',
+  previousMonthLabel: 'Previous month',
+  periodDeltaLabel: 'Difference',
 };

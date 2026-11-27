@@ -174,6 +174,16 @@ describe('Vehicle Sold Archiving & Fleet Category Filtering', () => {
     assert.equal(motoMock.getBody().vehicleCount, 1);
     assert.equal(motoMock.getBody().fleetTotalCost, 30);
     assert.equal(motoMock.getBody().vehicles[0].id, motoId);
+
+    // 4. Explicit includeInactive=true includes soldCarId for comparison
+    const compareMock = createMockRes();
+    await AnalyticsController.getFleetTco(
+      { user: { userId }, query: { includeInactive: 'true' } } as any,
+      compareMock.res
+    );
+    assert.equal(compareMock.getStatus(), 200);
+    assert.equal(compareMock.getBody().vehicleCount, 3);
+    assert.equal(compareMock.getBody().fleetTotalCost, 210);
   });
 
   it('automatically takes public showcase offline when sold unless keep_showcase_open is true', async () => {
